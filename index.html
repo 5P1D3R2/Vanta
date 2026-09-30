@@ -246,4 +246,1411 @@ h1,h2,h3{font-weight:600}
 .hc-foot{display:flex;justify-content:space-between;align-items:center;padding-top:12px}
 .payout-badge{display:inline-flex;gap:6px;align-items:center;font:600 11.5px var(--fb);color:var(--acc);background:rgba(205,255,63,.09);padding:6px 10px;border-radius:8px}
 .ticker{overflow:hidden;background:var(--ink);color:var(--text)}
-.tick-track{display:flex;width:max-content;animation:marq 3
+.tick-track{display:flex;width:max-content;animation:marq 38s linear infinite}
+.ticker:hover .tick-track{animation-play-state:paused}
+@keyframes marq{to{transform:translateX(-50%)}}
+.tk{display:inline-flex;gap:9px;align-items:center;padding:13px 26px;border-right:1px solid rgba(255,255,255,.09);font-size:12.5px}
+.tk b{font-weight:600}
+.tk-p{font-size:12px;color:#D8DCCE}
+.tk-d{font-size:9px}
+.tk-d.u{color:var(--up)}.tk-d.d{color:var(--down)}
+.sec{padding:90px 6vw}
+.sec-h{font:700 clamp(26px,3.4vw,44px)/1.08 var(--fd);margin:0 0 12px;color:var(--ink)}
+.sec-p{color:#3F4438;font-size:15.5px;line-height:1.65;max-width:600px;margin:0}
+.how{padding:90px 6vw 60px}
+.how-row{display:grid;grid-template-columns:100px 1fr 190px;gap:30px;align-items:center;padding:34px 8px;border-top:1px solid rgba(20,22,16,.14);transition:background .2s}
+.how-row:last-of-type{border-bottom:1px solid rgba(20,22,16,.14)}
+.how-row:hover{background:rgba(20,22,16,.035)}
+.how-n{font:600 15px var(--fm);color:rgba(20,22,16,.35)}
+.how-row h3{font:600 18px var(--fd);margin:0 0 8px;color:var(--ink)}
+.how-row p{margin:0;color:#4A4E42;line-height:1.65;font-size:14.5px;max-width:560px}
+.how-d{justify-self:end}
+.how-d svg{display:block}
+.mk{display:grid;grid-template-columns:1fr 500px;gap:60px;padding:90px 6vw;align-items:center}
+.mk-ul{list-style:none;padding:0;margin:26px 0 0;display:flex;flex-direction:column;gap:12px}
+.mk-ul li{display:flex;gap:10px;align-items:center;font-size:14px;color:#33372C;font-weight:500}
+.mk-ul .ic{color:var(--up-ink)}
+.mk-r{background:#0B0D0C;color:var(--text);border-radius:18px;padding:8px 18px;box-shadow:0 24px 60px rgba(20,22,16,.18)}
+.mk-th,.mk-row{display:grid;grid-template-columns:1fr auto auto auto;gap:14px;align-items:center;padding:13px 4px}
+.mk-th{font:600 10px var(--fb);letter-spacing:.1em;text-transform:uppercase;color:var(--dim);border-bottom:1px solid var(--line)}
+.mk-row{border-bottom:1px solid var(--line);text-decoration:none;color:var(--text);transition:background .15s}
+.mk-row:last-child{border:0}
+.mk-row:hover{background:rgba(205,255,63,.04)}
+.mk-row b{display:block;font-size:13px}
+.mk-row i{font-style:normal;font-size:10.5px;color:var(--dim)}
+.mkp{font-size:13px;min-width:86px;text-align:right;transition:color .2s}
+.mk-po{color:var(--acc);font-size:12px;min-width:44px;text-align:right;font-family:var(--fm)}
+.mk-row .ic{color:var(--dim)}
+.strip{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:26px;padding:64px 6vw;border-top:1px solid rgba(20,22,16,.12)}
+.strip>div{display:flex;flex-direction:column;gap:5px}
+.strip b{font:600 clamp(30px,4vw,52px)/1 var(--fd);color:var(--ink)}
+.strip span{font:600 10.5px var(--fb);letter-spacing:.13em;text-transform:uppercase;color:var(--ink3)}
+.strip i{font:400 30px var(--fm);color:rgba(20,22,16,.22);font-style:normal}
+.faq{padding:90px 6vw}
+.faq-in{max-width:780px;margin:0 auto}
+.faq details{border-bottom:1px solid rgba(20,22,16,.15)}
+.faq summary{display:flex;justify-content:space-between;align-items:center;cursor:pointer;list-style:none;padding:20px 4px;font:600 16px var(--fb);color:var(--ink)}
+.faq summary::-webkit-details-marker{display:none}
+.faq summary i{font-style:normal;font:400 22px var(--fm);color:rgba(20,22,16,.4);transition:transform .2s;line-height:1}
+.faq details[open] summary i{transform:rotate(45deg)}
+.faq details p{padding:0 4px 22px;color:#4A4E42;max-width:640px;line-height:1.7;font-size:14.5px;margin:0}
+.cta-band{background:var(--acc);color:var(--acc-ink);padding:92px 6vw;display:flex;align-items:center;justify-content:space-between;gap:30px;flex-wrap:wrap}
+.cta-band h2{font:700 clamp(28px,4.4vw,54px)/1.04 var(--fd);margin:0;max-width:660px}
+.lfoot{background:var(--ink);color:#B9BFAE;padding:56px 6vw 40px}
+.lfoot .brand{color:#EDEFE8}
+.lfoot p{font-size:12px;line-height:1.75;color:#8B9284;max-width:780px}
+.lfoot-links{display:flex;gap:20px;margin:20px 0 26px;flex-wrap:wrap}
+.lfoot-links a{text-decoration:none;font:600 12.5px var(--fb);color:#B9BFAE}
+.lfoot-links a:hover{color:var(--acc)}
+.lfoot small{color:#6D7568;font-size:11px}
+.auth{display:grid;grid-template-columns:1fr 1fr;min-height:100dvh}
+.auth-l{background:var(--bg);color:var(--text);padding:36px 5vw;display:flex;flex-direction:column;gap:40px}
+.auth-quote{margin:auto 0}
+.auth-quote h2{font:700 clamp(30px,3.4vw,46px)/1.06 var(--fd);margin:0 0 22px}
+.auth-tick{font:600 14px var(--fm);color:var(--mut)}
+.auth-note{display:flex;gap:8px;align-items:center;font-size:12px;color:var(--dim)}
+.auth-note .ic{color:var(--up)}
+.auth-r{background:var(--paper);color:var(--ink);display:flex;align-items:center;justify-content:center;padding:44px 20px}
+.auth-r form{width:min(400px,100%)}
+.auth-r h1{font:700 25px var(--fd);margin:0 0 6px}
+.auth-r .sub{color:var(--ink2);font-size:13.5px;margin:0 0 26px}
+.auth-r input{background:#fff;border-color:rgba(20,22,16,.2);color:var(--ink)}
+.auth-r input:focus{border-color:var(--ink)}
+.auth-r .fld>span:first-child{color:var(--ink3)}
+.swap{text-align:center;font-size:13px;color:var(--ink2);margin:18px 0 0}
+.swap a{color:var(--ink);font-weight:600}
+@media(max-width:1150px){.term{grid-template-columns:222px minmax(0,1fr) 300px}}
+@media(max-width:980px){
+  .term{height:auto;grid-template-columns:1fr;grid-template-rows:auto 340px auto}
+  .side{border-right:0;border-bottom:1px solid var(--line)}
+  .side-search{display:none}
+  .alist{display:flex;overflow-x:auto;padding:8px}
+  .ag{display:none}
+  .ai{min-width:150px;border-left:0;border-bottom:2px solid transparent;border-radius:10px}
+  .ai.on{border-bottom-color:var(--acc)}
+  .tb{border-left:0;border-top:1px solid var(--line)}
+  .hero{grid-template-columns:1fr;gap:40px;padding:56px 6vw}
+  .mk{grid-template-columns:1fr;gap:36px;padding:70px 6vw}
+  .auth{grid-template-columns:1fr}
+  .auth-l{gap:24px;padding:28px 6vw}
+  .auth-quote{margin:8px 0}
+  .dep-grid,.prof{grid-template-columns:1fr}
+  .tnav a span{display:none}
+}
+@media(max-width:760px){.lnav nav{display:none}.how-row{grid-template-columns:56px 1fr}.how-d{display:none}}
+@media(max-width:560px){.cz-tools .chips:last-of-type{display:none}.pg-head{flex-direction:column;align-items:flex-start}}
+</style>
+</head>
+<body>
+<div id="toasts"></div>
+<div id="app"></div>
+<noscript><p style="padding:40px;font-family:monospace">VANTA needs JavaScript to run.</p></noscript>
+
+<script>
+'use strict';
+/* ═══════════════════════════════════════════════════════════════════════
+   VANTA v2 — single-file build, WIRED TO LIVE BACKEND
+   ─────────────────────────────────────────────────────────────────────
+   • Trades, balances & settlement live on YOUR Render server + MongoDB
+   • Prices poll the server every second (chart history is cosmetic
+     backfill until real market data is wired server-side)
+   • Offline demo mode: set USE_DEMO=true below (no server needed)
+   • M-Pesa screen is ready; real STK Push needs Daraja on the backend
+     (until then use the "dev approve" button on the deposit screen)
+   • ⚠ ALLOW_DEV_CONFIRM=true on the server credits deposits without
+     real payment — flip it off before real users
+════════════════════════════════════════════════════════════════════════ */
+
+/* ── 0 · CONNECTION ──────────────────────────────────────────────────── */
+const USE_DEMO=false;                                   /* true = offline demo mode */
+const API_URL='https://vanta-1-7q8l.onrender.com';      /* your Render backend */
+
+/* ── 1 · helpers ─────────────────────────────────────────────────────── */
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const uid=()=>Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const clamp=(v,a,b)=>Math.min(b,Math.max(a,v));
+const dg=x=>typeof x==='function'?x():x;
+const money=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const fmtDT=t=>{const d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toTimeString().slice(0,5)};
+const count=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
+function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
+function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(x)));const n=x/p;return (n<1.5?1:n<3?2:n<7?5:10)*p}
+function luhn(s){let sum=0,alt=false;for(let i=s.length-1;i>=0;i--){let n=+s[i];if(alt){n*=2;if(n>9)n-=9}sum+=n;alt=!alt}return sum%10===0}
+const Bus={m:{},on(e,f){(this.m[e]??=[]).push(f);return()=>{this.m[e]=(this.m[e]||[]).filter(x=>x!==f)}},emit(e,d){(this.m[e]||[]).forEach(f=>{try{f(d)}catch{}})}};
+
+/* ── 2 · icons ───────────────────────────────────────────────────────── */
+const I={
+up:'<path d="M12 19V5M5 12l7-7 7 7"/>',
+down:'<path d="M12 5v14M19 12l-7 7-7-7"/>',
+right:'<path d="M5 12h14M12 5l7 7-7 7"/>',
+plus:'<path d="M12 5v14M5 12h14"/>',
+wallet:'<path d="M20 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4M3 5v14a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1v-9a1 1 0 0 0-1-1Z"/><path d="M16 13.5h2"/>',
+clock:'<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+history:'<path d="M3 3v5h5"/><path d="M3.1 13a9 9 0 1 0 2.5-7.3L3 8"/><path d="M12 7v5l3.5 2"/>',
+user:'<path d="M19 21v-1a5 5 0 0 0-5-5h-4a5 5 0 0 0-5 5v1"/><circle cx="12" cy="8" r="4"/>',
+logout:'<path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9"/>',
+x:'<path d="M18 6 6 18M6 6l12 12"/>',
+check:'<path d="M20 6 9 17l-5-5"/>',
+copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
+chevD:'<path d="m6 9 6 6 6-6"/>',
+shield:'<path d="M12 22s8-3.5 8-10V5.5L12 2 4 5.5V12c0 6.5 8 10 8 10Z"/><path d="m9 11.5 2 2 4-4.5"/>',
+zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
+card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
+info:'<circle cx="12" cy="12" r="9"/><path d="M12 11v5M12 8h.01"/>',
+warn:'<path d="M12 3 2.5 20h19L12 3Z"/><path d="M12 10v4M12 17h.01"/>',
+lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/>',
+mail:'<rect x="2" y="4" width="20" height="16" rx="2"/><path d="m22 7-10 6L2 7"/>',
+gift:'<path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H8.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7ZM12 7h3.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7Z"/>',
+send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
+search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+refresh:'<path d="M21 12a9 9 0 1 1-2.6-6.4L21 8"/><path d="M21 3v5h-5"/>',
+chart:'<path d="M7 3v3M7 17v4M4.5 6h5v11h-5zM17 7v3M17 16v5M14.5 10h5v6h-5z"/>',
+eye:'<path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/>',
+eyeoff:'<path d="M10.6 5.1c.5-.1.9-.1 1.4-.1 6.5 0 10 7 10 7a17 17 0 0 1-2.8 3.8M6.4 6.4A16.6 16.6 0 0 0 2 12s3.5 7 10 7c1.5 0 2.9-.4 4.1-1M3 3l18 18M9.9 9.9a3 3 0 0 0 4.2 4.2"/>',
+};
+const icon=(n,s=18,cls='')=>`<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">${I[n]||''}</svg>`;
+const logo=(s=26)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none"><path d="M8 2.5v2.5M8 16v5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5.5" y="5" width="5" height="11" rx="1" fill="var(--acc)"/><path d="M16.5 4v3M16.5 15v6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="14" y="7" width="5" height="8" rx="1" fill="currentColor"/></svg>`;
+
+/* ── 3 · toasts & dialogs ────────────────────────────────────────────── */
+const TT={win:['up','up'],loss:['down','down'],ok:['check','up'],warn:['warn','down'],info:['info','']};
+function toast(type,title,msg=''){
+  const box=$('#toasts');const t=document.createElement('div');
+  const[ic,c]=TT[type]||TT.info;
+  t.className='toast '+(c?'t-'+c:'');
+  t.innerHTML=`<span class="t-ic">${icon(ic,16)}</span><div><b>${esc(title)}</b>${msg?`<p>${esc(msg)}</p>`:''}</div><button class="t-x">${icon('x',13)}</button>`;
+  box.prepend(t);
+  const kill=()=>{t.classList.add('out');setTimeout(()=>t.remove(),220)};
+  t.querySelector('.t-x').onclick=kill;setTimeout(kill,4800);
+}
+function confirmDialog({title,body,ok='Confirm',danger=false}){
+  return new Promise(res=>{
+    const ov=document.createElement('div');ov.className='dlgo';
+    ov.innerHTML=`<div class="dlg"><h3>${esc(title)}</h3><div class="dlg-b">${body}</div>
+      <div class="dlg-f"><button class="btn btn-ghost" data-a="no">Cancel</button>
+      <button class="btn ${danger?'btn-danger':'btn-acc'}" data-a="ok">${esc(ok)}</button></div></div>`;
+    ov.addEventListener('click',e=>{
+      const a=e.target.closest('[data-a]')?.dataset.a;
+      if(a){ov.remove();res(a==='ok')}else if(e.target===ov){ov.remove();res(false)}
+    });
+    document.body.appendChild(ov);
+  });
+}
+
+/* ── 4 · market feed ─────────────────────────────────────────────────── */
+const FEED=[
+  {id:'EURUSD',name:'EUR/USD',cat:'Forex',start:1.08423,vol:0.00006,dec:5,payout:85},
+  {id:'GBPUSD',name:'GBP/USD',cat:'Forex',start:1.27164,vol:0.00009,dec:5,payout:83},
+  {id:'USDJPY',name:'USD/JPY',cat:'Forex',start:154.281,vol:0.011,dec:3,payout:82},
+  {id:'BTCUSD',name:'BTC/USD',cat:'Crypto',start:67432,vol:16,dec:0,payout:88},
+  {id:'ETHUSD',name:'ETH/USD',cat:'Crypto',start:3418.4,vol:1.2,dec:1,payout:86},
+  {id:'XAUUSD',name:'GOLD',cat:'Commodity',start:2382.6,vol:0.5,dec:2,payout:84},
+];
+const Market={
+  A:FEED.map(a=>({...a,price:a.start,drift:0,dir:1,ticks:[]})),
+  _cc:{},subs:new Set(),_pb:false,_synced:false,
+  init(){
+    if(USE_DEMO){
+      const now=Date.now();
+      this.A.forEach(a=>{let p=a.start;const t0=now-65*60*1000;
+        for(let t=t0;t<now;t+=1000){p=this.step(a,p);a.ticks.push({t,p});}
+        a.price=p;});
+    }
+    setInterval(()=>this.tick(),USE_DEMO?400:1000);
+  },
+  step(a,p){
+    if(Math.random()<0.03)a.drift=(Math.random()-0.5)*a.vol*0.9;
+    const pull=(a.start-p)/a.start*a.vol*0.35;
+    return Math.max(a.start*0.3,p+a.drift+a.vol*gauss()+pull);
+  },
+  tick(){
+    if(!USE_DEMO){this.pullRemote();return}
+    const t=Date.now();
+    this.A.forEach(a=>{const p=this.step(a,a.price);
+      a.dir=p>a.price?1:p<a.price?-1:a.dir;a.price=p;
+      a.ticks.push({t,p});if(a.ticks.length>4200)a.ticks.splice(0,a.ticks.length-4200);});
+    this.subs.forEach(f=>f());
+  },
+  /* live: poll server prices; first success backfills cosmetic history to the seam */
+  async pullRemote(){
+    if(this._pb)return;this._pb=true;
+    try{
+      const r=await API.prices(),t=r.t||Date.now();
+      for(const id in r.p){
+        const a=this.byId(id);if(!a)continue;
+        const p=+r.p[id];
+        if(!this._synced){
+          let q=p;const hist=[],t0=t-65*60*1000;
+          for(let tt=t0;tt<t;tt+=1000){q=this.step(a,q);hist.push({t:tt,p:q});}
+          hist.push({t,p});
+          a.ticks=hist;a.price=p;a.dir=1;
+        }else{
+          a.dir=p>a.price?1:p<a.price?-1:a.dir;a.price=p;
+          a.ticks.push({t,p});if(a.ticks.length>4200)a.ticks.splice(0,a.ticks.length-4200);
+        }
+      }
+      this._synced=true;
+      this.subs.forEach(f=>f());
+    }catch{}
+    this._pb=false;
+  },
+  on(f){this.subs.add(f);return()=>this.subs.delete(f)},
+  byId(id){return this.A.find(a=>a.id===id)},
+  _build(a,tf){
+    const out=[];let cur=null;
+    for(const k of a.ticks){const b=Math.floor(k.t/(tf*1000))*(tf*1000);
+      if(!cur||cur.t!==b){if(cur)out.push(cur);cur={t:b,o:k.p,h:k.p,l:k.p,c:k.p};}
+      else{if(k.p>cur.h)cur.h=k.p;if(k.p<cur.l)cur.l=k.p;cur.c=k.p;}}
+    if(cur)out.push(cur);return out;
+  },
+  candles(a,tf,cnt){
+    const key=a.id+'|'+tf,now=Date.now();let e=this._cc[key];
+    if(!e||now-e.at>200){e=this._cc[key]={at:now,arr:this._build(a,tf)};}
+    return cnt?e.arr.slice(-cnt):e.arr;
+  },
+  fmtP(a,p=a.price){return (+p).toLocaleString('en-US',{minimumFractionDigits:a.dec,maximumFractionDigits:a.dec})},
+};
+
+/* ── 5 · canvas candlestick chart ────────────────────────────────────── */
+const CC={bg:'#0A0C0B',grid:'rgba(237,239,232,.09)',gridS:'rgba(237,239,232,.045)',
+  text:'#EDEFE8',mut:'#98A093',dim:'#6D7568',up:'#2DBD85',down:'#F04B5D',acc:'#CDFF3F'};
+function rr(c,x,y,w,h,rad){c.beginPath();c.moveTo(x+rad,y);c.arcTo(x+w,y,x+w,y+h,rad);c.arcTo(x+w,y+h,x,y+h,rad);c.arcTo(x,y+h,x,y,rad);c.arcTo(x,y,x+w,y,rad);c.closePath()}
+class Chart{
+  constructor(cv,o){
+    this.cv=cv;this.ctx=cv.getContext('2d');this.o=Object.assign({compact:false,trades:null,pulses:null},o);
+    this.slot=9;this.offset=0;this.ease=null;this.drag=null;this.mouse=null;this.dead=false;
+    this.ro=new ResizeObserver(()=>this.rs());this.ro.observe(cv.parentElement);this.rs();
+    cv.addEventListener('mousemove',e=>{const r=cv.getBoundingClientRect();
+      this.mouse={x:e.clientX-r.left,y:e.clientY-r.top};
+      if(this.drag)this.offset=clamp(this.drag.off+(e.clientX-this.drag.x)/this.slot,0,this.maxOff());});
+    cv.addEventListener('mouseleave',()=>{this.mouse=null;this.drag=null});
+    cv.addEventListener('mousedown',e=>{this.drag={x:e.clientX,off:this.offset};cv.style.cursor='grabbing'});
+    window.addEventListener('mouseup',()=>{this.drag=null;cv.style.cursor=''});
+    cv.addEventListener('wheel',e=>{e.preventDefault();
+      this.slot=clamp(this.slot*(e.deltaY<0?1.16:1/1.16),3.2,26);
+      this.offset=clamp(this.offset,0,this.maxOff());},{passive:false});
+    cv.addEventListener('touchstart',e=>{if(e.touches.length===1)this.drag={x:e.touches[0].clientX,off:this.offset}},{passive:true});
+    cv.addEventListener('touchmove',e=>{if(e.touches.length===1&&this.drag)
+      this.offset=clamp(this.drag.off+(e.touches[0].clientX-this.drag.x)/this.slot,0,this.maxOff());},{passive:true});
+    cv.addEventListener('touchend',()=>this.drag=null,{passive:true});
+    this.loop=this.loop.bind(this);requestAnimationFrame(this.loop);
+  }
+  rs(){const p=this.cv.parentElement,d=devicePixelRatio||1;
+    this.W=p.clientWidth;this.H=p.clientHeight;
+    this.cv.width=Math.max(1,this.W*d);this.cv.height=Math.max(1,this.H*d);
+    this.ctx.setTransform(d,0,0,d,0,0);}
+  destroy(){this.dead=true;this.ro.disconnect()}
+  setAsset(){this.ease=null}
+  cds(){return Market.candles(Market.byId(dg(this.o.asset)),dg(this.o.tf),430)}
+  maxOff(){return Math.max(0,this.cds().length-8)}
+  loop(){if(this.dead)return;requestAnimationFrame(this.loop);if(this.W>40)this.draw()}
+  _pill(x,y,w,h,txt,bg,fg){const c=this.ctx;rr(c,x,y,w,h,4);c.fillStyle=bg;c.fill();
+    c.fillStyle=fg;c.font='600 10px "JetBrains Mono",monospace';c.textAlign='center';c.textBaseline='middle';c.fillText(txt,x+w/2,y+h/2+.5)}
+  draw(){
+    const c=this.ctx,W=this.W,H=this.H,comp=this.o.compact;
+    const a=Market.byId(dg(this.o.asset)),tf=dg(this.o.tf);
+    const cds=this.cds();if(!a||cds.length<2)return;
+    const padR=comp?58:64,padB=comp?6:22,padT=comp?10:14,padL=0;
+    const pw=W-padL-padR,ph=H-padT-padB;
+    const fut=8;
+    const off=this.offset=clamp(this.offset,0,Math.max(0,cds.length-6));
+    const vis=clamp(Math.floor(pw/this.slot),6,cds.length);
+    const view=cds.slice(Math.max(0,cds.length-vis-off));
+    if(view.length<2)return;
+    let hi=-1e18,lo=1e18;for(const k of view){if(k.h>hi)hi=k.h;if(k.l<lo)lo=k.l}
+    const rg=(hi-lo)||a.price*0.001;hi+=rg*.07;lo-=rg*.07;
+    const Y=p=>padT+(hi-p)/(hi-lo)*ph;
+    const rightX=padL+pw;
+    const X=i=>rightX-fut*this.slot-(view.length-1-i)*this.slot-this.slot*.5;
+    const anchor=view[view.length-1].t;
+    const xT=t=>rightX-fut*this.slot-((anchor-t)/(tf*1000)+.5)*this.slot;
+    c.clearRect(0,0,W,H);c.textBaseline='middle';c.lineWidth=1;
+    const stp=niceStep((hi-lo)/(comp?3.2:5));
+    c.font='10px "JetBrains Mono",monospace';
+    for(let p=Math.ceil(lo/stp)*stp;p<hi;p+=stp){const y=Y(p);
+      c.strokeStyle=CC.gridS;c.beginPath();c.moveTo(padL,y);c.lineTo(rightX,y);c.stroke();
+      if(!comp){c.fillStyle=CC.dim;c.textAlign='left';c.fillText(Market.fmtP(a,p),rightX+7,y);}}
+    if(!comp){const k=Math.max(1,Math.ceil(76/this.slot));c.textAlign='center';
+      for(let i=view.length-1;i>=0;i--){const k2=view[i];
+        if(k2.t%(k*tf*1000)!==0)continue;const x=X(i);
+        c.strokeStyle=CC.gridS;c.beginPath();c.moveTo(x,padT);c.lineTo(x,padT+ph);c.stroke();
+        c.fillStyle=CC.dim;const d=new Date(k2.t);
+        c.fillText(tf<60?d.toTimeString().slice(3,8):d.toTimeString().slice(0,5),x,H-9);}
+      const gx=rightX-fut*this.slot;c.strokeStyle=CC.grid;c.setLineDash([3,4]);
+      c.beginPath();c.moveTo(gx,padT);c.lineTo(gx,padT+ph);c.stroke();c.setLineDash([]);}
+    if(dg(this.o.mode)==='line'){
+      c.beginPath();view.forEach((k,i)=>{const x=X(i);i?c.lineTo(x,Y(k.c)):c.moveTo(x,Y(k.c))});
+      c.strokeStyle=CC.acc;c.lineWidth=1.6;c.stroke();
+      c.lineTo(X(view.length-1),padT+ph);c.lineTo(X(0),padT+ph);c.closePath();
+      c.fillStyle='rgba(205,255,63,.055)';c.fill();c.lineWidth=1;
+    }else{
+      const bw=Math.max(1,this.slot*.62);
+      for(let i=0;i<view.length;i++){const k=view[i],x=X(i),up=k.c>=k.o,col=up?CC.up:CC.down;
+        c.strokeStyle=col;c.beginPath();c.moveTo(x,Y(k.h));c.lineTo(x,Y(k.l));c.stroke();
+        c.fillStyle=col;const y1=Y(Math.max(k.o,k.c)),y2=Y(Math.min(k.o,k.c));
+        c.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));}}
+    for(const t of (dg(this.o.trades)||[])){
+      const col=t.dir==='up'?CC.up:CC.down,ey=Y(t.entry);
+      if(ey>padT&&ey<padT+ph){
+        c.strokeStyle=col;c.setLineDash([5,4]);c.beginPath();c.moveTo(padL,ey);c.lineTo(rightX,ey);c.stroke();c.setLineDash([]);
+        const lab=(t.dir==='up'?'▲ ':'▼ ')+money(t.amount);
+        c.font='600 10px "JetBrains Mono",monospace';const w=c.measureText(lab).width+12;
+        c.fillStyle=col;rr(c,padL+6,ey-9,w,18,4);c.fill();
+        c.fillStyle=CC.bg;c.textAlign='left';c.fillText(lab,padL+12,ey);}
+      const ex=xT(t.expiry);
+      if(ex>padL&&ex<rightX){
+        c.strokeStyle=col;c.setLineDash([4,4]);c.beginPath();c.moveTo(ex,padT);c.lineTo(ex,padT+ph);c.stroke();c.setLineDash([]);
+        const lab=count(t.expiry-Date.now());
+        c.font='600 10px "JetBrains Mono",monospace';const w=c.measureText(lab).width+10;
+        c.fillStyle=CC.bg;rr(c,ex-w/2,padT+2,w,16,4);c.fill();c.stroke();
+        c.fillStyle=col;c.textAlign='center';c.fillText(lab,ex,padT+10);}}
+    if(off===0){
+      const lp=a.price;this.ease=this.ease==null?lp:this.ease+(lp-this.ease)*.18;
+      const y=Y(clamp(this.ease,lo,hi)),col=a.dir>=0?CC.up:CC.down;
+      c.strokeStyle=col;c.setLineDash([4,4]);c.beginPath();c.moveTo(padL,y);c.lineTo(rightX,y);c.stroke();c.setLineDash([]);
+      const txt=Market.fmtP(a);c.font='600 10.5px "JetBrains Mono",monospace';
+      const w=c.measureText(txt).width+12;
+      c.fillStyle=col;rr(c,rightX+2,y-9,w,18,4);c.fill();
+      c.fillStyle=CC.bg;c.textAlign='left';c.fillText(txt,rightX+8,y);}
+    for(const p of (dg(this.o.pulses)||[])){
+      const age=(performance.now()-p.at)/950;if(age>=1)continue;
+      const x=xT(p.time),y=Y(p.price);
+      c.globalAlpha=(1-age)*.9;c.strokeStyle=p.win?CC.up:CC.down;c.lineWidth=2;
+      c.beginPath();c.arc(x,y,4+age*30,0,7);c.stroke();c.lineWidth=1;c.globalAlpha=1;}
+    if(!comp&&this.mouse&&!this.drag){
+      const{x,y}=this.mouse;
+      if(x>padL&&x<rightX&&y>padT&&y<padT+ph){
+        c.strokeStyle=CC.grid;c.setLineDash([4,4]);
+        c.beginPath();c.moveTo(padL,y);c.lineTo(rightX,y);c.moveTo(x,padT);c.lineTo(x,padT+ph);c.stroke();c.setLineDash([]);
+        const pv=hi-(y-padT)/ph*(hi-lo);
+        this._pill(rightX+2,y-9,padR-4,18,Market.fmtP(a,pv),'#1B201D',CC.text);
+        const tt=anchor-((rightX-fut*this.slot-this.slot*.5-x)/this.slot)*(tf*1000);
+        this._pill(clamp(x-34,padL,rightX-68),H-18,68,16,new Date(tt).toTimeString().slice(0,8),'#1B201D',CC.text);
+        const ci=Math.round(view.length-1-((rightX-fut*this.slot-this.slot*.5-x)/this.slot));
+        if(ci>=0&&ci<view.length){const k=view[ci],dc=k.c>=k.o?CC.up:CC.down;
+          c.font='600 10px "JetBrains Mono",monospace';c.textAlign='left';let sx=padL+10;const y0=padT+12;
+          const seg=(l,v,col)=>{c.fillStyle=CC.dim;c.fillText(l,sx,y0);sx+=c.measureText(l).width;
+            c.fillStyle=col;c.fillText(v,sx,y0);sx+=c.measureText(v).width+8;};
+          seg('O ',Market.fmtP(a,k.o),CC.mut);seg('H ',Market.fmtP(a,k.h),dc);
+          seg('L ',Market.fmtP(a,k.l),dc);seg('C ',Market.fmtP(a,k.c),dc);}}}
+  }
+}
+
+/* ── 6 · store + demo backend ────────────────────────────────────────── */
+const Live={all:[]};   /* live-mode trade cache (server is the source of truth) */
+const DBKEY='vanta_db_v1';
+const DB={
+  data:{},
+  load(){try{this.data=JSON.parse(localStorage.getItem(DBKEY))||{}}catch{this.data={}}
+    this.data.users??={};this.data.sessions??={};this.data.trades??={};this.data.tx??={};},
+  save(){try{localStorage.setItem(DBKEY,JSON.stringify(this.data))}catch{}},
+  user(id){return this.data.users[id]},
+  trades(id){if(!USE_DEMO)return Live.all;
+    if(!this.data.trades[id])this.data.trades[id]=[];return this.data.trades[id]},
+  tx(id){if(!this.data.tx[id])this.data.tx[id]=[];return this.data.tx[id]},
+};
+async function hashPw(p){
+  if(crypto&&crypto.subtle){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode('vanta·'+p));
+    return[...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('')}
+  let h=5381;for(const ch of 'vanta·'+p)h=((h<<5)+h+ch.charCodeAt(0))>>>0;return 'x'+h.toString(16);
+}
+const DEMO_ADDR={usdt:'TXk9rWv7Qm4LdPgY2nB8sJcFeA6hUuZ3Rk',btc:'bc1qxw9v2l7mecf83jan5h0ptds46yugk9rw2m8ha7',eth:'0x7F9a2C4eB81d05A6f3E8c92B47aD1365F80b3De9'};
+const Demo={
+  latency:v=>sleep(320+Math.random()*380).then(()=>v),
+  fail(m){throw new Error(m)},
+  pub(u){return{id:u.id,name:u.name,email:u.email,createdAt:u.createdAt,wallets:u.wallets}},
+  async register({name,email,password}){
+    email=email.trim().toLowerCase();
+    if(Object.values(DB.data.users).some(u=>u.email===email))this.fail('An account with this email already exists');
+    const u={id:uid(),name:name.trim(),email,hash:await hashPw(password),createdAt:Date.now(),wallets:{demo:10000,real:0}};
+    DB.data.users[u.id]=u;const token=uid();DB.data.sessions[token]=u.id;DB.save();
+    return this.latency({token,user:this.pub(u)});
+  },
+  async login({email,password}){
+    email=email.trim().toLowerCase();
+    const u=Object.values(DB.data.users).find(x=>x.email===email);
+    if(!u||u.hash!==await hashPw(password))this.fail('Wrong email or password');
+    const token=uid();DB.data.sessions[token]=u.id;DB.save();
+    return this.latency({token,user:this.pub(u)});
+  },
+  me(id){const u=DB.user(id);if(!u)this.fail('Session expired');return this.latency(this.pub(u))},
+  assets(){return this.latency(FEED.map(({id,name,cat,dec,payout})=>({id,name,cat,dec,payout})))},
+  credit(id,acc,v){const u=DB.user(id);u.wallets[acc]=Math.round((u.wallets[acc]+v)*100)/100;DB.save();Bus.emit('wallet')},
+  async placeTrade(id,{asset,dir,amount,expirySec,account}){
+    const a=Market.byId(asset),u=DB.user(id);amount=Math.round(amount*100)/100;
+    if(!a)this.fail('Unknown asset');
+    if(!['up','down'].includes(dir))this.fail('Bad direction');
+    if(!(amount>=1))this.fail('Minimum stake is $1.00');
+    if(amount>u.wallets[account])this.fail('Insufficient balance');
+    this.credit(id,account,-amount);
+    const t={id:uid(),asset,dir,amount,account,payout:a.payout,entry:a.price,entryTime:Date.now(),
+      expiry:Date.now()+expirySec*1000,status:'open'};
+    DB.trades(id).unshift(t);DB.save();Bus.emit('trades');
+    return this.latency(t);
+  },
+  syncTrades(id){
+    const closed=[];
+    for(const t of DB.trades(id)){
+      if(t.status!=='open'||Date.now()<t.expiry)continue;
+      const a=Market.byId(t.asset),close=a.price;
+      let result=t.dir==='up'?(close>t.entry?'win':'loss'):(close<t.entry?'win':'loss');
+      if(close===t.entry)result='draw';
+      t.close=close;t.closeTime=Date.now();t.status='closed';t.result=result;
+      if(result==='win'){t.profit=+(t.amount*t.payout/100).toFixed(2);this.credit(id,t.account,+(t.amount+t.profit).toFixed(2));}
+      else if(result==='draw'){t.profit=0;this.credit(id,t.account,t.amount);}
+      else t.profit=-t.amount;
+      closed.push(t);
+    }
+    if(closed.length){DB.save();Bus.emit('trades')}
+    return Promise.resolve({closed,open:DB.trades(id).filter(t=>t.status==='open')});
+  },
+  listTrades(id){return this.latency(DB.trades(id).slice(0,120))},
+  listTx(id){return this.latency(DB.tx(id).slice(0,120))},
+  async createDeposit(id,{method,amount,bonusCode,phone}){
+    amount=Math.round(amount*100)/100;
+    if(!['usdt','btc','eth','card','mpesa'].includes(method))this.fail('Pick a payment method');
+    if(!(amount>=10))this.fail('Minimum deposit is $10.00');
+    const rates={WELCOME20:.20,BOOST50:.50};let bonus=0;const code=(bonusCode||'').trim().toUpperCase();
+    if(code){if(!rates[code])this.fail('Promo code is not valid');
+      if(code==='BOOST50'&&amount<100)this.fail('BOOST50 needs a minimum of $100.00');
+      bonus=+(amount*rates[code]).toFixed(2);}
+    const total=+(amount+bonus).toFixed(2);
+    const d={id:uid(),type:'deposit',method,amount,bonus,total,bonusCode:code||null,status:'awaiting_payment',time:Date.now(),
+      instructions:method==='card'?{gateway:'sandbox'}
+        :method==='mpesa'?{phone:phone||'254700000000',network:'M-Pesa · STK Push',kesAmount:Math.ceil(amount*129)}
+        :{address:DEMO_ADDR[method],network:method==='usdt'?'TRON · TRC-20':method==='btc'?'Bitcoin':'Ethereum · ERC-20'}};
+    DB.tx(id).unshift(d);DB.save();Bus.emit('tx');
+    if(method==='mpesa')setTimeout(()=>{d.status='confirmed';d.confirmedAt=Date.now();
+      this.credit(id,'real',d.total);Bus.emit('tx')},5000);
+    return this.latency(d);
+  },
+  async completeDeposit(id2,depId){
+    const d=DB.tx(id2).find(x=>x.id===depId);if(!d)this.fail('Deposit not found');
+    if(d.status==='confirmed')return d;
+    d.status='confirmed';d.confirmedAt=Date.now();
+    this.credit(id2,'real',d.total);Bus.emit('tx');
+    return this.latency(d);
+  },
+  getDeposit(id2,depId){const d=DB.tx(id2).find(x=>x.id===depId);if(!d)this.fail('Deposit not found');return Promise.resolve(d)},
+  async createWithdrawal(id,{method,address,amount}){
+    amount=Math.round(amount*100)/100;
+    const u=DB.user(id);
+    const flat={usdt:1,btc:2,eth:1.5};
+    const fee=method==='card'?+(amount*0.015).toFixed(2):flat[method];
+    const total=+(amount+fee).toFixed(2);
+    if(!flat[method]&&method!=='card')this.fail('Pick a payout method');
+    if(!(amount>=10))this.fail('Minimum withdrawal is $10.00');
+    if(total>u.wallets.real)this.fail('Amount + fee exceeds your real balance');
+    const chk={usdt:s=>s.length>=26&&s.length<=40&&s[0]==='T',btc:s=>s.length>=26&&s.length<=62,
+      eth:s=>/^0x[a-fA-F0-9]{40}$/.test(s.trim()),card:s=>/^\d{12,19}$/.test(s.replace(/\s/g,''))};
+    if(!chk[method](address.trim()))this.fail('That '+method.toUpperCase()+' address doesn\u2019t look right');
+    this.credit(id,'real',-total);
+    const w={id:uid(),type:'withdrawal',method,amount,fee,total,address:address.trim(),status:'pending',time:Date.now()};
+    DB.tx(id).unshift(w);DB.save();Bus.emit('tx');
+    setTimeout(()=>{w.status='processed';w.doneAt=Date.now();DB.save();Bus.emit('tx')},8000);
+    return this.latency(w);
+  },
+  resetDemo(id){DB.user(id).wallets.demo=10000;DB.save();Bus.emit('wallet')},
+};
+
+/* ── 7 · API layer ───────────────────────────────────────────────────── */
+const API={
+  USE_DEMO_BACKEND:USE_DEMO,
+  BASE:API_URL,
+  token(){return localStorage.getItem('vanta_token')},
+  setToken(t){t?localStorage.setItem('vanta_token',t):localStorage.removeItem('vanta_token')},
+  _uid(){return DB.data.sessions[this.token()]},
+  async request(path,{method='GET',body,auth=true}={}){
+    const h={'Content-Type':'application/json'};
+    if(auth&&this.token())h.Authorization='Bearer '+this.token();
+    const r=await fetch(this.BASE+path,{method,headers:h,body:body?JSON.stringify(body):undefined});
+    let d={};try{d=await r.json()}catch{}
+    if(!r.ok)throw new Error(d.message||('Request failed ('+r.status+')'));
+    return d;
+  },
+  async prices(){if(!this.USE_DEMO_BACKEND)return this.request('/prices',{auth:false});return Promise.resolve({t:Date.now(),p:Object.fromEntries(Market.A.map(a=>[a.id,a.price]))})},
+  async register(p){if(!this.USE_DEMO_BACKEND)return this.request('/auth/register',{method:'POST',body:p,auth:false});return Demo.register(p)},
+  async login(p){if(!this.USE_DEMO_BACKEND)return this.request('/auth/login',{method:'POST',body:p,auth:false});return Demo.login(p)},
+  async me(){if(!this.USE_DEMO_BACKEND)return this.request('/me');return Demo.me(this._uid())},
+  async assets(){if(!this.USE_DEMO_BACKEND)return this.request('/assets');return Demo.assets()},
+  async placeTrade(p){if(!this.USE_DEMO_BACKEND)return this.request('/trades',{method:'POST',body:p});return Demo.placeTrade(this._uid(),p)},
+  async syncTrades(){if(!this.USE_DEMO_BACKEND)return this.request('/trades/sync');return Demo.syncTrades(this._uid())},
+  async listTrades(){if(!this.USE_DEMO_BACKEND)return this.request('/trades');return Demo.listTrades(this._uid())},
+  async listTx(){if(!this.USE_DEMO_BACKEND)return this.request('/transactions');return Demo.listTx(this._uid())},
+  async createDeposit(p){if(!this.USE_DEMO_BACKEND)return this.request('/deposits',{method:'POST',body:p});return Demo.createDeposit(this._uid(),p)},
+  async getDeposit(id){if(!this.USE_DEMO_BACKEND)return this.request('/deposits/'+id);return Demo.getDeposit(this._uid(),id)},
+  async completeDeposit(id){if(!this.USE_DEMO_BACKEND)return this.request('/deposits/'+id+'/confirm',{method:'POST'});return Demo.completeDeposit(this._uid(),id)},
+  async createWithdrawal(p){if(!this.USE_DEMO_BACKEND)return this.request('/withdrawals',{method:'POST',body:p});return Demo.createWithdrawal(this._uid(),p)},
+  resetDemo(){if(this.USE_DEMO_BACKEND){Demo.resetDemo(this._uid());return}
+    toast('info','Offline mode only','Demo reset works when USE_DEMO=true (no server).')},
+};
+
+/* ── 8 · auth & session ──────────────────────────────────────────────── */
+const Auth={
+  u:null,
+  get acc(){return localStorage.getItem('vanta_acc')||'demo'},
+  set acc(v){localStorage.setItem('vanta_acc',v)},
+  bal(a=this.acc){return this.u?this.u.wallets[a]:0},
+  bump(acc,v){if(this.u){this.u.wallets[acc]=Math.round((this.u.wallets[acc]+v)*100)/100;Bus.emit('wallet')}},
+  async boot(){
+    DB.load();const t=API.token();
+    if(t){
+      if(USE_DEMO){const id=DB.data.sessions[t];if(id)this.u=DB.user(id)||null;}
+      else{try{const r=await API.me();this.u=r.user||r}
+        catch(e){if(/log in/i.test(e.message))API.setToken(null)}}
+    }
+    Market.init();this.startSync();
+  },
+  set(u,token){this.u=u;API.setToken(token);if(!USE_DEMO)Live.all=[];Bus.emit('wallet')},
+  logout(){API.setToken(null);this.u=null;Live.all=[];toast('info','Logged out','See you on the next candle.');
+    if(location.hash==='#/'||location.hash==='')render();else location.hash='#/';},
+  startSync(){
+    if(this._sync)return;
+    if(USE_DEMO){
+      this._sync=setInterval(async()=>{
+        if(!this.u)return;
+        try{const r=await API.syncTrades();
+          (r.closed||[]).forEach(t=>{const a=Market.byId(t.asset);
+            if(t.result==='win')toast('win',`Won ${money(t.profit)} on ${a.name}`,`${t.dir.toUpperCase()} call · ${Market.fmtP(a,t.entry)} → ${Market.fmtP(a,t.close)}`);
+            else if(t.result==='draw')toast('info','Flat close — stake refunded',`${t.dir.toUpperCase()} call on ${a.name} closed at your entry.`);
+            else toast('loss',`Lost ${money(t.amount)} on ${a.name}`,`${t.dir.toUpperCase()} call · entry ${Market.fmtP(a,t.entry)}, close ${Market.fmtP(a,t.close)}`);
+            Bus.emit('pulse',t);});
+        }catch{}
+      },700);
+      return;
+    }
+    let n=0;
+    this._sync=setInterval(async()=>{
+      if(!this.u)return;
+      if(++n%7===0){try{const m=await API.me();this.u=m.user||m;Bus.emit('wallet')}catch{}}
+      try{
+        const r=await API.syncTrades();
+        const openIds=new Set((r.open||[]).map(t=>t.id));
+        Live.all=Live.all.filter(t=>t.status==='closed'||openIds.has(t.id));
+        (r.open||[]).forEach(t=>{const i=Live.all.findIndex(x=>x.id===t.id);
+          if(i>=0)Live.all[i]=t;else Live.all.unshift(t);});
+        (r.closed||[]).forEach(t=>{
+          const i=Live.all.findIndex(x=>x.id===t.id);
+          if(i>=0)Live.all[i]=t;else Live.all.unshift(t);
+          const a=Market.byId(t.asset);
+          if(t.result==='win')toast('win',`Won ${money(t.profit)} on ${a.name}`,`${t.dir.toUpperCase()} call · ${Market.fmtP(a,t.entry)} → ${Market.fmtP(a,t.close)}`);
+          else if(t.result==='draw')toast('info','Flat close — stake refunded',`${t.dir.toUpperCase()} call on ${a.name} closed at your entry.`);
+          else toast('loss',`Lost ${money(t.amount)} on ${a.name}`,`${t.dir.toUpperCase()} call · entry ${Market.fmtP(a,t.entry)}, close ${Market.fmtP(a,t.close)}`);
+          Bus.emit('pulse',t);});
+        if((r.closed||[]).length)Bus.emit('trades');
+      }catch{}
+    },700);
+  },
+};
+
+/* ── 9 · shared UI ───────────────────────────────────────────────────── */
+let cleanups=[];
+const onCleanup=f=>cleanups.push(f);
+function appHeader(page){
+  const u=Auth.u,acc=Auth.acc;
+  return `<header class="topbar">
+    <a class="brand" href="#/trade" style="font-size:13px">${logo(22)}<span>VANTA</span></a>
+    <nav class="tnav">${[
+      ['/trade','Terminal','chart'],['/deposit','Deposit','plus'],['/withdraw','Withdraw','send'],
+      ['/history','History','history'],['/profile','Profile','user']]
+      .map(([h,l,i])=>`<a href="#${h}" class="${page===h.slice(1)?'on':''}">${icon(i,15)}<span>${l}</span></a>`).join('')}</nav>
+    <div class="tr">
+      <div class="wpill">
+        <button class="wp-btn" id="wp-btn">
+          <span class="wp-tag ${acc==='demo'?'d':'r'}">${acc==='demo'?'DEMO':'REAL'}</span>
+          <b class="mono wp-bal">${money(Auth.bal())}</b>${icon('chevD',13)}
+        </button>
+        <div class="drop" id="wp-drop" hidden>
+          ${['demo','real'].map(k=>`<button class="drop-it ${k===acc?'sel':''}" data-acc="${k}">
+            <span class="wp-tag ${k==='demo'?'d':'r'}">${k.toUpperCase()}</span>
+            <b class="mono" style="margin-left:auto">${money(u.wallets[k])}</b></button>`).join('')}
+          <div class="drop-sep"></div>
+          <a class="drop-it acc" href="#/deposit">${icon('plus',15)} Deposit to REAL wallet</a>
+          ${USE_DEMO&&u.wallets.demo<10000?`<button class="drop-it" id="wp-reset">${icon('refresh',15)} Reset demo to $10,000</button>`:''}
+        </div>
+      </div>
+      <div class="avatar" id="um-btn">${esc(u.name.trim().slice(0,1).toUpperCase())}</div>
+      <div class="drop" id="um-drop" hidden>
+        <div class="um-head"><b>${esc(u.name)}</b><span>${esc(u.email)}</span></div>
+        <a class="drop-it" href="#/profile">${icon('user',15)} Profile</a>
+        <a class="drop-it" href="#/history">${icon('history',15)} History</a>
+        <button class="drop-it danger" id="um-out">${icon('logout',15)} Log out</button>
+      </div>
+    </div></header>`;
+}
+function wireHeader(){
+  const wpB=$('#wp-btn'),wpD=$('#wp-drop'),umB=$('#um-btn'),umD=$('#um-drop');
+  const close=e=>{if(!e||!e.target.closest('.wpill,#um-btn,#um-drop')){wpD.hidden=true;umD.hidden=true}};
+  setTimeout(()=>document.addEventListener('click',close),0);
+  onCleanup(()=>document.removeEventListener('click',close));
+  wpB.onclick=()=>{wpD.hidden=!wpD.hidden;umD.hidden=true};
+  umB.onclick=()=>{umD.hidden=!umD.hidden;wpD.hidden=true};
+  $$('.drop-it[data-acc]').forEach(b=>b.onclick=()=>{Auth.acc=b.dataset.acc;Bus.emit('wallet');render()});
+  $('#um-out').onclick=()=>Auth.logout();
+  const rst=$('#wp-reset');
+  if(rst)rst.onclick=()=>{wpD.hidden=true;API.resetDemo();toast('ok','Demo wallet reset','$10,000.00 restored.')};
+  onCleanup(Bus.on('wallet',()=>{
+    const el=$('.wp-bal');if(el){el.textContent=money(Auth.bal());
+      el.classList.remove('bump');void el.offsetWidth;el.classList.add('bump');}
+    $$('.drop-it[data-acc] b').forEach(b=>{const k=b.closest('[data-acc]').dataset.acc;
+      if(Auth.u)b.textContent=money(Auth.u.wallets[k])});
+  }));
+}
+function field(id,ph,type,icn,label){
+  return `<label class="fld" for="${id}"><span>${label}</span><span class="fld-in">${icon(icn,16)}
+    <input id="${id}" type="${type}" placeholder="${ph}" autocomplete="off">
+    ${type==='password'?`<button type="button" class="pw" data-t="${id}">${icon('eye',16)}</button>`:''}
+    </span><em class="err" id="${id}-e"></em></label>`;
+}
+function bindPwToggles(root){
+  $$('.pw',root).forEach(b=>b.onclick=()=>{const i=$('#'+b.dataset.t);
+    const show=i.type==='password';i.type=show?'text':'password';
+    b.innerHTML=icon(show?'eyeoff':'eye',16)});
+}
+
+/* ── 10 · pages ──────────────────────────────────────────────────────── */
+const PROMO_HINT='Codes: <b>WELCOME20</b> (+20%, any amount) · <b>BOOST50</b> (+50%, min $100)';
+
+/* ---- Landing ---- */
+function Landing(app){
+  const logged=!!Auth.u;
+  const tick=()=>`<div class="tick-track">${Market.A.map(a=>`
+    <span class="tk" data-tk="${a.id}"><b>${a.name}</b><span class="mono tk-p">${Market.fmtP(a)}</span>
+    <span class="tk-d ${a.dir>0?'u':'d'}">${a.dir>0?'▲':'▼'}</span></span>`).join('')}</div>`;
+  app.innerHTML=`<div class="land">
+  <header class="lnav">
+    <a class="brand ink" href="#/">${logo()}<span>VANTA</span></a>
+    <nav><a href="#how">How it works</a><a href="#markets">Markets</a><a href="#faq">FAQ</a></nav>
+    <div class="lnav-r">${logged
+      ?`<a class="btn btn-ink" href="#/trade">${icon('right',16)}Open terminal</a>`
+      :`<a class="btn btn-ink-ghost" href="#/login">Log in</a><a class="btn btn-ink" href="#/register">Open free account</a>`}</div>
+  </header>
+  <section class="hero">
+    <div>
+      <p class="eyebrow"><span class="dot"></span>LIVE FEED · TICKS EVERY SECOND</p>
+      <h1><span class="up-t">UP</span> or <span class="down-t">DOWN.</span><br>Your call.</h1>
+      <p class="lede">A binary options terminal built for speed. Pick one of six live markets, set an expiry from
+      30 seconds, and call the direction. Land it and take up to <b>88% fixed payout</b> — the entry price locks on the exact tick you confirm.</p>
+      <div class="hero-cta">
+        <a class="btn btn-acc big" href="${logged?'#/trade':'#/register'}">${icon('zap',18)}${logged?'Open the terminal':'Start with $10,000 demo'}</a>
+        <a class="btn btn-ink-ghost big" href="#markets">See live markets</a>
+      </div>
+      <p class="fine">Demo accounts are free, instant and resettable. No card required.</p>
+    </div>
+    <div class="herocard">
+      <div class="hc-head">
+        <div><b>EUR/USD</b><span class="hc-sub" id="hc-sub">SIMULATED LIVE · 5S CANDLES</span></div>
+        <div class="hc-price mono" id="hc-price">—</div>
+      </div>
+      <div class="hc-chart"><canvas id="hc-cv"></canvas></div>
+      <div class="hc-foot">
+        <div class="chips" id="hc-tf">
+          <button data-tf="5" class="on">5s</button><button data-tf="15">15s</button><button data-tf="60">1m</button>
+        </div>
+        <span class="payout-badge">${icon('zap',13)} 85% payout</span>
+      </div>
+    </div>
+  </section>
+  <div class="ticker">${tick()}${tick()}</div>
+  <section class="how" id="how">
+    <h2 class="sec-h">Three moves. Thirty seconds.</h2>
+    <p class="sec-p" style="margin-bottom:40px">No order books, no leverage labyrinths. One decision at a time.</p>
+    <div class="how-row"><span class="how-n">01</span>
+      <div><h3>Pick your moment</h3><p>Six markets — forex majors, gold, and the two big cryptocurrencies — streaming ticks every second. Choose the one you read best.</p></div>
+      <span class="how-d"><svg width="130" height="74" viewBox="0 0 120 72"><path d="M22 8v10M22 50v12" stroke="#141610" stroke-width="2" stroke-linecap="round"/><rect x="16" y="18" width="12" height="32" rx="1.5" fill="#CDFF3F"/><path d="M52 18v8M52 58v6" stroke="#141610" stroke-width="2" stroke-linecap="round"/><rect x="46" y="26" width="12" height="32" rx="1.5" fill="#141610"/><path d="M82 4v9M82 44v14" stroke="#141610" stroke-width="2" stroke-linecap="round"/><rect x="76" y="13" width="12" height="31" rx="1.5" fill="#CDFF3F"/></svg></span>
+    </div>
+    <div class="how-row"><span class="how-n">02</span>
+      <div><h3>Call the direction</h3><p>Set your stake and expiry — 30 seconds to 5 minutes. One tap on UP, one on DOWN. The entry price locks the instant you confirm.</p></div>
+      <span class="how-d"><svg width="130" height="74" viewBox="0 0 120 72"><path d="M60 62V38" stroke="#141610" stroke-width="2" stroke-linecap="round"/><path d="M60 38 36 18" stroke="#0F7B53" stroke-width="2.5" stroke-linecap="round"/><path d="M60 38 84 18" stroke="#CE3548" stroke-width="2.5" stroke-linecap="round"/><path d="m28 12 9 1.5-5.5 7z" fill="#0F7B53"/><path d="m92 12-9 1.5 5.5 7z" fill="#CE3548"/><circle cx="60" cy="38" r="3.5" fill="#141610"/></svg></span>
+    </div>
+    <div class="how-row"><span class="how-n">03</span>
+      <div><h3>Beat the clock</h3><p>When the timer ends, the close price decides. Finish past your entry on an UP call — or below it on a DOWN — and the fixed payout lands instantly. A flat close refunds your stake.</p></div>
+      <span class="how-d"><svg width="130" height="74" viewBox="0 0 120 72"><circle cx="60" cy="40" r="24" fill="none" stroke="#141610" stroke-width="2" stroke-dasharray="4 5"/><path d="M60 40 76 28" stroke="#141610" stroke-width="3" stroke-linecap="round"/><circle cx="60" cy="40" r="4" fill="#CDFF3F" stroke="#141610" stroke-width="2"/><path d="M84 16h12m-4-4 4 4-4 4" stroke="#141610" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+    </div>
+  </section>
+  <section class="mk" id="markets">
+    <div>
+      <h2 class="sec-h">Six markets.<br>One decision each.</h2>
+      <p class="sec-p">Forex majors, gold, and crypto — streamed live with zero spread. The payout is fixed before you click: if your call lands, you know exactly what you win.</p>
+      <ul class="mk-ul">
+        <li>${icon('check',16)} Fixed payouts from 82% to 88%</li>
+        <li>${icon('check',16)} Expiries from 30 seconds to 5 minutes</li>
+        <li>${icon('check',16)} Entry price locked at the exact tick</li>
+        <li>${icon('check',16)} Refund on flat closes — no slip, no tricks</li>
+      </ul>
+    </div>
+    <div class="mk-r">
+      <div class="mk-th"><span>Market</span><span>Last</span><span>Payout</span><span></span></div>
+      ${Market.A.map(a=>`<a class="mk-row" href="${logged?'#/trade':'#/register'}" data-mk="${a.id}">
+        <span><b>${a.name}</b><i>${a.cat}</i></span>
+        <span class="mono mkp">${Market.fmtP(a)}</span>
+        <span class="mk-po">${a.payout}%</span>${icon('right',14)}</a>`).join('')}
+    </div>
+  </section>
+  <section class="strip">
+    <div><b>88%</b><span>top payout</span></div><i>/</i>
+    <div><b>1s</b><span>tick rate</span></div><i>/</i>
+    <div><b>$10,000</b><span>demo balance</span></div><i>/</i>
+    <div><b>30s</b><span>fastest expiry</span></div>
+  </section>
+  <section class="faq" id="faq"><div class="faq-in">
+    <h2 class="sec-h" style="margin-bottom:26px">Straight answers</h2>
+    <details><summary>Is this real money?<i>+</i></summary><p>Demo accounts use a $10,000 virtual balance so you can learn the terminal risk-free. Real trading requires a deposit, and settlement runs server-side with balances held in the platform database.</p></details>
+    <details><summary>How do deposits work?<i>+</i></summary><p>Pick a method — M-Pesa, USDT (TRC-20), BTC, ETH or card. M-Pesa sends a push to your phone; crypto deposits show an address and credit after network confirmations. In test mode the confirmation pipeline can be approved with a dev button until the payment provider is fully wired.</p></details>
+    <details><summary>How fast are withdrawals?<i>+</i></summary><p>Requests are validated instantly and processed in order — the fee and net amount are shown before you confirm.</p></details>
+    <details><summary>What exactly decides a trade?<i>+</i></summary><p>Your entry price is locked at the tick you confirm. At expiry, the latest price decides: beyond your entry on an UP call (or below it on a DOWN call) wins the fixed payout. A perfectly flat close refunds your stake. Settlement happens on the server, never in your browser.</p></details>
+  </div></section>
+  <section class="cta-band">
+    <h2>Your first call is thirty seconds away.</h2>
+    <a class="btn btn-ink big" href="${logged?'#/trade':'#/register'}">${icon('zap',18)}${logged?'Back to the terminal':'Open your demo account'}</a>
+  </section>
+  <footer class="lfoot">
+    <a class="brand" href="#/">${logo()}<span>VANTA</span></a>
+    <div class="lfoot-links"><a href="#how">How it works</a><a href="#markets">Markets</a><a href="#faq">FAQ</a><a href="#/register">Register</a><a href="#/login">Log in</a></div>
+    <p><b>Risk warning:</b> trading binary options carries a high level of risk and may not be suitable for all investors. Connect a licensed trading backend and a regulated payment provider before offering this to the public.</p>
+    <small>© 2025 Vanta Labs · All market data on this page is simulated.</small>
+  </footer></div>`;
+  let tfH=5;
+  const chart=new Chart($('#hc-cv'),{asset:'EURUSD',tf:()=>tfH,compact:true,mode:()=> 'candles'});
+  onCleanup(()=>chart.destroy());
+  $$('#hc-tf button').forEach(b=>b.onclick=()=>{tfH=+b.dataset.tf;
+    $$('#hc-tf button').forEach(x=>x.classList.toggle('on',x===b));
+    $('#hc-sub').textContent=`SIMULATED LIVE · ${b.textContent.toUpperCase()} CANDLES`;});
+  const eur=Market.byId('EURUSD');
+  onCleanup(Market.on(()=>{
+    for(const a of Market.A){const tk=$(`[data-tk="${a.id}"]`);if(!tk)continue;
+      $('.tk-p',tk).textContent=Market.fmtP(a);
+      const d=$('.tk-d',tk);d.className='tk-d '+(a.dir>0?'u':'d');d.textContent=a.dir>0?'▲':'▼';}
+    const hp=$('#hc-price');if(hp){hp.textContent=Market.fmtP(eur);
+      hp.className='hc-price mono '+(eur.dir>0?'u-c':'d-c');}
+    $$('.mk-row').forEach(r=>{const a=Market.byId(r.dataset.mk);if(!a)return;
+      const el=$('.mkp',r);el.textContent=Market.fmtP(a);
+      el.classList.toggle('u-c',a.dir>0);el.classList.toggle('d-c',a.dir<0);});
+  }));
+}
+
+/* ---- Auth pages ---- */
+function Register(app){
+  if(Auth.u){location.hash='#/trade';return}
+  app.innerHTML=`<div class="auth">
+    <div class="auth-l">
+      <a class="brand" href="#/">${logo()}<span>VANTA</span></a>
+      <div class="auth-quote"><h2><span class="up-t">UP</span> or <span class="down-t">DOWN.</span><br>Your call.</h2>
+        <div class="auth-tick" id="aq-tick"></div></div>
+      <p class="auth-note">${icon('shield',15)} Accounts are stored securely on our servers.</p>
+    </div>
+    <div class="auth-r"><form id="regf" novalidate>
+      <h1>Create your account</h1>
+      <p class="sub">Free. Instant. $10,000 virtual balance included.</p>
+      ${field('r-name','Alex Trader','text','user','Name')}
+      ${field('r-email','you@mail.com','email','mail','Email')}
+      ${field('r-pass','6+ characters','password','lock','Password')}
+      <button class="btn btn-acc wide big" type="submit" id="r-go">Create account ${icon('right',16)}</button>
+      <p class="swap">Already trading? <a href="#/login">Log in</a></p>
+    </form></div></div>`;
+  bindPwToggles(app);
+  onCleanup(Market.on(()=>{const b=Market.byId('BTCUSD'),el=$('#aq-tick');if(!el)return;
+    el.innerHTML=`BTC/USD <span class="${b.dir>0?'u-c':'d-c'}">${Market.fmtP(b)} ${b.dir>0?'▲':'▼'}</span>`;}));
+  $('#regf').onsubmit=async e=>{
+    e.preventDefault();
+    const name=$('#r-name').value.trim(),email=$('#r-email').value.trim(),pass=$('#r-pass').value;
+    let ok=true;
+    const err=(id,m)=>{$('#'+id+'-e').textContent=m;if(m)ok=false};
+    err('r-name',name.length<2?'Enter your name':'');
+    err('r-email',/^\S+@\S+\.\S+$/.test(email)?'':'That email doesn\u2019t look right');
+    err('r-pass',pass.length<6?'Use at least 6 characters':'');
+    if(!ok)return;
+    const go=$('#r-go');go.classList.add('busy');
+    try{const r=await API.register({name,email,password:pass});
+      Auth.set(r.user,r.token);
+      toast('ok','Account created','$10,000 demo balance loaded. Good luck.');
+      location.hash='#/trade';
+    }catch(ex){$('#r-pass-e').textContent=ex.message;go.classList.remove('busy')}
+  };
+}
+function Login(app){
+  if(Auth.u){location.hash='#/trade';return}
+  app.innerHTML=`<div class="auth">
+    <div class="auth-l">
+      <a class="brand" href="#/">${logo()}<span>VANTA</span></a>
+      <div class="auth-quote"><h2>The market moves<br>in seconds.<br>So do you.</h2>
+        <div class="auth-tick" id="aq-tick"></div></div>
+      <p class="auth-note">${icon('shield',15)} Accounts are stored securely on our servers.</p>
+    </div>
+    <div class="auth-r"><form id="logf" novalidate>
+      <h1>Welcome back</h1>
+      <p class="sub">Pick up right where the last candle left off.</p>
+      ${field('l-email','you@mail.com','email','mail','Email')}
+      ${field('l-pass','Your password','password','lock','Password')}
+      <button class="btn btn-acc wide big" type="submit" id="l-go">Log in ${icon('right',16)}</button>
+      <p class="swap">New here? <a href="#/register">Create a free account</a></p>
+    </form></div></div>`;
+  bindPwToggles(app);
+  onCleanup(Market.on(()=>{const b=Market.byId('BTCUSD'),el=$('#aq-tick');if(!el)return;
+    el.innerHTML=`BTC/USD <span class="${b.dir>0?'u-c':'d-c'}">${Market.fmtP(b)} ${b.dir>0?'▲':'▼'}</span>`;}));
+  $('#logf').onsubmit=async e=>{
+    e.preventDefault();
+    const go=$('#l-go');go.classList.add('busy');$('#l-pass-e').textContent='';
+    try{const r=await API.login({email:$('#l-email').value,password:$('#l-pass').value});
+      Auth.set(r.user,r.token);toast('ok',`Welcome back, ${r.user.name.split(' ')[0]}`);
+      location.hash='#/trade';
+    }catch(ex){$('#l-pass-e').textContent=ex.message;go.classList.remove('busy')}
+  };
+}
+
+/* ---- Terminal ---- */
+function Terminal(app){
+  const u=Auth.u;
+  let asset='EURUSD',tf=5,mode='candles',exp=60,pulses=[];
+  app.innerHTML=appHeader('trade')+`
+  <div class="term">
+    <aside class="side">
+      <div class="side-search">${icon('search',15)}<input id="a-search" placeholder="Search market"></div>
+      <div class="alist" id="alist"></div>
+    </aside>
+    <main class="cz">
+      <div class="cz-head">
+        <div class="cz-id"><b id="cz-name">EUR/USD</b><span class="sim-tag">${USE_DEMO?'SIM FEED':'SERVER FEED'}</span>
+          <span class="mono cz-p" id="cz-p">—</span><span class="mono cz-c" id="cz-c">0.00%</span></div>
+        <div class="cz-tools">
+          <div class="chips" id="tf-chips">${[['5','5s'],['15','15s'],['60','1m'],['300','5m']]
+            .map(([v,l])=>`<button data-tf="${v}" class="${+v===5?'on':''}">${l}</button>`).join('')}</div>
+          <div class="chips" id="mode-chips">
+            <button data-m="candles" class="on">${icon('chart',13)} Candles</button>
+            <button data-m="line">${icon('zap',13)} Line</button></div>
+          <button class="live-btn on" id="live-btn">${icon('right',13)} LIVE</button>
+        </div>
+      </div>
+      <div class="cwrap"><canvas id="tc"></canvas></div>
+    </main>
+    <aside class="tb">
+      ${u.wallets.real<=0&&Auth.acc==='real'?`<a class="empty-nudge" href="#/deposit">${icon('info',14)} Real wallet is empty — <b>&nbsp;make a deposit</b></a>`:''}
+      <div>
+        <label class="tb-lab">Stake</label>
+        <div class="amt">
+          <button id="amt-dn">${icon('down',15)}</button>
+          <input id="amt" inputmode="decimal" value="10">
+          <button id="amt-up">${icon('up',15)}</button>
+        </div>
+        <div class="qchips">${[10,25,50,100,500].map(v=>`<button data-q="${v}">${v}</button>`).join('')}</div>
+        <label class="tb-lab">Expiry</label>
+        <div class="chips wide" id="exp-chips">${[['30','30s'],['60','1m'],['120','2m'],['300','5m']]
+          .map(([v,l],i)=>`<button data-x="${v}" class="${v==='60'?'on':''}">${l}</button>`).join('')}</div>
+      </div>
+      <div class="payout-line">
+        <div><span>Payout</span><b class="mono" id="po-p">85%</b></div>
+        <div style="text-align:right"><span>Profit</span><b class="mono u-c" id="po-pr">+$8.50</b></div>
+      </div>
+      <div class="call-put">
+        <button class="cp up" id="btn-up">${icon('up',22)}<b>UP</b><span>wins if close &gt; entry</span></button>
+        <button class="cp down" id="btn-dn">${icon('down',22)}<b>DOWN</b><span>wins if close &lt; entry</span></button>
+      </div>
+      <div>
+        <div class="pos-head"><label class="tb-lab">Open positions</label><span id="pos-n">0</span></div>
+        <div id="pos-list"></div>
+      </div>
+      <div class="day-stats" id="day-stats"></div>
+    </aside>
+  </div>`;
+  wireHeader();
+  const chart=new Chart($('#tc'),{asset:()=>asset,tf:()=>tf,mode:()=>mode,
+    trades:()=>DB.trades(Auth.u.id).filter(t=>t.status==='open'&&t.asset===asset),
+    pulses:()=>pulses});
+  onCleanup(()=>chart.destroy());
+  const cur=()=>Market.byId(asset);
+  function renderList(f=''){
+    const groups={};
+    Market.A.filter(a=>(a.name+' '+a.cat).toLowerCase().includes(f.toLowerCase()))
+      .forEach(a=>(groups[a.cat]??=[]).push(a));
+    $('#alist').innerHTML=Object.entries(groups).map(([cat,arr])=>
+      `<div class="ag">${cat}</div>`+arr.map(a=>`
+      <button class="ai ${a.id===asset?'on':''}" data-a="${a.id}">
+        <span class="ai-n"><b>${a.name}</b><i>${a.cat}</i></span>
+        <span class="mono ai-p" data-ap="${a.id}">${Market.fmtP(a)}</span>
+        <span class="ai-po">${a.payout}%</span></button>`).join('')).join('');
+  }
+  renderList();
+  function updatePayout(){
+    const amt=parseFloat($('#amt').value)||0;
+    $('#po-p').textContent=cur().payout+'%';
+    $('#po-pr').textContent='+'+money(amt*cur().payout/100);
+  }
+  function posRow(t){
+    const a=Market.byId(t.asset);
+    const win=(t.dir==='up')===(a.price>t.entry);
+    const el=(t.expiry-t.entryTime)||1;
+    return `<div class="pos-r">
+      <span class="dir ${t.dir}">${t.dir==='up'?'▲':'▼'}</span>
+      <span class="pos-i"><b>${a.name} <i class="pos-acc">${t.account.toUpperCase()}</i></b>
+        <i class="mono">${money(t.amount)} · ${Market.fmtP(a,t.entry)}</i></span>
+      <span class="pos-s ${win?'w':'l'}">${win?'winning':'losing'}</span>
+      <span class="pos-t mono">${count(t.expiry-Date.now())}</span>
+      <span class="pos-bar"><i style="width:${clamp((Date.now()-t.entryTime)/el*100,0,100)}%"></i></span></div>`;
+  }
+  function renderPos(){
+    const open=DB.trades(Auth.u.id).filter(t=>t.status==='open');
+    $('#pos-n').textContent=open.length;
+    $('#pos-list').innerHTML=open.length?open.map(posRow).join(''):
+      `<div class="empty" style="padding:22px 8px">${icon('clock',20)}<p style="font-size:12px">No open positions</p><span style="font-size:11px">Your calls appear here with a live countdown.</span></div>`;
+  }
+  function dayStats(){
+    const t0=new Date().setHours(0,0,0,0);
+    const cl=DB.trades(u.id).filter(t=>t.status==='closed'&&t.closeTime>=t0);
+    const w=cl.filter(t=>t.result==='win').length;
+    const pl=cl.reduce((s,t)=>s+t.profit,0);
+    $('#day-stats').innerHTML=`<span>Today</span><b class="mono">${cl.length} trades</b>
+      <b class="mono">${cl.length?Math.round(w/cl.length*100):0}% win</b>
+      <b class="mono ${pl>=0?'u-c':'d-c'}">${pl>=0?'+':'−'}${money(Math.abs(pl)).slice(1)}</b>`;
+  }
+  updatePayout();renderPos();dayStats();
+  onCleanup(Market.on(()=>{
+    const a=cur(),p=$('#cz-p');
+    p.textContent=Market.fmtP(a);
+    p.classList.toggle('u-c',a.dir>0);p.classList.toggle('d-c',a.dir<0);
+    const ch=(a.price/a.start-1)*100,cEl=$('#cz-c');
+    cEl.textContent=(ch>=0?'+':'')+ch.toFixed(2)+'%';
+    cEl.className='mono cz-c '+(ch>=0?'u-c':'d-c');
+    $('#live-btn').classList.toggle('on',chart.offset===0);
+    $$('#alist .ai-p').forEach(el=>{const a2=Market.byId(el.dataset.ap);
+      el.textContent=Market.fmtP(a2);
+      el.classList.toggle('u-c',a2.dir>0);el.classList.toggle('d-c',a2.dir<0);});
+    updatePayout();renderPos();
+  }));
+  onCleanup(Bus.on('trades',()=>{renderPos();dayStats()}));
+  onCleanup(Bus.on('pulse',t=>{if(t.asset===asset)pulses.push({time:t.expiry,price:t.close,win:t.result==='win',at:performance.now()})}));
+  $('#a-search').oninput=e=>renderList(e.target.value);
+  $('#alist').onclick=e=>{const b=e.target.closest('.ai');if(!b)return;
+    asset=b.dataset.a;chart.setAsset();$('#cz-name').textContent=cur().name;
+    updatePayout();renderList($('#a-search').value);};
+  $$('#tf-chips button').forEach(b=>b.onclick=()=>{tf=+b.dataset.tf;
+    $$('#tf-chips button').forEach(x=>x.classList.toggle('on',x===b));});
+  $$('#mode-chips button').forEach(b=>b.onclick=()=>{mode=b.dataset.m;
+    $$('#mode-chips button').forEach(x=>x.classList.toggle('on',x===b));});
+  $('#live-btn').onclick=()=>{chart.offset=0};
+  $$('#exp-chips button').forEach(b=>b.onclick=()=>{exp=+b.dataset.x;
+    $$('#exp-chips button').forEach(x=>x.classList.toggle('on',x===b));});
+  const amtEl=$('#amt');
+  const setAmt=v=>{amtEl.value=Math.round(clamp(v,1,100000)*100)/100;updatePayout()};
+  amtEl.oninput=updatePayout;
+  amtEl.onchange=()=>setAmt(parseFloat(amtEl.value)||1);
+  $('#amt-dn').onclick=()=>setAmt((parseFloat(amtEl.value)||10)/2);
+  $('#amt-up').onclick=()=>setAmt((parseFloat(amtEl.value)||10)*2);
+  $$('.qchips button',app).forEach(b=>b.onclick=()=>setAmt(+b.dataset.q));
+  async function place(dir){
+    const amt=parseFloat(amtEl.value),bal=Auth.bal();
+    const btn=dir==='up'?$('#btn-up'):$('#btn-dn');
+    if(!(amt>=1))return toast('warn','Stake too small','Minimum stake is $1.00.');
+    if(amt>bal)return toast('warn','Not enough balance',`Your ${Auth.acc.toUpperCase()} wallet holds ${money(bal)}.`);
+    btn.classList.add('busy');
+    try{
+      const t=await API.placeTrade({asset,dir,amount:amt,expirySec:exp,account:Auth.acc});
+      if(!USE_DEMO)Auth.bump(t.account,-amt);   /* optimistic; /me refresh corrects */
+      toast('info',`${dir.toUpperCase()} · ${money(amt)} on ${Market.byId(t.asset).name}`,
+        `Entry locked at ${Market.fmtP(Market.byId(t.asset),t.entry)} · expires in ${exp<60?exp+'s':(exp/60)+'m'}`);
+      renderPos();amtEl.blur();
+    }catch(e){toast('warn','Order rejected',e.message)}
+    btn.classList.remove('busy');
+  }
+  $('#btn-up').onclick=()=>place('up');
+  $('#btn-dn').onclick=()=>place('down');
+}
+
+/* ---- Deposit ---- */
+function Deposit(app){
+  const METHODS=[
+    {id:'mpesa',name:'M-Pesa',net:'Safaricom · STK Push',glyph:'M',note:'Instant · enter PIN'},
+    {id:'usdt',name:'USDT',net:'Tether · TRC-20',glyph:'₮',note:'No fee · ~3 min'},
+    {id:'btc',name:'BTC',net:'Bitcoin',glyph:'₿',note:'No fee · ~10 min'},
+    {id:'eth',name:'ETH',net:'Ethereum · ERC-20',glyph:'Ξ',note:'No fee · ~2 min'},
+    {id:'card',name:'Card',net:'Visa · Mastercard',glyph:'',note:'Instant · 3-D Secure'},
+  ];
+  let step=1,method='mpesa',dep=null,phase='form';
+  const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
+    if(d.startsWith('0'))d='254'+d.slice(1);
+    if(d.length===9&&/^[17]/.test(d))d='254'+d;
+    return d};
+  const summary=()=>{const amt=parseFloat($('#dep-amt')?.value)||dep?.amount||0;
+    const code=(($('#promo')?.value)||dep?.bonusCode||'').trim().toUpperCase();
+    let bonus=0,note='';
+    if(code==='WELCOME20')bonus=+(amt*.2).toFixed(2);
+    if(code==='BOOST50'){bonus=amt>=100?+(amt*.5).toFixed(2):0;if(amt<100)note='BOOST50 needs $100+';}
+    return{amt,code,bonus,note,total:+(amt+bonus).toFixed(2)}};
+  function sumPanel(){
+    const s=dep?{amt:dep.amount,bonus:dep.bonus,total:dep.total,code:dep.bonusCode}:summary();
+    return `<div class="pn"><h3 style="margin:0 0 6px;font:600 15px var(--fd)">Summary</h3>
+      <p class="hint" style="margin:0 0 14px">Deposits always credit your <b style="color:var(--up)">REAL</b> wallet.</p>
+      <div class="sum-r"><span>Amount</span><b>${money(s.amt)}</b></div>
+      ${!dep&&method==='mpesa'&&s.total?`<div class="sum-r"><span>Est. M-Pesa charge</span><b>KES ${Math.ceil(s.total*129).toLocaleString()}</b></div>`:''}
+      ${s.bonus?`<div class="sum-r"><span>Bonus ${s.code?'· '+esc(s.code):''}</span><b class="u-c">+${money(s.bonus)}</b></div>`:''}
+      <div class="sum-r"><span>Deposit fee</span><b>$0.00</b></div>
+      <div class="sum-r tot"><span>You receive</span><b>${money(s.total)}</b></div>
+      ${step===1?`<button class="btn btn-acc wide" id="dep-go" style="margin-top:18px">Continue ${icon('right',15)}</button>`:''}
+    </div>`;
+  }
+  function methodRows(){
+    return METHODS.map(m=>`<button class="mrow ${m.id===method?'on':''}" data-m="${m.id}">
+      <span class="mg">${m.glyph||icon('card',18)}</span>
+      <span><b>${m.name}</b><i>${m.net}</i></span>
+      <span class="mnote">${m.note}</span></button>`).join('');
+  }
+  function depBody(){
+    if(step===1)return `<div class="pn">
+        <label class="tb-lab">Payment method</label>${methodRows()}
+        <label class="tb-lab" style="margin-top:16px">Amount (USD)</label>
+        <input id="dep-amt" inputmode="decimal" placeholder="50.00" value="${dep?dep.amount:''}">
+        ${method==='mpesa'?`<label class="tb-lab" style="margin-top:14px">M-Pesa phone number</label>
+        <input id="mp-phone" inputmode="tel" placeholder="07XX XXX XXX">
+        <p class="hint">You'll get a push on this number — enter your M-Pesa PIN to approve. Safaricom lines only.</p>`:''}
+        <div class="qchips" style="margin-bottom:14px">${[50,100,250,500,1000].map(v=>`<button data-q="${v}">${v}</button>`).join('')}</div>
+        <label class="tb-lab">Promo code <span style="text-transform:none;letter-spacing:0">(optional)</span></label>
+        <input id="promo" placeholder="e.g. WELCOME20" value="${dep?dep.bonusCode||'':''}" style="text-transform:uppercase">
+        <p class="hint">${icon('gift',13)} ${PROMO_HINT}</p>
+      </div>${sumPanel()}`;
+    if(step===2&&method==='mpesa')return `<div class="pn">
+        <h3 style="margin:0 0 4px;font:600 15px var(--fd)">M-Pesa · ${money(dep.total)}</h3>
+        <p class="hint" style="margin:0 0 14px">Request for <b>${esc(dep.instructions.phone)}</b>${dep.instructions.kesAmount?` · <b>KES ${dep.instructions.kesAmount.toLocaleString()}</b>`:''}.</p>
+        <div id="stages"></div>
+        <p class="hint" style="margin-top:14px">${icon('info',13)} Real STK Push needs Daraja wired on the backend. For testing, approve with the dev button below.</p>
+        <button class="btn btn-acc wide" id="mp-sim" style="margin-top:14px">${icon('check',15)} Dev approve (test)</button>
+        <button class="btn btn-ghost wide" id="mp-cancel" style="margin-top:10px">Cancel and go back</button>
+      </div>${sumPanel()}`;
+    if(step===2&&method!=='card')return `<div class="pn">
+        <h3 style="margin:0 0 4px;font:600 15px var(--fd)">Send ${money(dep.total)} in ${method.toUpperCase()}</h3>
+        <p class="hint" style="margin:0 0 14px">Network: <b>${esc(dep.instructions.network)}</b> — sending the wrong network can lose funds.</p>
+        <div class="qrbox"><canvas id="qr" width="172" height="172"></canvas></div>
+        <label class="tb-lab">Deposit address</label>
+        <div class="addr"><code>${esc(dep.instructions.address)}</code>
+          <button id="cp-addr" title="Copy">${icon('copy',15)}</button></div>
+        <p class="hint" style="margin-bottom:16px">The address above is a <b>placeholder</b> until a crypto payment provider is wired. In test mode, confirm below.</p>
+        <button class="btn btn-acc wide" id="sent">${icon('check',15)} I\u2019ve sent the funds</button>
+      </div>${sumPanel()}`;
+    if(step===2)return `<div class="pn"><h3 style="margin:0 0 14px;font:600 15px var(--fd)">Card payment · ${money(dep.total)}</h3>
+        <div class="card-f">
+          <div class="full"><label class="tb-lab">Card number</label><input id="c-num" inputmode="numeric" placeholder="4242 4242 4242 4242"><em class="err" id="c-num-e"></em></div>
+          <div><label class="tb-lab">Expiry</label><input id="c-exp" inputmode="numeric" placeholder="MM/YY"><em class="err" id="c-exp-e"></em></div>
+          <div><label class="tb-lab">CVV</label><input id="c-cvv" inputmode="numeric" placeholder="123" type="password"><em class="err" id="c-cvv-e"></em></div>
+          <div class="full"><label class="tb-lab">Cardholder name</label><input id="c-name" placeholder="ALEX TRADER"><em class="err" id="c-name-e"></em></div>
+        </div>
+        <p class="hint" style="margin-bottom:16px">Test checkout — use <b>4242 4242 4242 4242</b>, any future expiry, any CVV. Real processing needs a gateway (Stripe/Paystack etc.).</p>
+        <button class="btn btn-acc wide" id="c-pay">${icon('lock',15)} Pay ${money(dep.total)}</button>
+      </div>${sumPanel()}`;
+    if(phase==='done')return `<div class="pn" style="text-align:center;padding:40px 20px">
+        <div class="big-check">${icon('check',30)}</div>
+        <h3 style="margin:0 0 6px;font:600 18px var(--fd)">${money(dep.total)} credited</h3>
+        <p class="hint" style="margin:0 0 22px">${dep.bonus?`Includes a ${money(dep.bonus)} bonus (${esc(dep.bonusCode)}). `:''}Your REAL wallet is ready.</p>
+        <div style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap">
+          <a class="btn btn-acc big" href="#/trade">${icon('zap',16)} Trade now</a>
+          <button class="btn btn-ghost big" id="again">New deposit</button>
+        </div></div>
+      <div class="pn" style="margin-top:16px">${receiptTx()}</div>`;
+    return `<div class="pn"><h3 style="margin:0 0 10px;font:600 15px var(--fd)">Processing your ${method==='card'?'card payment':'crypto deposit'}</h3>
+        <div id="stages"></div>
+        <p class="hint" style="margin-top:14px">${icon('info',13)} In production your payment provider\u2019s webhook drives these stages.</p>
+      </div>${sumPanel()}`;
+  }
+  const receiptTx=()=>`<div class="sum-r"><span>Reference</span><b>${dep.id.slice(0,8).toUpperCase()}</b></div>
+    <div class="sum-r"><span>Method</span><b>${method.toUpperCase()}</b></div>
+    <div class="sum-r"><span>Status</span><b class="u-c">CONFIRMED</b></div>`;
+  function draw(){
+    app.innerHTML=appHeader('deposit')+`<div class="pg"><div class="pg-head">
+      <h1>Deposit</h1>
+      <div class="steps"><span class="${step>=1?'on':''}">1 · METHOD</span><span class="${step>=2?'on':''}">2 · PAYMENT</span><span class="${step>=3?'on':''}">3 · CONFIRM</span></div></div>
+      <div class="dep-grid">${depBody()}</div></div>`;
+    wireHeader();wire();
+  }
+  const STAGES_CRYPTO=['Awaiting your payment','Transaction seen on network','1 / 3 confirmations','2 / 3 confirmations','Credited to REAL wallet'];
+  const STAGES_CARD=['Contacting gateway','3-D Secure check','Approving payment','Crediting REAL wallet'];
+  function setStages(names,idx){
+    $('#stages').innerHTML=names.map((n,i)=>`<div class="stg ${i<idx?'done':i===idx?'run':''}">
+      ${icon(i<idx?'check':'clock',15)}<span>${n}</span>${i===idx?'<i class="spin"></i>':''}</div>`).join('');
+  }
+  async function runStages(names,gap){
+    for(let i=0;i<names.length;i++){setStages(names,i);await sleep(gap)}
+  }
+  const creditAndDone=d=>{dep=d;if(!USE_DEMO)Auth.bump('real',d.total);
+    toast('ok',`Deposited ${money(d.total)}`,'Credited to your REAL wallet.');
+    phase='done';draw();};
+  function wire(){
+    const body=$('.dep-grid');
+    if(step===1){
+      $$('.mrow',body).forEach(b=>b.onclick=()=>{method=b.dataset.m;draw()});
+      $$('.qchips',body).forEach(b=>b.onclick=()=>{$('#dep-amt').value=b.dataset.q});
+      $('#dep-go').onclick=async()=>{
+        const s=summary();
+        if(!(s.amt>=10))return toast('warn','Amount too small','Minimum deposit is $10.00.');
+        if(s.amt>100000)return toast('warn','Amount too large','Maximum deposit is $100,000.00.');
+        if(s.note)return toast('warn','Promo not applied',s.note);
+        const go=$('#dep-go');go.classList.add('busy');
+        let phone=null;
+        if(method==='mpesa'){phone=normPhone($('#mp-phone')?.value);
+          if(!/^254(7|1)\d{8}$/.test(phone)){go.classList.remove('busy');
+            return toast('warn','Check the number','Enter a valid Safaricom number, e.g. 0712 345 678.');}}
+        try{dep=await API.createDeposit({method,amount:s.amt,bonusCode:s.code,phone});
+          if(method==='mpesa')phase='proc';
+          step=2;draw();
+        }catch(e){toast('warn','Could not create deposit',e.message);go.classList.remove('busy')}
+      };
+    }else if(step===2&&method==='mpesa'){
+      $('#mp-cancel').onclick=()=>{step=1;dep=null;phase='form';draw()};
+      const stages=['Request sent to Safaricom','Waiting for your M-Pesa PIN','Crediting REAL wallet'];
+      const setS=i=>{const el=$('#stages');if(!el)return;el.innerHTML=stages.map((n,j)=>
+        `<div class="stg ${j<i?'done':j===i?'run':''}">${icon(j<i?'check':'clock',15)}<span>${n}</span>${j===i?'<i class="spin"></i>':''}</div>`).join('')};
+      (async()=>{
+        setS(1);
+        for(let i=0;i<40;i++){
+          await sleep(3000);
+          if(phase!=='proc'||!$('#stages'))return;
+          let d;try{d=await API.getDeposit(dep.id)}catch{continue}
+          if(d.status==='confirmed'){setS(3);await sleep(600);
+            if(phase!=='proc')return;creditAndDone(d);return}
+          if(d.status==='failed'&&$('#stages')){$('#stages').innerHTML=
+            `<div class="stg" style="color:var(--down)">${icon('warn',15)}<span>Payment was cancelled or failed — nothing was charged.</span></div>`;return}
+        }
+        if($('#stages'))$('#stages').innerHTML=
+          `<div class="stg" style="color:var(--down)">${icon('warn',15)}<span>Timed out after 2 minutes — no payment received.</span></div>`;
+      })();
+      $('#mp-sim').onclick=async()=>{
+        const b=$('#mp-sim');b.classList.add('busy');
+        try{const d=await API.completeDeposit(dep.id);creditAndDone(d)}
+        catch(e){toast('warn',e.message);b.classList.remove('busy')}
+      };
+    }else if(step===2&&method!=='card'){
+      const cv=$('#qr');
+      try{if(cv&&window.QRCode)QRCode.toCanvas(cv,dep.instructions.address,{width:172,margin:1,color:{dark:'#141610',light:'#f1ede3'}},()=>{})}
+      catch{cv&&cv.parentElement.append(Object.assign(document.createElement('p'),{textContent:'QR unavailable',style:'font-size:11px'}))}
+      $('#cp-addr').onclick=async()=>{try{await navigator.clipboard.writeText(dep.instructions.address);
+        toast('ok','Address copied')}catch{toast('warn','Copy failed','Select the address manually.')}};
+      $('#sent').onclick=async()=>{
+        step=3;phase='proc';draw();
+        await runStages(STAGES_CRYPTO,1300);
+        try{const d=await API.completeDeposit(dep.id);creditAndDone(d)}
+        catch(e){toast('warn',e.message);phase='form';step=2;draw()}
+      };
+    }else if(step===2){
+      const num=$('#c-num'),exp2=$('#c-exp'),cvv=$('#c-cvv');
+      num.oninput=()=>{num.value=num.value.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ')};
+      exp2.oninput=()=>{let v=exp2.value.replace(/\D/g,'').slice(0,4);exp2.value=v.length>2?v.slice(0,2)+'/'+v.slice(2):v};
+      cvv.oninput=()=>{cvv.value=cvv.value.replace(/\D/g,'').slice(0,4)};
+      $('#c-pay').onclick=async()=>{
+        const d=num.value.replace(/\s/g,'');let ok=true;
+        const err=(id,m)=>{$('#'+id+'-e').textContent=m;if(m)ok=false};
+        err('c-num',d.length===16&&luhn(d)?'':'Check the card number');
+        err('c-exp',/^(0[1-9]|1[0-2])\/\d{2}$/.test(exp2.value)?'':'Use MM/YY');
+        err('c-cvv',cvv.value.length>=3?'':'3–4 digits');
+        err('c-name',$('#c-name').value.trim().length>=2?'':'Cardholder name required');
+        if(!ok)return;
+        const b=$('#c-pay');b.classList.add('busy');
+        step=3;phase='proc';draw();
+        await runStages(STAGES_CARD,1400);
+        try{const d=await API.completeDeposit(dep.id);creditAndDone(d)}
+        catch(e){toast('warn',e.message);phase='form';step=2;draw()}
+      };
+    }else if(phase==='done'){
+      const ag=$('#again');if(ag)ag.onclick=()=>{step=1;dep=null;phase='form';draw()};
+    }
+  }
+  draw();
+}
+
+/* ---- Withdraw ---- */
+function Withdraw(app){
+  const METHODS=[
+    {id:'usdt',name:'USDT · TRC-20',fee:1,ph:'T… TRC-20 address (34 chars)'},
+    {id:'btc',name:'BTC',fee:2,ph:'bc1… or 1… Bitcoin address'},
+    {id:'eth',name:'ETH · ERC-20',fee:1.5,ph:'0x… Ethereum address (42 chars)'},
+    {id:'card',name:'Visa / Mastercard',fee:0,ph:'16-digit card number'},
+  ];
+  let method='usdt',wd=null,phase='form';
+  const M=()=>METHODS.find(m=>m.id===method);
+  const feeOf=m=>m==='card'?0:{usdt:1,btc:2,eth:1.5}[m];
+  const feeOfAmt=a=>method==='card'?+(a*0.015).toFixed(2):feeOf(method);
+  function formHTML(){
+    const bal=Auth.u.wallets.real;
+    return `<div class="pn">
+      <label class="tb-lab">Payout method</label>
+      ${METHODS.map(m=>`<button class="mrow ${m.id===method?'on':''}" data-m="${m.id}">
+        <span class="mg">${m.id==='card'?icon('card',18):{usdt:'₮',btc:'₿',eth:'Ξ'}[m.id]}</span>
+        <span><b>${m.name}</b><i>fee ${m.id==='card'?'1.5%':money(m.fee)}</i></span></button>`).join('')}
+      <label class="tb-lab" style="margin-top:16px">Amount (USD) · available ${money(bal)}</label>
+      <input id="w-amt" inputmode="decimal" placeholder="50.00">
+      <div class="qchips">${[25,50,100,250].map(v=>`<button data-q="${v}">${v}</button>`).join('')}
+        <button id="w-max">MAX</button></div>
+      <label class="tb-lab">Payout ${method==='card'?'card number':'address'}</label>
+      <input id="w-addr" placeholder="${M().ph}">
+      <p class="hint" style="margin-bottom:16px">Double-check the address — crypto transfers can\u2019t be reversed.</p>
+      <div class="sum-r"><span>Fee</span><b id="w-fee">—</b></div>
+      <div class="sum-r tot"><span>You receive</span><b id="w-net">—</b></div>
+      <button class="btn btn-acc wide" id="w-go" style="margin-top:16px">${icon('send',15)} Request withdrawal</button>
+    </div>`;
+  }
+  function recentHTML(list){
+    if(!list.length)return '';
+    return `<div class="pn" style="margin-top:16px"><label class="tb-lab">Recent withdrawals</label>
+      <table class="tbl"><tr><th>Time</th><th>Method</th><th>Amount</th><th>Status</th></tr>
+      ${list.map(w=>`<tr><td class="mono" style="font-size:11.5px">${fmtDT(w.time)}</td>
+        <td>${w.method.toUpperCase()}</td><td class="mono">${money(w.amount)}</td>
+        <td><span class="badge ${w.status==='processed'?'done':'pend'}">${w.status==='processed'?'SENT':'PROCESSING'}</span></td></tr>`).join('')}
+      </table></div>`;
+  }
+  function draw(){
+    app.innerHTML=appHeader('withdraw')+`<div class="pg narrow"><div class="pg-head"><h1>Withdraw</h1></div><div id="w-body"></div></div>`;
+    wireHeader();
+    (async()=>{
+      const txs=await API.listTx();
+      const body=$('#w-body');
+      if(phase==='form'){
+        body.innerHTML=formHTML()+recentHTML(txs.filter(t=>t.type==='withdrawal').slice(0,5));
+        wireForm();
+      }else if(phase==='track'){
+        body.innerHTML=`<div class="pn"><h3 style="margin:0 0 4px;font:600 15px var(--fd)">Withdrawing ${money(wd.amount)} via ${wd.method.toUpperCase()}</h3>
+          <p class="hint" style="margin:0 0 14px">To <b>${esc(wd.address.length>22?wd.address.slice(0,10)+'…'+wd.address.slice(-6):wd.address)}</b></p>
+          <div id="wst"></div></div>`;
+        const st=['Request submitted','Compliance approved','Broadcasting payment','Sent'];
+        for(let i=0;i<st.length;i++){$('#wst').innerHTML=st.map((n,j)=>
+          `<div class="stg ${j<i?'done':j===i?'run':''}">${icon(j<i?'check':'clock',15)}<span>${n}</span>${j===i?'<i class="spin"></i>':''}</div>`).join('');
+          await sleep(i===2?3500:2000);}
+        phase='done';draw();
+      }else{
+        body.innerHTML=`<div class="pn" style="text-align:center;padding:38px 20px">
+          <div class="big-check">${icon('check',30)}</div>
+          <h3 style="margin:0 0 6px;font:600 18px var(--fd)">${money(wd.total)} sent</h3>
+          <p class="hint" style="margin:0 0 22px">${money(wd.amount)} + ${money(wd.fee)} fee via ${wd.method.toUpperCase()}.</p>
+          <button class="btn btn-acc big" id="w-again">New withdrawal</button></div>
+          ${recentHTML(txs.filter(t=>t.type==='withdrawal').slice(0,5))}`;
+        $('#w-again').onclick=()=>{phase='form';wd=null;draw()};
+      }
+    })();
+  }
+  function wireForm(){
+    $$('.mrow',$('#w-body')).forEach(b=>b.onclick=()=>{method=b.dataset.m;draw()});
+    $$('.qchips button[data-q]').forEach(b=>b.onclick=()=>{$('#w-amt').value=b.dataset.q;calc()});
+    $('#w-max').onclick=()=>{
+      const bal=Auth.u.wallets.real;
+      $('#w-amt').value=Math.max(0,Math.floor((method==='card'?bal/1.015:bal-feeOf(method))*100)/100);calc();};
+    const calc=()=>{const a=parseFloat($('#w-amt').value)||0,f=feeOfAmt(a);
+      $('#w-fee').textContent=money(f);$('#w-net').textContent=money(Math.max(0,a-f));};
+    $('#w-amt').oninput=calc;calc();
+    $('#w-go').onclick=async()=>{
+      const a=parseFloat($('#w-amt').value)||0,addr=$('#w-addr').value.trim(),f=feeOfAmt(a);
+      if(!(a>=10))return toast('warn','Too small','Minimum withdrawal is $10.00.');
+      const okY=await confirmDialog({title:'Confirm withdrawal',danger:true,ok:'Send it',
+        body:`Send <b>${money(a)}</b> to<br><b style="word-break:break-all">${esc(addr)}</b><br><br>Fee <b>${money(f)}</b> · you receive <b>${money(a-f)}</b>. This can\u2019t be reversed.`});
+      if(!okY)return;
+      try{wd=await API.createWithdrawal({method,address:addr,amount:a});
+        if(!USE_DEMO)Auth.bump('real',-wd.total);
+        toast('ok','Withdrawal submitted',`${money(wd.total)} deducted (amount + fee).`);
+        phase='track';draw();
+      }catch(e){toast('warn','Withdrawal rejected',e.message)}
+    };
+  }
+  draw();
+}
+
+/* ---- History ---- */
+async function History(app){
+  app.innerHTML=appHeader('history')+`<div class="pg"><div class="pg-head"><h1>History</h1>
+    <div class="chips" id="h-tabs"><button data-t="trades" class="on">Trades</button><button data-t="tx">Transactions</button></div></div>
+    <div class="pn" id="h-body"><div class="empty">${icon('clock',22)}<p>Loading…</p></div></div></div>`;
+  wireHeader();
+  const trades=await API.listTrades(),txs=await API.listTx();
+  let tab='trades';
+  function draw(){
+    const b=$('#h-body');
+    if(tab==='trades'){
+      b.innerHTML=trades.length?`<table class="tbl">
+        <tr><th>Time</th><th>Market</th><th>Dir</th><th>Stake</th><th>Entry → Close</th><th>Result</th></tr>
+        ${trades.map(t=>{const a=Market.byId(t.asset)||{name:t.asset,dec:2};
+          const open=t.status==='open';
+          return `<tr><td class="mono" style="font-size:11.5px">${fmtDT(t.entryTime)}</td>
+          <td><b>${a.name}</b> <i class="pos-acc">${t.account.toUpperCase()}</i></td>
+          <td><span class="dir ${t.dir}" style="width:22px;height:22px">${t.dir==='up'?'▲':'▼'}</span></td>
+          <td class="mono">${money(t.amount)}</td>
+          <td class="mono" style="font-size:11.5px">${Market.fmtP(a,t.entry)} → ${open?'…':Market.fmtP(a,t.close)}</td>
+          <td>${open?'<span class="badge open">OPEN</span>':
+            `<span class="badge ${t.result}">${t.result==='win'?'+'+money(t.profit):t.result==='draw'?'REFUND':'−'+money(t.amount)}</span>`}</td></tr>`}).join('')}
+        </table>`
+      :`<div class="empty">${icon('chart',24)}<p>No trades yet</p><span>Place your first call from the terminal.</span></div>`;
+    }else{
+      b.innerHTML=txs.length?`<table class="tbl">
+        <tr><th>Time</th><th>Type</th><th>Method</th><th>Amount</th><th>Status</th></tr>
+        ${txs.map(x=>`<tr><td class="mono" style="font-size:11.5px">${fmtDT(x.time)}</td>
+          <td><b>${x.type==='deposit'?'DEPOSIT':'WITHDRAWAL'}</b>${x.bonus?` <i class="pos-acc">+${x.bonusCode}</i>`:''}</td>
+          <td>${x.method.toUpperCase()}</td>
+          <td class="mono ${x.type==='deposit'?'u-c':'d-c'}">${x.type==='deposit'?'+':'−'}${money(x.total)}</td>
+          <td><span class="badge ${x.status==='confirmed'||x.status==='processed'?'done':'pend'}">${x.status.replace('_',' ').toUpperCase()}</span></td></tr>`).join('')}
+        </table>`
+      :`<div class="empty">${icon('wallet',24)}<p>No transactions yet</p><span>Deposits and withdrawals land here.</span></div>`;
+    }
+  }
+  $$('#h-tabs button').forEach(btn=>btn.onclick=()=>{tab=btn.dataset.t;
+    $$('#h-tabs button').forEach(x=>x.classList.toggle('on',x===btn));draw()});
+  draw();
+}
+
+/* ---- Profile ---- */
+async function Profile(app){
+  app.innerHTML=appHeader('profile')+`<div class="pg"><div class="pg-head"><h1>Profile</h1></div>
+    <div class="prof"><div class="pn">
+      <div class="prof-id"><div class="prof-av">${esc(Auth.u.name.trim().slice(0,1).toUpperCase())}</div>
+        <div><b style="font-size:15px">${esc(Auth.u.name)}</b><br><span style="font-size:12px;color:var(--mut)">${esc(Auth.u.email)}</span></div></div>
+      <div class="sum-r"><span>User ID</span><b style="font-size:11px;cursor:pointer" id="p-id" title="Copy">${Auth.u.id.slice(0,14)}…</b></div>
+      <div class="sum-r"><span>Member since</span><b>${new Date(Auth.u.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</b></div>
+      <button class="btn btn-ghost wide" id="p-out" style="margin-top:16px">${icon('logout',15)} Log out</button>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:16px">
+      <div class="pn"><label class="tb-lab">Wallets</label>
+        <div class="sum-r"><span><span class="wp-tag d">DEMO</span>&nbsp; practice balance</span><b>${money(Auth.u.wallets.demo)}</b></div>
+        <div class="sum-r"><span><span class="wp-tag r">REAL</span>&nbsp; deposited funds</span><b>${money(Auth.u.wallets.real)}</b></div>
+        <a class="btn btn-acc sm" href="#/deposit" style="margin-top:14px">${icon('plus',14)} Deposit</a></div>
+      <div class="pn"><label class="tb-lab">Last 120 trades</label><div class="stat-grid" id="p-stats">
+        <div class="stat"><span>Closed trades</span><b id="ps-n">…</b></div>
+        <div class="stat"><span>Win rate</span><b id="ps-w">…</b></div>
+        <div class="stat"><span>Net P/L</span><b id="ps-p">…</b></div>
+        <div class="stat"><span>Volume</span><b id="ps-v">…</b></div></div></div>
+      ${USE_DEMO?`<div class="pn" style="border-color:rgba(240,75,93,.3)">
+        <label class="tb-lab" style="color:var(--down)">Danger zone</label>
+        <p class="hint" style="margin:0 0 12px">Restores the demo wallet to $10,000. Real balance is untouched.</p>
+        <button class="btn btn-ghost sm" id="p-reset" style="color:var(--down);border-color:rgba(240,75,93,.4)">${icon('refresh',14)} Reset demo balance</button>
+      </div>`:''}
+    </div></div></div>`;
+  wireHeader();
+  $('#p-out').onclick=()=>Auth.logout();
+  $('#p-id').onclick=async()=>{try{await navigator.clipboard.writeText(Auth.u.id);toast('ok','User ID copied')}catch{}};
+  const rst=$('#p-reset');
+  if(rst)rst.onclick=async()=>{
+    if(await confirmDialog({title:'Reset demo balance?',body:'Your <b>DEMO</b> wallet goes back to <b>$10,000.00</b>.',ok:'Reset'})){
+      API.resetDemo();toast('ok','Demo wallet reset','$10,000.00 restored.');render();}};
+  const trades=await API.listTrades().then(t=>t.filter(x=>x.status==='closed'));
+  const w=trades.filter(t=>t.result==='win').length;
+  const pl=trades.reduce((s,t)=>s+t.profit,0),vol=trades.reduce((s,t)=>s+t.amount,0);
+  $('#ps-n').textContent=trades.length;
+  $('#ps-w').textContent=(trades.length?Math.round(w/trades.length*100):0)+'%';
+  const pe=$('#ps-p');pe.textContent=(pl>=0?'+':'−')+money(Math.abs(pl)).slice(1);pe.className=pl>=0?'u-c':'d-c';
+  $('#ps-v').textContent=money(vol);
+}
+
+/* ── 11 · router & boot ──────────────────────────────────────────────── */
+const routes={'/':Landing,'/login':Login,'/register':Register,'/trade':Terminal,
+  '/deposit':Deposit,'/withdraw':Withdraw,'/history':History,'/profile':Profile};
+const guarded=['/trade','/deposit','/withdraw','/history','/profile'];
+function render(){
+  cleanups.forEach(f=>{try{f()}catch{}});cleanups=[];
+  const path=(location.hash||'#/').slice(1).split('?')[0];
+  if(guarded.includes(path)&&!Auth.u){
+    toast('warn','Log in to continue','That page needs an account.');
+    location.hash='#/login';return;
+  }
+  window.scrollTo(0,0);
+  const app=$('#app');app.innerHTML='';
+  (routes[path]||Landing)(app);
+}
+window.addEventListener('hashchange',render);
+(async function boot(){
+  try{await Auth.boot();render();}
+  catch(e){document.body.innerHTML='<pre style="color:#F04B5D;padding:20px;font-family:monospace;white-space:pre-wrap">Startup error — send this text to support:\n'+e+'</pre>';}
+})();
+</script>
+</body>
+</html>
