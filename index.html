@@ -1379,7 +1379,7 @@ function Deposit(app){
       $$('.qchips',body).forEach(b=>b.onclick=()=>{$('#dep-amt').value=b.dataset.q});
       $('#dep-go').onclick=async()=>{
         const s=summary();
-        if(!(s.amt>=10))return toast('warn','Amount too small','Minimum deposit is $10.00.');
+        if(!(s.amt>=5))return toast('warn','Amount too small','Minimum deposit is $4.00.');
         if(s.amt>100000)return toast('warn','Amount too large','Maximum deposit is $100,000.00.');
         if(s.note)return toast('warn','Promo not applied',s.note);
         const go=$('#dep-go');go.classList.add('busy');
