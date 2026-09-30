@@ -758,8 +758,8 @@ const Demo={
 
 /* ── 7 · API layer — THE swap point ──────────────────────────────────── */
 const API={
-  USE_DEMO_BACKEND:true,   /* ← flip to false when your backend is live */
-  BASE:'/api',             /* ← your API base URL */
+  USE_DEMO_BACKEND:false,   /* ← flip to false when your backend is live */
+  BASE:'/const RENDER_API='https://vanta-1-7q8l.onrender.com';',             /* ← your API base URL */
   token(){return localStorage.getItem('vanta_token')},
   setToken(t){t?localStorage.setItem('vanta_token',t):localStorage.removeItem('vanta_token')},
   _uid(){return DB.data.sessions[this.token()]},
