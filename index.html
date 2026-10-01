@@ -54,11 +54,10 @@ button{font-family:var(--fb)}
 .toast.out{animation:tout .2s forwards}
 @keyframes tin{from{transform:translateX(30px);opacity:0}}
 @keyframes tout{to{transform:translateX(30px);opacity:0}}
-/* ── top bar ── */
 .top{height:54px;display:flex;align-items:center;gap:8px;padding:0 10px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:90}
 .icbtn{width:36px;height:36px;border-radius:10px;background:var(--panel);border:1px solid var(--line);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none}
 .icbtn:hover{color:var(--text)}
-.brand{font:800 15px var(--fb);letter-spacing:.01em;display:flex;align-items:center;gap:7px;margin:0 2px}
+.brand{font:800 15px var(--fb);display:flex;align-items:center;gap:7px;margin:0 2px}
 .brand em{font-style:normal;color:var(--grn)}
 .acct{position:relative;flex:none}
 .acct-b{display:flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line2);border-radius:999px;padding:4px 9px 4px 4px;cursor:pointer;color:var(--text)}
@@ -78,7 +77,6 @@ button{font-family:var(--fb)}
 .drop-sep{height:1px;background:var(--line);margin:5px 4px}
 .um-head{padding:8px 10px;border-bottom:1px solid var(--line);margin-bottom:5px}
 .um-head b{display:block;font-size:13px}.um-head span{font-size:11.5px;color:var(--mut)}
-/* ── drawer ── */
 .dwrap{position:fixed;inset:0;z-index:200;visibility:hidden}
 .dwrap.on{visibility:visible}
 .dov{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;transition:.2s}
@@ -89,40 +87,35 @@ button{font-family:var(--fb)}
 .dlink{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;color:var(--text);font:600 13.5px var(--fb)}
 .dlink:hover{background:var(--panel2)}
 .dlink.danger{color:var(--red)}
-/* ── bottom nav ── */
 .bnav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--panel);border-top:1px solid var(--line);z-index:88;padding-bottom:env(safe-area-inset-bottom)}
 .bnav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;color:var(--dim);font:600 10.5px var(--fb)}
 .bnav a.on{color:var(--grn)}
 .bnav .bub{width:50px;height:50px;border-radius:50%;background:linear-gradient(135deg,#7C5CFF,#2EE58A);display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 4px 18px rgba(124,92,255,.4),0 0 14px rgba(46,229,138,.3);color:#fff}
 body{padding-bottom:64px}
-/* ── game tabs ── */
 .pagec{max-width:600px;margin:0 auto}
 .gtabs{display:flex;gap:6px;padding:10px 12px 2px}
 .gtabs button{flex:1;padding:10px 4px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 12px var(--fb);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gtabs button.on{background:rgba(46,229,138,.12);border-color:rgba(46,229,138,.55);color:var(--grn)}
-/* ── chart card ── */
-.ccard{position:relative;margin:8px 12px;height:38vh;min-height:250px;background:#0E1513;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ccard{position:relative;margin:8px 12px;height:36vh;min-height:240px;background:#0E1513;border:1px solid var(--line);border-radius:16px;overflow:hidden}
 .ccard canvas{position:absolute;inset:0;width:100%;height:100%;display:block}
 .ctf{position:absolute;top:12px;left:12px;z-index:2;padding:10px 11px;border-radius:10px;background:rgba(22,29,27,.92);border:1px solid var(--line2);color:var(--text);font:700 12px var(--fb)}
 .csel{position:absolute;top:12px;left:56px;right:62px;z-index:2;display:flex;align-items:center;gap:9px;padding:6px 10px;border-radius:12px;background:rgba(22,29,27,.94);border:1px solid var(--line2);cursor:pointer;text-align:left;color:var(--text);min-width:0}
 .csel .cico{width:30px;height:30px;border-radius:8px;background:rgba(46,229,138,.12);color:var(--grn);display:flex;align-items:center;justify-content:center;flex:none}
 .csel .ct{min-width:0;flex:1}
 .csel b{display:block;font:700 12.5px var(--fb);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.csel .cpr{font:600 11px var(--fm);color:var(--grn);white-space:nowrap}
+.csel .cpr{font:600 11px var(--fm);white-space:nowrap}
 .csel .cch{font:600 10px var(--fm);color:var(--dim);margin-left:6px}
 .cpay{position:absolute;top:12px;right:12px;z-index:2;padding:10px;border-radius:10px;background:rgba(22,29,27,.92);border:1px solid var(--line2);color:var(--text);font:700 12px var(--fm)}
-/* ── digit circles ── */
 .dstrip{display:grid;grid-template-columns:repeat(10,1fr);gap:4px;padding:10px 12px 0}
 .dd{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;cursor:pointer;padding:0;min-width:0}
-.dd .dc{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 14px var(--fm);transition:.15s}
+.dd .dc{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 14px var(--fm);transition:transform .18s,background .18s,border-color .18s}
 .dd.e .dc{color:var(--grn)}
 .dd.o .dc{color:var(--red)}
-.dd.last .dc{background:#fff;color:#0A0F0D;border-color:#fff}
+.dd.last .dc{background:#fff;color:#0A0F0D;border-color:#fff;transform:scale(1.12);box-shadow:0 0 16px rgba(255,255,255,.25)}
 .dd.tgt .dc{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(47,224,208,.35);color:var(--cyan)}
 .dd .dp{font:600 8.5px var(--fm);color:var(--dim)}
 .dd.e .dp{color:rgba(46,229,138,.75)}
 .dd.o .dp{color:rgba(255,90,110,.75)}
-/* ── auto/manual + stake ── */
 .mtoggle{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;margin:14px 12px 0}
 .mtoggle button{flex:1;padding:11px;border-radius:999px;border:0;background:none;color:var(--mut);font:800 13.5px var(--fb);cursor:pointer;letter-spacing:.05em}
 .mtoggle button.on{background:var(--grn);color:#04231A}
@@ -132,7 +125,6 @@ body{padding-bottom:64px}
 .stk .stm span{display:block;font:700 9.5px var(--fb);letter-spacing:.16em;color:var(--dim)}
 .stk .stm .sv{display:flex;align-items:baseline;justify-content:center;gap:5px;color:var(--dim);font:600 15px var(--fm)}
 .stk input{width:96px;background:none;border:0;color:var(--text);font:700 26px var(--fm);text-align:center;padding:0}
-.stk input:focus{outline:0}
 .qrow{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin:10px 12px 0}
 .qrow button{padding:10px 0;font:600 12px var(--fm);background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--mut);cursor:pointer}
 .qrow button.on{border-color:var(--grn);color:var(--grn);background:rgba(46,229,138,.08)}
@@ -146,7 +138,6 @@ body{padding-bottom:64px}
 .tsl .tv{display:flex;gap:4px;align-items:baseline;margin-top:2px}
 .tsl .tv b{font:600 12px var(--fm);color:var(--dim)}
 .tsl input{width:100%;background:none;border:0;color:var(--text);font:700 15px var(--fm);padding:0}
-/* ── duo buttons ── */
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:11px;margin:12px 12px 0}
 .dbtn{position:relative;display:flex;flex-direction:column;gap:2px;padding:14px 16px 11px;border-radius:15px;border:2px solid;cursor:pointer;background:#0F1715;text-align:left;transition:filter .15s,transform .1s;min-height:82px}
 .dbtn:hover{filter:brightness(1.12)}
@@ -159,7 +150,6 @@ body{padding-bottom:64px}
 .dbtn.even .dsub,.dbtn.up .dsub{color:var(--grn)}
 .dbtn.odd,.dbtn.down{background:#2A1418;border-color:rgba(255,90,110,.75)}
 .dbtn.odd .dsub,.dbtn.down .dsub{color:var(--red)}
-/* bot status */
 .botbox{margin:12px 12px 0;background:var(--panel);border:1px solid rgba(155,124,255,.4);border-radius:13px;padding:12px 14px}
 .botbox .bh{display:flex;align-items:center;gap:8px;font:700 12.5px var(--fb);color:#9B7CFF}
 .botbox .bs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;margin-top:9px}
@@ -168,13 +158,12 @@ body{padding-bottom:64px}
 .botbox .bs b{font:700 15px var(--fm)}
 .hint{font-size:11.5px;color:var(--dim);line-height:1.55;margin:8px 0 0}
 .hint b{color:var(--grn);font-family:var(--fm)}
-/* ── generic page bits ── */
 .pg{max-width:600px;margin:0 auto;padding:16px 14px 100px;width:100%}
 .pg-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px}
 .pg-head h1{font-size:18px;display:flex;align-items:center;gap:8px}
 .pn{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:15px;margin-bottom:13px}
 .tbl{width:100%;border-collapse:collapse;font-size:12px}
-.tbl th{font:600 10px var(--fb);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:8px 8px;border-bottom:1px solid var(--line)}
+.tbl th{font:600 10px var(--fb);letter-spacing:.08em;text-transform:uppercase;color:var(--dim);text-align:left;padding:8px;border-bottom:1px solid var(--line)}
 .tbl td{padding:9px 8px;border-bottom:1px solid var(--line)}
 .tbl tr:last-child td{border:0}
 .badge{font:700 9px var(--fb);padding:3px 7px;border-radius:5px;white-space:nowrap}
@@ -245,14 +234,12 @@ body{padding-bottom:64px}
 .dirpick button{padding:7px 11px;border-radius:7px;border:1px solid var(--line2);background:none;color:var(--mut);font:700 11px var(--fb);cursor:pointer}
 .dirpick button.on.up{background:var(--grn);color:#04231A;border-color:var(--grn)}
 .dirpick button.on.down{background:var(--red);color:#fff;border-color:var(--red)}
-/* classic */
 .mktrow{display:flex;gap:7px;overflow-x:auto;padding:10px 12px 2px;scrollbar-width:none}
 .mktrow::-webkit-scrollbar{display:none}
 .mkc{flex:none;display:flex;flex-direction:column;gap:2px;min-width:116px;padding:9px 11px;background:var(--panel);border:1px solid var(--line);border-radius:11px;color:var(--text);cursor:pointer;text-align:left}
 .mkc.on{border-color:var(--grn)}
 .mkc b{font-size:12px;white-space:nowrap}
 .mkc .mp{font:600 11px var(--fm)}
-/* modal / sheet */
 .mwrap{position:fixed;inset:0;background:rgba(4,7,6,.72);backdrop-filter:blur(3px);z-index:500;display:flex;align-items:center;justify-content:center;padding:16px;animation:fin .15s}
 @keyframes fin{from{opacity:0}}
 .mbox{background:var(--panel);border:1px solid var(--line2);border-radius:14px;padding:22px;width:min(400px,100%);max-height:92dvh;overflow:auto;position:relative}
@@ -277,7 +264,6 @@ body{padding-bottom:64px}
 .srow .sp{margin-left:auto;text-align:right}
 .srow .sp .s1{font:600 12.5px var(--fm);display:block}
 .srow .sp .s2{font:600 10px var(--fm);color:var(--grn)}
-@media(min-width:700px){.pagec{padding-bottom:80px}}
 </style>
 </head>
 <body>
@@ -286,9 +272,7 @@ body{padding-bottom:64px}
 
 <script>
 'use strict';
-/* VANTA v6 · digits-first terminal (tnnbinary style)
-   line chart · digit circles · AUTO bot (target/stop-loss/martingale) · positions · AI · live chat
-   SERVER: unchanged (v2 server.js handles everything) */
+/* VANTA v7 · live-tweened line chart · true digit frequencies · AUTO bot fixed */
 const API_URL='https://vanta-1-7q8l.onrender.com';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 
@@ -383,7 +367,8 @@ const FEED=[
   {id:'ETHUSD',name:'ETH/USD',cat:'Crypto',start:3418.4,vol:1.2,dec:1,payout:86},
   {id:'XAUUSD',name:'GOLD',cat:'Commodity',start:2382.6,vol:0.5,dec:2,payout:84},
 ];
-const lastDigit=a=>{const s=(+a.price).toFixed(a.dec);return +s[s.length-1]};
+const digitOfPrice=(p,dec)=>+((+p).toFixed(dec)).slice(-1);
+const lastDigit=a=>digitOfPrice(a.price,a.dec);
 const digitMult=(option,t)=>{
   const prob=option==='even'||option==='odd'?.5
     :option==='over'?(9-t)/10:option==='under'?t/10
@@ -393,7 +378,7 @@ const Market={
   A:FEED.map(a=>({...a,price:a.start,drift:0,dir:1,ticks:[]})),
   subs:new Set(),_pb:false,_synced:false,connected:false,lastOk:0,
   init(){
-    setInterval(()=>this.pullRemote(),1000);
+    setInterval(()=>this.pullRemote(),700);
     setInterval(()=>{if(this.connected&&Date.now()-this.lastOk>8000){this.connected=false;this.subs.forEach(f=>f());}},2000);
   },
   async pullRemote(){
@@ -427,23 +412,17 @@ const Market={
   },
   on(f){this.subs.add(f);return()=>this.subs.delete(f)},
   byId(id){return this.A.find(a=>a.id===id)},
-  _build(a,tf){
+  candles(a,tf){
     const out=[];let cur=null;
     for(const k of a.ticks){const b=Math.floor(k.t/(tf*1000))*(tf*1000);
       if(!cur||cur.t!==b){if(cur)out.push(cur);cur={t:b,o:k.p,h:k.p,l:k.p,c:k.p};}
       else{if(k.p>cur.h)cur.h=k.p;if(k.p<cur.l)cur.l=k.p;cur.c=k.p;}}
     if(cur)out.push(cur);return out;
   },
-  candles(a,tf,cnt){
-    const key=a.id+'|'+tf,now=Date.now();
-    this._cc=this._cc||{};let e=this._cc[key];
-    if(!e||now-e.at>200){e=this._cc[key]={at:now,arr:this._build(a,tf)};}
-    return cnt?e.arr.slice(-cnt):e.arr;
-  },
   fmtP(a,p=a.price){return (+p).toLocaleString('en-US',{minimumFractionDigits:a.dec,maximumFractionDigits:a.dec})},
 };
 
-/* ── tick line chart (tnnbinary style) ── */
+/* ── LIVE-TWEENED tick chart ── */
 function rr(c,x,y,w,h,rad){c.beginPath();c.moveTo(x+rad,y);c.arcTo(x+w,y,x+w,y+h,rad);c.arcTo(x+w,y+h,x,y+h,rad);c.arcTo(x,y+h,x,y,rad);c.arcTo(x,y,x+w,y,rad);c.closePath()}
 class TickChart{
   constructor(cv,o){
@@ -463,11 +442,18 @@ class TickChart{
     c.clearRect(0,0,W,H);if(!a)return;
     const ticks=a.ticks.slice(-380);
     if(ticks.length<2)return;
-    let hi=-1e18,lo=1e18;for(const k of ticks){if(k.p>hi)hi=k.p;if(k.p<lo)lo=k.p}
+    /* interpolate the tip between the last two ticks so the line GLIDES every frame */
+    const n=ticks.length,tL=ticks[n-1].t,tP=ticks[n-2].t,tNow=Date.now();
+    const f=clamp((tNow-tP)/Math.max(1,tL-tP),0,1.6);
+    const liveP=ticks[n-2].p+(ticks[n-1].p-ticks[n-2].p)*f;
+    let hi=-1e18,lo=1e18;
+    for(const k of ticks){if(k.p>hi)hi=k.p;if(k.p<lo)lo=k.p}
+    if(liveP>hi)hi=liveP;if(liveP<lo)lo=liveP;
     const rg=(hi-lo)||a.price*.001;hi+=rg*.14;lo-=rg*.14;
-    const padR=62,padB=24,padT=12,padL=12;
+    const padR=66,padB=24,padT=12,padL=12;
     const pw=W-padL-padR,ph=H-padT-padB;
-    const X=i=>padL+i/(ticks.length-1)*pw;
+    const span=tL-ticks[0].t||1;
+    const X=t=>padL+((t-ticks[0].t+(f*(tL-tP)))/ (span+f*(tL-tP)))*pw;
     const Y=p=>padT+(hi-p)/(hi-lo)*ph;
     c.textBaseline='middle';c.lineWidth=1;
     const stp=niceStep((hi-lo)/3.4);
@@ -475,27 +461,30 @@ class TickChart{
     for(let p=Math.ceil(lo/stp)*stp;p<hi;p+=stp){const y=Y(p);
       c.strokeStyle='rgba(234,242,238,.05)';c.beginPath();c.moveTo(padL,y);c.lineTo(padL+pw,y);c.stroke();
       c.fillStyle='#5C6B65';c.textAlign='left';c.fillText(Market.fmtP(a,p),padL+pw+6,y);}
-    const n=ticks.length,st=Math.max(1,Math.floor(n/4));
+    const st=Math.max(1,Math.floor(n/4));
     c.textAlign='center';c.fillStyle='#5C6B65';
     for(let i=n-1;i>=0;i-=st){const k=ticks[i];
-      c.fillText(new Date(k.t).toTimeString().slice(0,8),clamp(X(i),30,padL+pw-30),H-10);}
-    c.beginPath();ticks.forEach((k,i)=>{const x=X(i),y=Y(k.p);i?c.lineTo(x,y):c.moveTo(x,y)});
-    c.strokeStyle='#EAF2EE';c.lineWidth=1.6;c.stroke();
-    const y=Y(a.price);
-    c.setLineDash([5,5]);c.strokeStyle='rgba(234,242,238,.45)';c.beginPath();c.moveTo(padL,y);c.lineTo(padL+pw,y);c.stroke();c.setLineDash([]);
-    c.fillStyle='#fff';c.beginPath();c.arc(padL+4,y,4,0,7);c.fill();
-    const txt=Market.fmtP(a);
+      c.fillText(new Date(k.t).toTimeString().slice(0,8),clamp(X(k.t),34,padL+pw-34),H-10);}
+    /* the line */
+    c.beginPath();
+    ticks.forEach((k,i)=>{const x=X(k.t),y=Y(k.p);i?c.lineTo(x,y):c.moveTo(x,y)});
+    c.strokeStyle='#EAF2EE';c.lineWidth=1.6;c.lineJoin='round';c.stroke();
+    /* live tip: dashed line + dot + pill ride the interpolated point */
+    const yLive=Y(liveP);
+    c.setLineDash([5,5]);c.strokeStyle='rgba(234,242,238,.45)';
+    c.beginPath();c.moveTo(padL,yLive);c.lineTo(padL+pw,yLive);c.stroke();c.setLineDash([]);
+    c.fillStyle='#fff';c.beginPath();c.arc(padL+4,yLive,4,0,7);c.fill();
+    const txt=Market.fmtP(a,liveP);
     c.font='700 13px "JetBrains Mono",monospace';
     const w=c.measureText(txt).width+20;
-    rr(c,padL+pw-w+10,y-13,w,26,8);
+    rr(c,padL+pw-w+8,yLive-13,w,26,8);
     c.fillStyle='#0A0F0D';c.fill();
     c.strokeStyle='#2FE0D0';c.lineWidth=2;c.stroke();c.lineWidth=1;
-    c.fillStyle='#EAF2EE';c.textAlign='center';c.fillText(txt,padL+pw-w/2+10,y+.5);
+    c.fillStyle='#EAF2EE';c.textAlign='center';c.fillText(txt,padL+pw-w/2+8,yLive+.5);
   }
 }
-/* ── candle chart (classic page) ── */
-const CCOL={bg:'#0B0F0E',grid:'rgba(234,242,238,.08)',gridS:'rgba(234,242,238,.04)',
-  text:'#EAF2EE',dim:'#5C6B65',up:'#2EE58A',down:'#FF5A6E'};
+/* ── candle chart (UP/DOWN page) ── */
+const CCOL={up:'#2EE58A',down:'#FF5A6E',dim:'#5C6B65'};
 class CandleChart{
   constructor(cv,o){
     this.cv=cv;this.ctx=cv.getContext('2d');this.o=Object.assign({trades:null,pulses:null},o);
@@ -515,7 +504,7 @@ class CandleChart{
     this.cv.width=Math.max(1,this.W*d);this.cv.height=Math.max(1,this.H*d);
     this.ctx.setTransform(d,0,0,d,0,0);}
   destroy(){this.dead=true;this.ro.disconnect()}
-  cds(){return Market.candles(Market.byId(dgf(this.o.asset)),dgf(this.o.tf)||5,430)}
+  cds(){return Market.candles(Market.byId(dgf(this.o.asset)),dgf(this.o.tf)||5)}
   maxOff(){return Math.max(0,this.cds().length-8)}
   loop(){if(this.dead)return;requestAnimationFrame(this.loop);if(this.W>40)this.draw()}
   draw(){
@@ -537,22 +526,15 @@ class CandleChart{
     const stp=niceStep((hi-lo)/4);
     c.font='10px "JetBrains Mono",monospace';
     for(let p=Math.ceil(lo/stp)*stp;p<hi;p+=stp){const y=Y(p);
-      c.strokeStyle=CCOL.gridS;c.beginPath();c.moveTo(padL,y);c.lineTo(padL+pw,y);c.stroke();
+      c.strokeStyle='rgba(234,242,238,.04)';c.beginPath();c.moveTo(padL,y);c.lineTo(padL+pw,y);c.stroke();
       c.fillStyle=CCOL.dim;c.textAlign='left';c.fillText(Market.fmtP(a,p),padL+pw+6,y);}
     const bw=Math.max(1,this.slot*.62);
     for(let i=0;i<view.length;i++){const k=view[i],x=X(i),up=k.c>=k.o,col=up?CCOL.up:CCOL.down;
       c.strokeStyle=col;c.beginPath();c.moveTo(x,Y(k.h));c.lineTo(x,Y(k.l));c.stroke();
       c.fillStyle=col;const y1=Y(Math.max(k.o,k.c)),y2=Y(Math.min(k.o,k.c));
       c.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));}
-    for(const t of (dgf(this.o.trades)||[])){
-      const col=t.dir==='up'?CCOL.up:CCOL.down,ey=Y(t.entry);
-      if(ey>padT&&ey<padT+ph){
-        c.strokeStyle=col;c.setLineDash([5,4]);c.beginPath();c.moveTo(padL,ey);c.lineTo(padL+pw,ey);c.stroke();c.setLineDash([]);}
-      const ex=padL+pw-((t.expiry-Date.now())/1000)/tf*this.slot;
-      if(ex>padL&&ex<padL+pw){
-        c.strokeStyle=col;c.setLineDash([4,4]);c.beginPath();c.moveTo(ex,padT);c.lineTo(ex,padT+ph);c.stroke();c.setLineDash([]);}}
     if(off===0){
-      const lp=a.price;this.ease=this.ease==null?lp:this.ease+(lp-this.ease)*.2;
+      const lp=a.price;this.ease=this.ease==null?lp:this.ease+(lp-this.ease)*.25;
       const y=Y(clamp(this.ease,lo,hi)),col=a.dir>=0?CCOL.up:CCOL.down;
       const txt=Market.fmtP(a);c.font='700 11px "JetBrains Mono",monospace';
       const w=c.measureText(txt).width+12;
@@ -634,16 +616,17 @@ const Auth={
   },
 };
 
-/* ── AUTO bot (martingale) ── */
+/* ── AUTO bot (martingale, target/stop honoured) ── */
 const Bot={
   on:false,pl:0,rounds:0,stake:0,cfg:null,cur:0,
   start(side,asset,expiry,base,cfg){
     if(this.on)return toast('warn','Bot already running');
     if(!Market.connected)return toast('warn','Connecting…','Waiting for live prices.');
     this.on=true;this.pl=0;this.rounds=0;this.stake=base;
-    this.cfg={side,asset,expiry,base,...cfg};
+    this.cfg={side,asset,expiry,base,digitTarget:cfg.target??null,
+      tgtP:Math.max(1,cfg.tgtP||200),stopL:Math.max(1,cfg.stopL||999),mult:Math.max(1,cfg.mult||2)};
     Bus.emit('bot');
-    toast('ok','AUTO started',`${side.toUpperCase()}${cfg.target!=null?' '+cfg.target:''} · target ${money(cfg.target)} · stop ${money(cfg.stopL)} · ×${cfg.mult}`);
+    toast('ok','AUTO started',`${side.toUpperCase()}${this.cfg.digitTarget!=null?' '+this.cfg.digitTarget:''} · target +${money(this.cfg.tgtP)} · stop −${money(this.cfg.stopL)} · ×${this.cfg.mult}`);
     this.run();
   },
   async run(){
@@ -653,7 +636,7 @@ const Bot={
       if(this.stake>bal){this.stop('Balance too low for next stake');return}
       let t;
       try{t=await API.placeTrade({kind:'digits',asset:this.cfg.asset,option:this.cfg.side,
-        target:this.cfg.target,amount:this.stake,expirySec:this.cfg.expiry,account:Auth.acc})}
+        target:this.cfg.digitTarget,amount:this.stake,expirySec:this.cfg.expiry,account:Auth.acc})}
       catch(e){this.stop(e.message);return}
       Auth.bump(t.account,-this.stake);
       this.cur=this.stake;Bus.emit('bot');
@@ -665,13 +648,12 @@ const Bot={
         ?Math.round(this.stake*this.cfg.mult*100)/100
         :this.cfg.base;
       Bus.emit('bot');
-      if(this.pl>=this.cfg.target){this.stop(`Target reached · P/L +${money(this.pl)}`);return}
+      if(this.pl>=this.cfg.tgtP){this.stop(`Target reached · P/L +${money(this.pl)}`);return}
       if(-this.pl>=this.cfg.stopL){this.stop(`Stop loss hit · P/L −${money(-this.pl)}`);return}
     }
   },
   waitClose(id,expiryTs){
     return new Promise(res=>{
-      const t0=Date.now();
       const iv=setInterval(()=>{
         if(!this.on){clearInterval(iv);res(null);return}
         const t=Live.all.find(x=>x.id===id);
@@ -689,7 +671,7 @@ function tradeLabel(t){
   return (t.dir||'').toUpperCase();
 }
 
-/* ── auth modal ── */
+/* ── auth ── */
 function openAuth(mode='register'){
   const ov=document.createElement('div');ov.className='mwrap';
   ov.innerHTML=`<div class="mbox">
@@ -736,7 +718,7 @@ const requireAuth=()=>{if(!Auth.u){openAuth('register');return false}return true
 function assetSheet(cb){
   const ov=sheet(`<div style="font:700 15px var(--fb);margin-bottom:8px">Choose market</div>
     ${Market.A.map(a=>`<button class="srow" data-a="${a.id}">
-      <span class="cico" style="width:34px;height:34px;border-radius:9px;background:rgba(46,229,138,.12);color:var(--grn);display:flex;align-items:center;justify-content:center">${icon('chart',16)}</span>
+      <span style="width:34px;height:34px;border-radius:9px;background:rgba(46,229,138,.12);color:var(--grn);display:flex;align-items:center;justify-content:center">${icon('chart',16)}</span>
       <span style="flex:1"><b>${a.name}</b><i>${a.cat}</i></span>
       <span class="sp"><span class="s1 mono" data-ap="${a.id}">${Market.fmtP(a)}</span>
       <span class="s2">${a.payout}% payout</span></span></button>`).join('')}`);
@@ -748,10 +730,9 @@ function assetSheet(cb){
   mo.observe(document.body,{childList:true});
 }
 
-/* ── shell: header + drawer + bottom nav ── */
+/* ── shell ── */
 let cleanups=[];
 const onCleanup=f=>cleanups.push(f);
-const NAV=[[['/support','Live Chat','chat'],['/scanner','AI','spark','ai'],['/positions','Positions','clock']]];
 function shell(page,body){
   const u=Auth.u,acc=Auth.acc;
   return `<header class="top">
@@ -777,8 +758,11 @@ function shell(page,body){
       <button class="deposit-btn" id="dep-btn">Deposit</button>
       <button class="icbtn" id="bell-btn">${icon('bell',17)}</button>
     </div></header>
-    <nav class="bnav">${NAV[0].map(([h,l,i,cls])=>`<a href="#${h}" class="${page===h?'on':''} ${cls==='ai'?'bai':''}">
-      ${cls==='ai'?`<span class="bub">${icon(i,20)}</span><span>${l}</span>`:`${icon(i,18)}<span>${l}</span>`}</a>`).join('')}</nav>
+    <nav class="bnav">
+      <a href="#/support" class="${page==='/support'?'on':''}">${icon('chat',18)}<span>Live Chat</span></a>
+      <a href="#/scanner" class="${page==='/scanner'?'on':''}"><span class="bub">${icon('spark',20)}</span><span>AI</span></a>
+      <a href="#/positions" class="${page==='/positions'?'on':''}">${icon('clock',18)}<span>Positions</span></a>
+    </nav>
     <div class="dwrap" id="drawer">
       <div class="dov"></div>
       <div class="dpanel">
@@ -821,13 +805,12 @@ function wireShell(){
     $$('.drop-it[data-acc] .mono').forEach(x=>{const k=x.closest('[data-acc]').dataset.acc;
       if(Auth.u)x.textContent=money(Auth.u.wallets[k])});
   }));
-  const conn=()=>{const b=$('#acct-b');};
-  onCleanup(Market.on(()=>{}));
 }
 
-/* ═══ DIGIT TERMINAL (homepage) ═══ */
+/* ═══ DIGIT TERMINAL ═══ */
 function DigitTerminal(app){
   let asset='EURUSD',game='parity',side='even',target=5,mode='auto',expiry=60;
+  let lastShown=-1;
   app.innerHTML=shell('/',`<div class="pagec">
     <div class="gtabs" id="gtabs">
       <button data-g="exact" class="${game==='exact'?'on':''}">Matches/Differs</button>
@@ -873,7 +856,7 @@ function DigitTerminal(app){
       <button class="dbtn even" id="b-a"><span class="dl" id="l-a">Even</span><b class="dval" id="v-a">—</b><span class="dsub" id="p-a">—</span></button>
       <button class="dbtn odd" id="b-b"><span class="dl" id="l-b">Odd</span><b class="dval" id="v-b">—</b><span class="dsub" id="p-b">—</span></button>
     </div>
-    <p class="hint" style="margin:10px 14px 0">${icon('info',12)} AUTO places ${'\u2295'}-multiplied stakes after each loss (martingale) until TARGET or STOP LOSS. Martingale can escalate stakes fast — use small bases.</p>
+    <p class="hint" style="margin:10px 14px 0">${icon('info',12)} AUTO = martingale: after each loss the stake is multiplied by MULT until TARGET or STOP LOSS is hit. Escalates fast — keep the base small.</p>
   </div>`);
   wireShell();
   const chart=new TickChart($('#tc'),{asset:()=>asset});
@@ -887,24 +870,26 @@ function DigitTerminal(app){
     $('#l-a').textContent=sa==='even'?'Even':sa==='over'?`Over ${target}`:`Match ${target}`;
     $('#l-b').textContent=sb==='odd'?'Odd':sb==='under'?`Under ${target}`:`Differ ${target}`;
     $('#v-a').textContent=money(st*(ma-1));$('#v-b').textContent=money(st*(mb-1));
-    $('#p-a').textContent=st<1?'min stake $1':money(st*(ma-1))+' · '+((ma-1)*100).toFixed(1)+'% Payout';
-    $('#p-b').textContent=st<1?'min stake $1':money(st*(mb-1))+' · '+((mb-1)*100).toFixed(1)+'% Payout';
+    $('#p-a').textContent=st<1?'min stake $1':((ma-1)*100).toFixed(1)+'% Payout';
+    $('#p-b').textContent=st<1?'min stake $1':((mb-1)*100).toFixed(1)+'% Payout';
     $('#b-a').disabled=sa==='over'&&target===9;
     $('#b-b').disabled=sb==='under'&&target===0;
     $('#cpay').textContent=((Math.max(ma,mb)-1)*100).toFixed(0)+'%';
   }
+  /* TRUE per-tick digit frequencies over the last 100 ticks */
   function updStrip(){
     const a=A();if(!a)return;
-    const last=lastDigit(a);
-    const recent=a.ticks.slice(-60);
+    const recent=a.ticks.slice(-100);
     const cnt=Array(10).fill(0);
-    recent.forEach(k=>cnt[lastDigit(a,k&&{price:k.p,dec:a.dec})||0]++);
+    for(const k of recent)cnt[digitOfPrice(k.p,a.dec)]++;
     const tot=recent.length||1;
+    const last=lastDigit(a);
     $('#dstrip').innerHTML=[0,1,2,3,4,5,6,7,8,9].map(d=>{
       const pct=(cnt[d]/tot*100).toFixed(1);
       const cls=['dd',d%2===0?'e':'o',d===last?'last':'',game!=='parity'&&d===target?'tgt':''].join(' ');
       return `<button class="${cls}" data-d="${d}"><span class="dc">${d}</span><span class="dp">${pct}%</span></button>`;
     }).join('');
+    lastShown=last;
   }
   function updPrice(){
     const a=A();
@@ -918,7 +903,7 @@ function DigitTerminal(app){
     const box=$('#botbox');
     if(!Bot.on){box.innerHTML='';return}
     box.innerHTML=`<div class="botbox">
-      <div class="bh">${icon('spark',14)} AUTO RUNNING · ${Bot.cfg.side.toUpperCase()}${Bot.cfg.target!=null?' '+Bot.cfg.target:''} on ${Market.byId(Bot.cfg.asset)?.name||''}
+      <div class="bh">${icon('spark',14)} AUTO RUNNING · ${Bot.cfg.side.toUpperCase()}${Bot.cfg.digitTarget!=null?' '+Bot.cfg.digitTarget:''} on ${Market.byId(Bot.cfg.asset)?.name||''}
         <button class="btn btn-dn sm" id="bot-stop" style="margin-left:auto">${icon('stop',12)} STOP</button></div>
       <div class="bs">
         <div><span>ROUND</span><b class="mono">${Bot.rounds}</b></div>
@@ -931,8 +916,7 @@ function DigitTerminal(app){
   onCleanup(Market.on(()=>{updPrice();updStrip();
     if(Bot.on&&$('#botbox'))updBot();}));
   onCleanup(Bus.on('bot',()=>{if($('#botbox'))updBot()}));
-  onCleanup(Bus.on('conn',()=>{}));
-  $('#asel').onclick=()=>assetSheet(id=>{asset=id;updPrice();updStrip();updDuo()});
+  $('#asel').onclick=()=>assetSheet(id=>{asset=id;lastShown=-1;updPrice();updStrip();updDuo()});
   $('#gtabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
     game=b.dataset.g;
     side=game==='parity'?'even':game==='range'?'over':'match';
@@ -952,26 +936,22 @@ function DigitTerminal(app){
     $$('#qrow button').forEach(x=>x.classList.toggle('on',+x.dataset.q===+stEl.value));updDuo()};
   stEl.oninput=()=>{$$('#qrow button').forEach(x=>x.classList.remove('on'));updDuo()};
   $('#st-dn').onclick=()=>setSt((parseFloat(stEl.value)||10)/2);
-  $('#st-up').onclick=()=>setAmtUp();
-  function setAmtUp(){setSt((parseFloat(stEl.value)||10)*2)}
+  $('#st-up').onclick=()=>setSt((parseFloat(stEl.value)||10)*2);
   $$('#qrow button').forEach(b=>b.onclick=()=>setSt(+b.dataset.q));
   $$('#erow button').forEach(b=>b.onclick=()=>{expiry=+b.dataset.x;
     $$('#erow button').forEach(x=>x.classList.toggle('on',x===b))});
-  function cfgFromUI(){
-    return {target:game==='parity'?null:target,
-      stopL:Math.max(1,parseFloat($('#bot-stop').value)||999),
-      mult:Math.max(1,parseFloat($('#bot-mult').value)||2),
-      tgtProfit:Math.max(1,parseFloat($('#bot-target').value)||200)};
-  }
   function act(s){
     if(!requireAuth())return;
     const st=parseFloat(stEl.value),bal=Auth.bal();
     if(!(st>=1))return toast('warn','Stake too small','Minimum stake is $1.00.');
     if(st>bal)return toast('warn','Not enough balance',`Your ${Auth.acc.toUpperCase()} wallet holds ${money(bal)}.`);
     if(!Market.connected)return toast('warn','Connecting…','Waiting for live prices.');
-    const c=cfgFromUI();
+    const c={target:game==='parity'?null:target,
+      stopL:Math.max(1,parseFloat($('#bot-stop').value)||999),
+      mult:Math.max(1,parseFloat($('#bot-mult').value)||2),
+      tgtP:Math.max(1,parseFloat($('#bot-target').value)||200)};
     if(mode==='auto'){
-      Bot.start(s,asset,expiry,st,{target:c.target,stopL:c.stopL,mult:c.mult,tgtP:c.tgtProfit});
+      Bot.start(s,asset,expiry,st,c);
       return;
     }
     API.placeTrade({kind:'digits',asset,option:s,target:c.target,amount:st,expirySec:expiry,account:Auth.acc})
@@ -1058,10 +1038,10 @@ function ClassicTerminal(app){
   stEl.oninput=upd;
   $('#st-dn').onclick=()=>setSt((parseFloat(stEl.value)||10)/2);
   $('#st-up').onclick=()=>setSt((parseFloat(stEl.value)||10)*2);
-  $$('#qrow button, .qrow button[data-q]',app).forEach(b=>b.onclick=()=>{
+  $$('.qrow button[data-q]',app).forEach(b=>b.onclick=()=>{
     setSt(b.dataset.q==='x2'?(parseFloat(stEl.value)||10)*2:+b.dataset.q)});
-  $$('#erow button',app).forEach(b=>b.onclick=()=>{exp=+b.dataset.x;
-    $$('#erow button',app).forEach(x=>x.classList.toggle('on',x===b))});
+  $$('.erow button',app).forEach(b=>b.onclick=()=>{exp=+b.dataset.x;
+    $$('.erow button',app).forEach(x=>x.classList.toggle('on',x===b))});
   function place(dir){
     if(!requireAuth())return;
     const st=parseFloat(stEl.value),bal=Auth.bal();
@@ -1132,7 +1112,7 @@ async function Positions(app){
   onCleanup(off);
 }
 
-/* ═══ SCANNER (AI) ═══ */
+/* ═══ AI SCANNER ═══ */
 function Scanner(app){
   let rows=[];
   function analyze(){
@@ -1143,7 +1123,7 @@ function Scanner(app){
       const mom=(a.price-cut.p)/a.vol;
       let ups=0;for(let i=t.length-30;i<t.length;i++)if(t[i].p>t[i-1].p)ups++;
       const upRatio=ups/30;
-      const digs=a.ticks.slice(-20).map(k=>lastDigit({...a,price:k.p}));
+      const digs=t.slice(-20).map(k=>digitOfPrice(k.p,a.dec));
       const even=digs.filter(d=>d%2===0).length/20;
       let sig='n',why='Balanced tape — no strong edge right now.';
       if(mom>=1.4){sig='up';why=`Strong upward momentum: ${mom.toFixed(1)}σ over 60s, ${Math.round(upRatio*100)}% of last 30 ticks rising.`;}
@@ -1256,7 +1236,7 @@ function Deposit(app){
       ${s.bonus?`<div class="sum-r"><span>Bonus ${s.code?'· '+esc(s.code):''}</span><b class="u-c">+${money(s.bonus)}</b></div>`:''}
       <div class="sum-r"><span>Fee</span><b>$0.00</b></div>
       <div class="sum-r tot"><span>You receive</span><b>${money(s.total)}</b></div>
-      ${step===1?`<button class="btn btn-up wide" id="dep-go" style="margin-top:14px">Continue ${icon('right',14)}</button>`:''}
+      ${step===1?`<button class="btn btn-up wide" id="dep-go" style="margin-top:14px">Continue ${icon('send',14)}</button>`:''}
     </div>`;
   }
   function depBody(){
