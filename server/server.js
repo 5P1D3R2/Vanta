@@ -1,6 +1,6 @@
-/* VANTA backend v4 · admin simulation mode · Daraja STK Push · digits · acca
-   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET,
-        MPESA_CB_SECRET, ADMIN_EMAIL (this account's trades run on the simulation engine) */
+/* VANTA backend v5 · demo-wallet simulation (95% wins) · Daraja STK Push · digits · acca
+   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET, MPESA_CB_SECRET
+   Optional: DEMO_WIN_RATE (0–1, default 0.95) — set 1 for demo never losing */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
 const app=express();
@@ -9,9 +9,7 @@ app.use(express.json());
 const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
-const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
-const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
-const withSim=j=>{j.sim=isSimUser(j);return j};
+const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
 
 /* ── Daraja config ── */
 const MPESA={
@@ -74,7 +72,7 @@ const Trade=mongoose.model('Trade',new mongoose.Schema({user:{type:Object,index:
   asset:String,dir:String,kind:{type:String,default:'updown'},option:String,target:Number,
   legs:Array,mult:Number,amount:Number,account:String,payout:Number,entry:Object,
   entryTime:Number,expiry:Number,status:{type:String,index:true},close:Object,
-  closeTime:Number,result:String,profit:Number,sim:{type:Boolean,default:false}},{versionKey:false}));
+  closeTime:Number,result:String,profit:Number},{versionKey:false}));
 const Tx=mongoose.model('Tx',new mongoose.Schema({user:{type:Object,index:true},
   type:String,method:String,amount:Number,fee:{type:Number,default:0},total:Number,
   bonus:{type:Number,default:0},bonusCode:String,status:String,time:Number,
@@ -109,17 +107,17 @@ app.post('/auth/register',h(async(req,res)=>{
   if(pw.length<6)return res.status(400).json({message:'Use at least 6 characters'});
   if(await User.findOne({email}))return res.status(400).json({message:'An account with this email already exists'});
   const u=await User.create({name,email,passwordHash:await bcrypt.hash(pw,10)});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u))});
+  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:pub(u)});
 }));
 app.post('/auth/login',h(async(req,res)=>{
   const u=await User.findOne({email:(req.body.email||'').trim().toLowerCase()});
   if(!u||!await bcrypt.compare(req.body.password||'',u.passwordHash))
     return res.status(401).json({message:'Wrong email or password'});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u))});
+  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:pub(u)});
 }));
 app.get('/me',auth,h(async(req,res)=>{
   const u=await User.findById(req.uid);if(!u)return res.status(401).json({message:'Session expired'});
-  res.json({user:withSim(pub(u))});
+  res.json({user:pub(u)});
 }));
 app.get('/assets',(req,res)=>res.json(ASSETS.map(({id,name,cat,dec,payout})=>({id,name,cat,dec,payout}))));
 app.get('/prices',(req,res)=>res.json({t:Date.now(),
@@ -134,9 +132,8 @@ app.post('/trades',auth,h(async(req,res)=>{
   if(!(expirySec>=1&&expirySec<=300))return res.status(400).json({message:'Bad expiry'});
   const u=await User.findById(req.uid);
   if(amt>u.wallets[account])return res.status(400).json({message:'Insufficient balance'});
-  const sim=isSimUser(u);
   const base={user:req.uid,amount:amt,account,entryTime:Date.now(),
-    expiry:Date.now()+expirySec*1000,status:'open',sim};
+    expiry:Date.now()+expirySec*1000,status:'open'};
   let t;
   if(kind==='digits'){
     const a=ASSETS.find(x=>x.id===asset);
@@ -178,9 +175,11 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
   const now=Date.now();
   const due=await Trade.find({user:req.uid,status:'open',expiry:{$lte:now}});
   for(const t of due){
+    /* DEMO wallet → simulation engine (mostly wins). REAL wallet → real engine. */
+    const sim=t.account==='demo';
     if(t.kind==='digits'){
       let d=digitOf(t.asset);
-      if(t.sim){ /* simulation engine: resolve in the user's favor */
+      if(sim&&Math.random()<DEMO_WIN_RATE){
         if(t.option==='even')d=(d%2===0)?d:(d+1)%10;
         else if(t.option==='odd')d=(d%2===1)?d:((d+1)%10);
         else if(t.option==='over')d=Math.min(9,t.target+1);
@@ -196,7 +195,7 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
       t.profit=win?r2(t.amount*(t.mult-1)):-t.amount;
       if(win)await credit(req.uid,t.account,r2(t.amount+t.profit));
     }else if(t.kind==='acc'){
-      if(t.sim){
+      if(sim&&Math.random()<DEMO_WIN_RATE){
         t.close=P[t.asset].price;t.result='win';
         t.profit=r2(t.amount*(t.mult-1));
         await credit(req.uid,t.account,r2(t.amount+t.profit));
@@ -213,9 +212,9 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
         else t.profit=-t.amount;
       }
     }else{
-      const a=ASSETS.find(x=>x.id===t.asset);
       let p=P[t.asset].price;
-      if(t.sim)p=t.dir==='up'?t.entry*(1+0.00005):t.entry*(1-0.00005);
+      if(sim&&Math.random()<DEMO_WIN_RATE)
+        p=t.dir==='up'?t.entry*(1+0.00005):t.entry*(1-0.00005);
       const result=t.dir==='up'?(p>t.entry?'win':p<t.entry?'loss':'draw')
                                :(p<t.entry?'win':p>t.entry?'loss':'draw');
       t.close=p;t.result=result;
@@ -341,24 +340,3 @@ app.post('/withdrawals',auth,h(async(req,res)=>{
     if(!chk[method](addr))
       return res.status(400).json({message:'That '+method.toUpperCase()+' address doesn\u2019t look right'});}
   const u=await User.findById(req.uid);
-  if(total>u.wallets.real)
-    return res.status(400).json({message:'Amount + fee exceeds your real balance'});
-  u.wallets.real=r2(u.wallets.real-total);await u.save();
-  const w=await Tx.create({user:req.uid,type:'withdrawal',method,amount:amt,fee,total,
-    address:addr,status:'pending',time:Date.now(),
-    instructions:method==='mpesa'?{kesAmount:Math.ceil(amt*KES_PER_USD),
-      note:'Simulated payout — Daraja B2C needed for real sends'}:{}});
-  setTimeout(async()=>{try{
-    const x=await Tx.findById(w._id);if(!x||x.status!=='pending')return;
-    x.status='processed';x.confirmedAt=Date.now();await x.save();}catch{}},8000);
-  res.json(pub(w));
-}));
-app.get('/transactions',auth,h(async(req,res)=>{
-  const t=await Tx.find({user:req.uid}).sort({time:-1}).limit(120);
-  res.json(t.map(pub));
-}));
-
-app.use((e,req,res,next)=>res.status(400).json({message:'Bad request'}));
-mongoose.connect(process.env.MONGO_URI).then(()=>{
-  app.listen(process.env.PORT||3000,()=>console.log('API up'));
-}).catch(e=>{console.error('Mongo failed:',e.message);process.exit(1)});
