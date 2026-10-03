@@ -1,6 +1,6 @@
-/* VANTA backend v3.1 · Daraja STK Push (hardened) · digits · acca · min deposit $4
+/* VANTA backend v4 · admin simulation mode · Daraja STK Push · digits · acca
    Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET,
-        MPESA_CB_SECRET (DARAJA_PASSKEY optional in sandbox) */
+        MPESA_CB_SECRET, ADMIN_EMAIL (this account's trades run on the simulation engine) */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
 const app=express();
@@ -9,8 +9,11 @@ app.use(express.json());
 const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
+const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
+const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
+const withSim=j=>{j.sim=isSimUser(j);return j};
 
-/* ── Daraja config (env values trimmed — kills paste-space bugs) ── */
+/* ── Daraja config ── */
 const MPESA={
   BASE:(process.env.DARAJA_ENV||'sandbox')==='production'
     ?'https://api.safaricom.co.ke':'https://sandbox.safaricom.co.ke',
@@ -24,7 +27,6 @@ const MPESA={
     :'',
 };
 let mpTok=null;
-/* safe JSON reader — never throws "Unexpected end of JSON input" blind again */
 async function readJson(r,label){
   const txt=await r.text();
   try{return JSON.parse(txt)}
@@ -39,7 +41,7 @@ async function safToken(){
   if(!j.access_token)throw new Error('Daraja auth rejected: '+(j.errorMessage||JSON.stringify(j).slice(0,150)));
   mpTok={tok:j.access_token,exp:Date.now()+3500e3};return mpTok.tok;
 }
-function stkPassword(){ /* timestamp must be Nairobi time (UTC+3) */
+function stkPassword(){
   const ts=new Date(Date.now()+3*3600e3).toISOString().replace(/\D/g,'').slice(0,14);
   return{ts,pass:Buffer.from(MPESA.SHORTCODE+MPESA.PASSKEY+ts).toString('base64')};}
 const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
@@ -72,7 +74,7 @@ const Trade=mongoose.model('Trade',new mongoose.Schema({user:{type:Object,index:
   asset:String,dir:String,kind:{type:String,default:'updown'},option:String,target:Number,
   legs:Array,mult:Number,amount:Number,account:String,payout:Number,entry:Object,
   entryTime:Number,expiry:Number,status:{type:String,index:true},close:Object,
-  closeTime:Number,result:String,profit:Number},{versionKey:false}));
+  closeTime:Number,result:String,profit:Number,sim:{type:Boolean,default:false}},{versionKey:false}));
 const Tx=mongoose.model('Tx',new mongoose.Schema({user:{type:Object,index:true},
   type:String,method:String,amount:Number,fee:{type:Number,default:0},total:Number,
   bonus:{type:Number,default:0},bonusCode:String,status:String,time:Number,
@@ -107,17 +109,17 @@ app.post('/auth/register',h(async(req,res)=>{
   if(pw.length<6)return res.status(400).json({message:'Use at least 6 characters'});
   if(await User.findOne({email}))return res.status(400).json({message:'An account with this email already exists'});
   const u=await User.create({name,email,passwordHash:await bcrypt.hash(pw,10)});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:pub(u)});
+  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u))});
 }));
 app.post('/auth/login',h(async(req,res)=>{
   const u=await User.findOne({email:(req.body.email||'').trim().toLowerCase()});
   if(!u||!await bcrypt.compare(req.body.password||'',u.passwordHash))
     return res.status(401).json({message:'Wrong email or password'});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:pub(u)});
+  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u))});
 }));
 app.get('/me',auth,h(async(req,res)=>{
   const u=await User.findById(req.uid);if(!u)return res.status(401).json({message:'Session expired'});
-  res.json({user:pub(u)});
+  res.json({user:withSim(pub(u))});
 }));
 app.get('/assets',(req,res)=>res.json(ASSETS.map(({id,name,cat,dec,payout})=>({id,name,cat,dec,payout}))));
 app.get('/prices',(req,res)=>res.json({t:Date.now(),
@@ -129,11 +131,12 @@ app.post('/trades',auth,h(async(req,res)=>{
   const asset=req.body.asset,amt=r2(+req.body.amount);
   if(!['demo','real'].includes(account))return res.status(400).json({message:'Bad wallet'});
   if(!(amt>=1))return res.status(400).json({message:'Minimum stake is $1.00'});
-  if(!(expirySec>=30&&expirySec<=300))return res.status(400).json({message:'Bad expiry'});
+  if(!(expirySec>=1&&expirySec<=300))return res.status(400).json({message:'Bad expiry'});
   const u=await User.findById(req.uid);
   if(amt>u.wallets[account])return res.status(400).json({message:'Insufficient balance'});
+  const sim=isSimUser(u);
   const base={user:req.uid,amount:amt,account,entryTime:Date.now(),
-    expiry:Date.now()+expirySec*1000,status:'open'};
+    expiry:Date.now()+expirySec*1000,status:'open',sim};
   let t;
   if(kind==='digits'){
     const a=ASSETS.find(x=>x.id===asset);
@@ -176,7 +179,16 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
   const due=await Trade.find({user:req.uid,status:'open',expiry:{$lte:now}});
   for(const t of due){
     if(t.kind==='digits'){
-      const d=digitOf(t.asset);t.close=d;
+      let d=digitOf(t.asset);
+      if(t.sim){ /* simulation engine: resolve in the user's favor */
+        if(t.option==='even')d=(d%2===0)?d:(d+1)%10;
+        else if(t.option==='odd')d=(d%2===1)?d:((d+1)%10);
+        else if(t.option==='over')d=Math.min(9,t.target+1);
+        else if(t.option==='under')d=Math.max(0,t.target-1);
+        else if(t.option==='match')d=t.target;
+        else d=(t.target+1)%10;
+      }
+      t.close=d;
       const win=t.option==='even'?d%2===0:t.option==='odd'?d%2===1
         :t.option==='over'?d>t.target:t.option==='under'?d<t.target
         :t.option==='match'?d===t.target:d!==t.target;
@@ -184,18 +196,26 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
       t.profit=win?r2(t.amount*(t.mult-1)):-t.amount;
       if(win)await credit(req.uid,t.account,r2(t.amount+t.profit));
     }else if(t.kind==='acc'){
-      let lost=false,flat=false;
-      for(const l of t.legs){const p=P[l.asset].price;
-        if(l.dir==='up'){if(p<l.entry)lost=true;else if(p===l.entry)flat=true;}
-        else{if(p>l.entry)lost=true;else if(p===l.entry)flat=true;}}
-      t.close=P[t.asset].price;
-      t.result=lost?'loss':flat?'draw':'win';
-      if(t.result==='win'){t.profit=r2(t.amount*(t.mult-1));
-        await credit(req.uid,t.account,r2(t.amount+t.profit));}
-      else if(t.result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
-      else t.profit=-t.amount;
+      if(t.sim){
+        t.close=P[t.asset].price;t.result='win';
+        t.profit=r2(t.amount*(t.mult-1));
+        await credit(req.uid,t.account,r2(t.amount+t.profit));
+      }else{
+        let lost=false,flat=false;
+        for(const l of t.legs){const p=P[l.asset].price;
+          if(l.dir==='up'){if(p<l.entry)lost=true;else if(p===l.entry)flat=true;}
+          else{if(p>l.entry)lost=true;else if(p===l.entry)flat=true;}}
+        t.close=P[t.asset].price;
+        t.result=lost?'loss':flat?'draw':'win';
+        if(t.result==='win'){t.profit=r2(t.amount*(t.mult-1));
+          await credit(req.uid,t.account,r2(t.amount+t.profit));}
+        else if(t.result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
+        else t.profit=-t.amount;
+      }
     }else{
-      const p=P[t.asset].price;
+      const a=ASSETS.find(x=>x.id===t.asset);
+      let p=P[t.asset].price;
+      if(t.sim)p=t.dir==='up'?t.entry*(1+0.00005):t.entry*(1-0.00005);
       const result=t.dir==='up'?(p>t.entry?'win':p<t.entry?'loss':'draw')
                                :(p<t.entry?'win':p>t.entry?'loss':'draw');
       t.close=p;t.result=result;
@@ -238,7 +258,6 @@ app.post('/deposits',auth,h(async(req,res)=>{
       network:method==='usdt'?'TRON · TRC-20':method==='btc'?'Bitcoin':'Ethereum · ERC-20'};
   const d=await Tx.create({user:req.uid,type:'deposit',method,amount:amt,bonus,total,
     bonusCode:code||null,status:'awaiting_payment',time:Date.now(),instructions});
-
   if(method==='mpesa'){
     const phone=normPhone(req.body.phone);
     if(!/^254(7|1)\d{8}$/.test(phone)){
@@ -273,8 +292,6 @@ app.get('/deposits/:id',auth,h(async(req,res)=>{
   if(!d)return res.status(404).json({message:'Deposit not found'});
   res.json(pub(d));
 }));
-
-/* ── Safaricom callback ── */
 app.post('/mpesa/callback/:secret',async(req,res)=>{
   if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim())return res.status(403).end();
   res.json({ResultCode:0,ResultDesc:'Accepted'});
@@ -293,7 +310,6 @@ app.post('/mpesa/callback/:secret',async(req,res)=>{
     await d.save();
   }catch(e){console.error('mpesa callback:',e.message)}
 });
-
 app.post('/deposits/:id/confirm',auth,h(async(req,res)=>{
   const d=await Tx.findOne({_id:req.params.id,user:req.uid,type:'deposit'});
   if(!d)return res.status(404).json({message:'Deposit not found'});
