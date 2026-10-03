@@ -1,6 +1,6 @@
-/* VANTA backend v3 · Daraja STK Push deposits · digits · acca · min deposit $4
-   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM (true until callback verified),
-        DARAJA_KEY, DARAJA_SECRET, MPESA_CB_SECRET (DARAJA_PASSKEY optional in sandbox) */
+/* VANTA backend v3.1 · Daraja STK Push (hardened) · digits · acca · min deposit $4
+   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET,
+        MPESA_CB_SECRET (DARAJA_PASSKEY optional in sandbox) */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
 const app=express();
@@ -10,22 +10,33 @@ const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 
-/* ── Daraja config ── */
+/* ── Daraja config (env values trimmed — kills paste-space bugs) ── */
 const MPESA={
-  BASE:process.env.DARAJA_ENV==='production'?'https://api.safaricom.co.ke':'https://sandbox.safaricom.co.ke',
-  KEY:process.env.DARAJA_KEY||'',
-  SECRET:process.env.DARAJA_SECRET||'',
-  SHORTCODE:'174379',                                    /* sandbox paybill */
-  PASSKEY:process.env.DARAJA_PASSKEY||'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',
-  CB:process.env.MPESA_CB_SECRET?('https://vanta-1-7q8l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET):'',
+  BASE:(process.env.DARAJA_ENV||'sandbox')==='production'
+    ?'https://api.safaricom.co.ke':'https://sandbox.safaricom.co.ke',
+  KEY:(process.env.DARAJA_KEY||'').trim(),
+  SECRET:(process.env.DARAJA_SECRET||'').trim(),
+  SHORTCODE:'174379',
+  PASSKEY:(process.env.DARAJA_PASSKEY||'').trim()
+    ||'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',
+  CB:process.env.MPESA_CB_SECRET
+    ?'https://vanta-1-7q8l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET.trim()
+    :'',
 };
 let mpTok=null;
+/* safe JSON reader — never throws "Unexpected end of JSON input" blind again */
+async function readJson(r,label){
+  const txt=await r.text();
+  try{return JSON.parse(txt)}
+  catch{throw new Error(label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,120))}
+}
 async function safToken(){
-  if(!MPESA.KEY||!MPESA.SECRET)throw new Error('Daraja keys not configured');
+  if(!MPESA.KEY||!MPESA.SECRET)throw new Error('Daraja keys not configured (check Render env)');
   if(mpTok&&mpTok.exp>Date.now())return mpTok.tok;
   const r=await fetch(MPESA.BASE+'/oauth/v1/generate?grant_type=client_credentials',
     {headers:{Authorization:'Basic '+Buffer.from(MPESA.KEY+':'+MPESA.SECRET).toString('base64')}});
-  const j=await r.json();if(!j.access_token)throw new Error('Daraja auth failed');
+  const j=await readJson(r,'Daraja auth');
+  if(!j.access_token)throw new Error('Daraja auth rejected: '+(j.errorMessage||JSON.stringify(j).slice(0,150)));
   mpTok={tok:j.access_token,exp:Date.now()+3500e3};return mpTok.tok;
 }
 function stkPassword(){ /* timestamp must be Nairobi time (UTC+3) */
@@ -36,7 +47,7 @@ const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
   if(d.length===9&&/^[17]/.test(d))d='254'+d;
   return d};
 
-/* ── assets + price engine (unchanged) ── */
+/* ── assets + price engine ── */
 const ASSETS=[
   {id:'EURUSD',name:'EUR/USD',cat:'Forex',start:1.08423,vol:0.00006,dec:5,payout:85},
   {id:'GBPUSD',name:'GBP/USD',cat:'Forex',start:1.27164,vol:0.00009,dec:5,payout:83},
@@ -72,7 +83,7 @@ const r2=v=>Math.round(v*100)/100;
 const pub=o=>{const x=o.toObject?o.toObject():{...o};const j={...x,id:String(x._id)};
   delete j._id;delete j.__v;delete j.user;return j};
 const h=f=>(req,res)=>f(req,res).catch(e=>{
-  console.error(e.message);res.status(500).json({message:'Server error'})});
+  console.error('ERR:',e.message);res.status(500).json({message:e.message||'Server error'})});
 async function credit(uid,acc,v){const u=await User.findById(uid);
   u.wallets[acc]=r2(u.wallets[acc]+v);await u.save()}
 const auth=(req,res,next)=>{const hd=req.headers.authorization||'';
@@ -112,7 +123,7 @@ app.get('/assets',(req,res)=>res.json(ASSETS.map(({id,name,cat,dec,payout})=>({i
 app.get('/prices',(req,res)=>res.json({t:Date.now(),
   p:Object.fromEntries(ASSETS.map(a=>[a.id,P[a.id].price]))}));
 
-/* ── trades (unchanged) ── */
+/* ── trades ── */
 app.post('/trades',auth,h(async(req,res)=>{
   const{dir,expirySec,account,kind,option,target,legs}=req.body;
   const asset=req.body.asset,amt=r2(+req.body.amount);
@@ -228,11 +239,11 @@ app.post('/deposits',auth,h(async(req,res)=>{
   const d=await Tx.create({user:req.uid,type:'deposit',method,amount:amt,bonus,total,
     bonusCode:code||null,status:'awaiting_payment',time:Date.now(),instructions});
 
-  /* STK PUSH for M-Pesa */
   if(method==='mpesa'){
     const phone=normPhone(req.body.phone);
-    if(!/^254(7|1)\d{8}$/.test(phone))
-      return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});
+    if(!/^254(7|1)\d{8}$/.test(phone)){
+      d.status='failed';await d.save();
+      return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});}
     const kes=Math.ceil(amt*KES_PER_USD);
     try{
       const tok=await safToken();const{ts,pass}=stkPassword();
@@ -243,16 +254,16 @@ app.post('/deposits',auth,h(async(req,res)=>{
           PhoneNumber:phone,CallBackURL:MPESA.CB,
           AccountReference:'VNT'+String(d._id).slice(-8).toUpperCase(),
           TransactionDesc:'Vanta deposit'})});
-      const j=await r.json();
+      const j=await readJson(r,'M-Pesa push');
       if(j.ResponseCode!=='0'){
         d.status='failed';await d.save();
-        return res.status(502).json({message:j.ResponseDescription||j.errorMessage||'M-Pesa push failed'});
+        return res.status(502).json({message:'M-Pesa rejected: '+(j.ResponseDescription||j.errorMessage||JSON.stringify(j).slice(0,120))});
       }
       d.checkoutId=j.CheckoutRequestID;
       await d.save();
     }catch(e){
       d.status='failed';await d.save();
-      return res.status(502).json({message:'Could not reach M-Pesa: '+e.message});
+      return res.status(502).json({message:'M-Pesa error: '+e.message});
     }
   }
   res.json(pub(d));
@@ -263,23 +274,22 @@ app.get('/deposits/:id',auth,h(async(req,res)=>{
   res.json(pub(d));
 }));
 
-/* ── Safaricom calls this when the user enters (or cancels) their PIN ── */
+/* ── Safaricom callback ── */
 app.post('/mpesa/callback/:secret',async(req,res)=>{
-  if(req.params.secret!==process.env.MPESA_CB_SECRET)return res.status(403).end();
-  res.json({ResultCode:0,ResultDesc:'Accepted'});          /* ack immediately */
+  if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim())return res.status(403).end();
+  res.json({ResultCode:0,ResultDesc:'Accepted'});
   try{
     const cb=req.body.Body&&req.body.Body.stkCallback;if(!cb)return;
     const d=await Tx.findOne({checkoutId:cb.CheckoutRequestID,type:'deposit'});
     if(!d||d.status!=='awaiting_payment')return;
-    if(cb.ResultCode!==0){                                  /* 1032 = user cancelled */
-      d.status='failed';await d.save();return;}
+    if(cb.ResultCode!==0){d.status='failed';await d.save();return;}
     const item=(cb.CallbackMetadata&&cb.CallbackMetadata.Item)||[];
     const paid=item.find(i=>i.Name==='Amount');
-    if(!paid||paid.Value<Math.ceil(d.amount*KES_PER_USD))return;  /* wrong amount — ignore */
+    if(!paid||paid.Value<Math.ceil(d.amount*KES_PER_USD))return;
     d.paidAt=Date.now();
     d.mpesaReceipt=(item.find(i=>i.Name==='MpesaReceiptNumber')||{}).Value||'';
     d.status='confirmed';d.confirmedAt=Date.now();
-    await credit(d.user,'real',d.total);                    /* credit happens HERE, server-side */
+    await credit(d.user,'real',d.total);
     await d.save();
   }catch(e){console.error('mpesa callback:',e.message)}
 });
@@ -295,7 +305,7 @@ app.post('/deposits/:id/confirm',auth,h(async(req,res)=>{
   res.json(pub(d));
 }));
 
-/* ── withdrawals (unchanged) ── */
+/* ── withdrawals ── */
 app.post('/withdrawals',auth,h(async(req,res)=>{
   const method=req.body.method,amt=r2(+req.body.amount);
   let addr=(req.body.address||'').trim();
