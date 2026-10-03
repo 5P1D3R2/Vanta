@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#0B0F0E">
-<meta name="description" content="VANTA — live digit trading terminal. Even/Odd, Over/Under, Matches/Differs with AUTO bot.">
+<meta name="description" content="VANTA — live digit trading terminal with real multi-asset charts. Even/Odd, Over/Under, Matches/Differs with AUTO bot.">
 <title>VANTA · Trade Digits</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="5.5" y="5" width="5" height="11" rx="1" fill="%232EE58A"/><rect x="14" y="7" width="5" height="8" rx="1" fill="%23EAF2EE"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -103,7 +103,6 @@ button{font-family:var(--fb);touch-action:manipulation}
 .cchips::-webkit-scrollbar{display:none}
 .cchips button{border:0;background:none;color:var(--mut);font:700 10.5px var(--fm);padding:7px 8px;border-radius:7px;cursor:pointer;flex:none}
 .cchips button.on{background:rgba(46,229,138,.16);color:var(--grn)}
-.cchips button.dim{opacity:.45}
 .csel{position:absolute;top:52px;left:10px;right:56px;z-index:2;display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:12px;background:rgba(22,29,27,.94);border:1px solid var(--line2);cursor:pointer;text-align:left;color:var(--text);min-width:0}
 .csel .cico{width:28px;height:28px;border-radius:8px;background:rgba(46,229,138,.12);color:var(--grn);display:flex;align-items:center;justify-content:center;flex:none}
 .csel .ct{min-width:0;flex:1}
@@ -170,6 +169,7 @@ button{font-family:var(--fb);touch-action:manipulation}
 .hint{font-size:11.5px;color:var(--dim);line-height:1.55;margin:8px 0 0}
 .hint b{color:var(--grn);font-family:var(--fm)}
 .pg{max-width:600px;margin:0 auto;padding:14px 12px 100px;width:100%}
+.pg.widepg{max-width:1100px}
 .pg-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:13px}
 .pg-head h1{font-size:17px;display:flex;align-items:center;gap:8px}
 .pn{background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px;margin-bottom:12px}
@@ -275,6 +275,24 @@ button{font-family:var(--fb);touch-action:manipulation}
 .srow .sp{margin-left:auto;text-align:right}
 .srow .sp .s1{font:600 12.5px var(--fm);display:block}
 .srow .sp .s2{font:600 10px var(--fm);color:var(--grn)}
+/* ── v12 · Markets page (TradingView) ── */
+.mktabs{display:flex;gap:5px;padding:9px 10px 2px}
+.mktabs button{flex:1;padding:9px 2px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 11.5px var(--fb);cursor:pointer}
+.mktabs button.on{background:rgba(46,229,138,.12);border-color:rgba(46,229,138,.55);color:var(--grn)}
+.pairgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(100px,1fr));gap:6px;padding:8px 10px 0}
+.pairb{padding:11px 4px;border-radius:10px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 11px var(--fm);cursor:pointer;text-align:center}
+.pairb.on{border-color:var(--grn);color:var(--grn);background:rgba(46,229,138,.08)}
+.tvtf{display:flex;gap:4px;padding:8px 10px 0;flex-wrap:wrap}
+.tvtf button{padding:7px 12px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 10.5px var(--fm);cursor:pointer}
+.tvtf button.on{border-color:var(--cyan);color:var(--cyan);background:rgba(47,224,208,.08)}
+.tvwrap{position:relative;margin:8px 10px 0;height:600px;border:1px solid var(--line);border-radius:16px;overflow:hidden;background:#0E1513}
+.tvwrap .tradingview-widget-container{height:100%;width:100%}
+@media(max-width:640px){.tvwrap{height:440px}}
+.tvc{position:absolute;bottom:0;left:0;right:0;z-index:2;text-align:center;font:400 10px var(--fb);color:var(--dim);background:rgba(14,21,19,.92);padding:3px 0}
+.tvc a{color:var(--cyan)}
+.tvselname{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 12px 0}
+.tvselname b{font-size:15px}
+.tvselname .sym{font:600 11px var(--fm);color:var(--dim)}
 @media(max-width:380px){
   #bell-btn{display:none}
   .brand span{display:none}
@@ -288,10 +306,9 @@ button{font-family:var(--fb);touch-action:manipulation}
 
 <script>
 'use strict';
-/* VANTA v11 · ORIGINAL candlestick chart restored in full:
-   canvas crosshair + OHLC readout · trade overlays (entry pill + expiry countdown)
-   settlement pulses · future-space · wheel/pinch zoom · line mode · 1s timeframe
-   plus all v9/v10 fixes (iOS zoom, hidden-chart sleep, digit pop, live timers) */
+/* VANTA v12 · v11 (original candlestick chart, digits, AUTO bot, M-Pesa)
+   + NEW: Markets page — TradingView Advanced Chart (REAL market data),
+     18 instruments, 1m/5m/15m/30m/1h/4h/1D, in-page symbol switching */
 const API_URL='https://vanta-1-7q8l.onrender.com';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 
@@ -377,7 +394,7 @@ function sheet(html){
   document.body.appendChild(ov);return ov;
 }
 
-/* ── market feed ── */
+/* ── platform feed (trades settle on THIS) ── */
 const FEED=[
   {id:'EURUSD',name:'EUR/USD',cat:'Forex',start:1.08423,vol:0.00006,dec:5,payout:85},
   {id:'GBPUSD',name:'GBP/USD',cat:'Forex',start:1.27164,vol:0.00009,dec:5,payout:83},
@@ -449,17 +466,39 @@ const Market={
   fmtP(a,p=a.price){return (+p).toLocaleString('en-US',{minimumFractionDigits:a.dec,maximumFractionDigits:a.dec})},
 };
 
+/* ── v12 · TradingView instruments (REAL data via TradingView) ──
+   To add more symbols later: just add {n:'NAME',s:'EXCHANGE:SYMBOL'} here. */
+const TV_MARKETS=[
+  {cat:'Forex',items:[
+    {n:'EUR/USD',s:'OANDA:EURUSD'},
+    {n:'GBP/USD',s:'OANDA:GBPUSD'},
+    {n:'USD/JPY',s:'OANDA:USDJPY'},
+    {n:'GBP/JPY',s:'OANDA:GBPJPY'},
+    {n:'USD/CHF',s:'OANDA:USDCHF'},
+    {n:'AUD/USD',s:'OANDA:AUDUSD'},
+    {n:'USD/CAD',s:'OANDA:USDCAD'},
+    {n:'NZD/USD',s:'OANDA:NZDUSD'},
+    {n:'EUR/GBP',s:'OANDA:EURGBP'},
+    {n:'EUR/JPY',s:'OANDA:EURJPY'},
+    {n:'GBP/CHF',s:'OANDA:GBPCHF'},
+    {n:'AUD/JPY',s:'OANDA:AUDJPY'},
+    {n:'EUR/AUD',s:'OANDA:EURAUD'},
+    {n:'EUR/CHF',s:'OANDA:EURCHF'}]},
+  {cat:'Metals',items:[
+    {n:'XAU/USD · Gold',s:'OANDA:XAUUSD'},
+    {n:'XAG/USD · Silver',s:'OANDA:XAGUSD'}]},
+  {cat:'Crypto',items:[
+    {n:'BTC/USD',s:'BITSTAMP:BTCUSD'},
+    {n:'ETH/USD',s:'BITSTAMP:ETHUSD'}]},
+];
+const TV_TF=[['1','1m'],['5','5m'],['15','15m'],['30','30m'],['60','1h'],['240','4h'],['D','1D']];
+
 function rr(c,x,y,w,h,rad){c.beginPath();c.moveTo(x+rad,y);c.arcTo(x+w,y,x+w,y+h,rad);c.arcTo(x+w,y+h,x,y+h,rad);c.arcTo(x,y+h,x,y,rad);c.arcTo(x,y,x+w,y,rad);c.closePath()}
 function waiting(c,W,H){c.fillStyle='#5C6B65';c.font='600 12px Inter,sans-serif';
   c.textAlign='center';c.textBaseline='middle';
   c.fillText(Market.connected?'Receiving ticks…':'Waiting for live prices…',W/2,H/2);}
 
-/* ════════════════════════════════════════════════════════════════════
-   CANDLE CHART — the ORIGINAL v1 class, fully restored & adapted:
-   canvas crosshair + O/H/L/C segs · trade overlays (entry pill, expiry
-   countdown) · settlement pulses · future-space · line mode · pan/wheel/
-   pinch · touch crosshair
-════════════════════════════════════════════════════════════════════ */
+/* ══ CANDLE CHART (original v1 class, platform feed) ══ */
 const CC={bg:'#0B0F0E',grid:'rgba(234,242,238,.09)',gridS:'rgba(234,242,238,.045)',
   text:'#EAF2EE',mut:'#8CA098',dim:'#5C6B65',up:'#2EE58A',down:'#FF5A6E',acc:'#2FE0D0'};
 class CandleChart{
@@ -557,7 +596,6 @@ class CandleChart{
         c.strokeStyle=col;c.beginPath();c.moveTo(x,Y(k.h));c.lineTo(x,Y(k.l));c.stroke();
         c.fillStyle=col;const y1=Y(Math.max(k.o,k.c)),y2=Y(Math.min(k.o,k.c));
         c.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));}}
-    /* trade overlays — entry line + stake pill, expiry line + countdown */
     for(const t of (dgf(this.o.trades)||[])){
       const col=t.dir==='up'?CC.up:CC.down,ey=Y(t.entry);
       if(ey>padT&&ey<padT+ph){
@@ -573,7 +611,6 @@ class CandleChart{
         c.font='600 10px "JetBrains Mono",monospace';const w=c.measureText(lab).width+10;
         c.fillStyle=CC.bg;rr(c,ex-w/2,padT+2,w,16,4);c.fill();c.stroke();
         c.fillStyle=col;c.textAlign='center';c.fillText(lab,ex,padT+10);}}
-    /* live price pill */
     if(off===0){
       const lp=a.price;this.ease=this.ease==null?lp:this.ease+(lp-this.ease)*.3;
       const y=Y(clamp(this.ease,lo,hi)),col=a.dir>=0?CC.up:CC.down;
@@ -582,13 +619,11 @@ class CandleChart{
       const w=c.measureText(txt).width+12;
       c.fillStyle=col;rr(c,rightX+2,y-10,w,20,5);c.fill();
       c.fillStyle=CC.bg;c.textAlign='left';c.fillText(txt,rightX+7,y+.5);}
-    /* settlement pulses */
     for(const p of (dgf(this.o.pulses)||[])){
       const age=(performance.now()-p.at)/950;if(age>=1)continue;
       const x=xT(p.time),y=Y(p.price);
       c.globalAlpha=(1-age)*.9;c.strokeStyle=p.win?CC.up:CC.down;c.lineWidth=2;
       c.beginPath();c.arc(x,y,4+age*30,0,7);c.stroke();c.lineWidth=1;c.globalAlpha=1;}
-    /* crosshair + OHLC */
     if(!comp&&this.mouse&&!this.drag){
       const{x,y}=this.mouse;
       if(x>padL&&x<rightX&&y>padT&&y<padT+ph){
@@ -890,6 +925,7 @@ function shell(page,body){
       <button class="icbtn" id="bell-btn">${icon('bell',16)}</button>
     </div></header>
     <nav class="bnav">
+      <a href="#/markets" class="${page==='/markets'?'on':''}">${icon('chart',18)}<span>Markets</span></a>
       <a href="#/support" class="${page==='/support'?'on':''}">${icon('chat',18)}<span>Live Chat</span></a>
       <a href="#/scanner" class="${page==='/scanner'?'on':''}"><span class="bub">${icon('spark',20)}</span><span>AI</span></a>
       <a href="#/positions" class="${page==='/positions'?'on':''}">${icon('clock',18)}<span>Positions</span></a>
@@ -903,6 +939,7 @@ function shell(page,body){
           <b class="mono" style="margin-left:8px;font-size:15px">${money(Auth.bal())}</b>
           <span style="color:var(--dim);font-size:11px;margin-left:6px">${acc.toUpperCase()}</span></div>`:''}
         <a class="dlink" href="#/">${icon('zap',17)} Digit Trading</a>
+        <a class="dlink" href="#/markets">${icon('chart',17)} Live Markets</a>
         <a class="dlink" href="#/classic">${icon('chart',17)} UP / DOWN</a>
         <a class="dlink" href="#/acca">${icon('layers',17)} Accumulator</a>
         <a class="dlink" href="#/positions">${icon('history',17)} Positions</a>
@@ -938,7 +975,7 @@ function wireShell(){
   }));
 }
 
-/* ═══ DIGIT TERMINAL ═══ */
+/* ═══ DIGIT TERMINAL (unchanged) ═══ */
 function DigitTerminal(app){
   let asset='EURUSD',game='parity',side='even',target=5,mode='auto',expiry=60;
   let cht='candles',ctf=5,lastShown=-1,pulses=[];
@@ -949,7 +986,7 @@ function DigitTerminal(app){
       <button data-g="range" class="${game==='range'?'on':''}">Over/Under</button>
     </div>
     <div class="ccard" id="ccard">
-      <canvas id="tc-cd" style="display:${cht==='candles'?'block':'none'}"></canvas>
+      <canvas id="tc-cd" style="display:${cht==='candles'||cht==='line'?'block':'none'}"></canvas>
       <canvas id="tc-ln" style="display:${cht==='tick'?'block':'none'}"></canvas>
       <div class="cchips" id="cht">
         <button data-v="1T" class="${cht==='tick'?'on':''}">1T</button>
@@ -1126,7 +1163,7 @@ function DigitTerminal(app){
   $('#b-b').onclick=()=>act(sides()[1]);
 }
 
-/* ═══ CLASSIC UP/DOWN ═══ */
+/* ═══ CLASSIC UP/DOWN (unchanged) ═══ */
 function ClassicTerminal(app){
   let asset='EURUSD',tf=5,exp=60,pulses=[];
   app.innerHTML=shell('/classic',`<div class="pagec">
@@ -1225,6 +1262,61 @@ function ClassicTerminal(app){
   }
   $('#b-up').onclick=()=>place('up');
   $('#b-dn').onclick=()=>place('down');
+}
+
+/* ═══ v12 · MARKETS — TradingView Advanced Chart (REAL data) ═══ */
+function MarketsPage(app){
+  let sym='OANDA:XAUUSD',iv='1',cat='Metals';
+  const nameOf=s=>{for(const g of TV_MARKETS)for(const it of g.items)if(it.s===s)return it.n;return s};
+  app.innerHTML=shell('/markets',`<div class="pg widepg">
+    <div class="pg-head"><h1>${icon('chart',19)} Live Markets</h1>
+      <span class="badge done">● REAL DATA</span></div>
+    <div class="mktabs" id="mk-tabs">${TV_MARKETS.map(g=>
+      `<button data-c="${g.cat}" class="${g.cat===cat?'on':''}">${g.cat}</button>`).join('')}</div>
+    <div class="pairgrid" id="mk-pairs"></div>
+    <div class="tvtf" id="mk-tf">${TV_TF.map(([v,l])=>
+      `<button data-i="${v}" class="${v===iv?'on':''}">${l}</button>`).join('')}</div>
+    <div class="tvselname">
+      <b id="mk-name">${esc(nameOf(sym))}</b>
+      <span class="sym" id="mk-sym">${sym}</span>
+    </div>
+    <div class="tvwrap" id="tvbox"></div>
+    <p class="hint tvnote">${icon('info',12)} Prices on this chart are <b>real market data from TradingView</b>. Platform trades settle on the Vanta feed, so ticks here and in-game may differ slightly — use this chart for analysis. Free TradingView feed may delay some instruments by a few minutes.</p>
+  </div>`);
+  wireShell();
+  function tvRender(){
+    const box=$('#tvbox');if(!box)return;
+    box.innerHTML=`<div class="tradingview-widget-container" style="height:100%;width:100%">
+      <div class="tradingview-widget-container__widget" style="height:calc(100% - 26px);width:100%"></div>
+      <div class="tvc"><a href="https://www.tradingview.com/" rel="noopener nofollow" target="_blank">Charts</a> by TradingView</div>
+    </div>`;
+    const s=document.createElement('script');
+    s.type='text/javascript';s.async=true;
+    s.src='https://s3.tradingview.com/external-embedding/embed-widget-advanced-chart.js';
+    s.textContent=JSON.stringify({autosize:true,symbol:sym,interval:iv,
+      timezone:'Africa/Nairobi',theme:'dark',style:'1',withdateranges:true,
+      hide_side_toolbar:false,allow_symbol_change:true,save_image:false,
+      hide_volume:false,hide_top_toolbar:false,hide_legend:false,
+      calendar:false,hotlist:false,studies:[],locale:'en',
+      support_host:'https://www.tradingview.com'});
+    box.querySelector('.tradingview-widget-container').appendChild(s);
+  }
+  function paintPairs(){
+    const g=TV_MARKETS.find(x=>x.cat===cat);
+    $('#mk-pairs').innerHTML=g.items.map(it=>
+      `<button class="pairb ${it.s===sym?'on':''}" data-s="${it.s}">${esc(it.n)}</button>`).join('');
+  }
+  paintPairs();tvRender();
+  $('#mk-tabs').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    cat=b.dataset.c;$$('#mk-tabs button').forEach(x=>x.classList.toggle('on',x===b));paintPairs();};
+  $('#mk-pairs').onclick=e=>{const b=e.target.closest('.pairb');if(!b)return;
+    sym=b.dataset.s;
+    $('#mk-name').textContent=nameOf(sym);$('#mk-sym').textContent=sym;
+    paintPairs();tvRender();};
+  $('#mk-tf').onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    iv=b.dataset.i;
+    $$('#mk-tf button').forEach(x=>x.classList.toggle('on',x===b));
+    tvRender();};
 }
 
 /* ═══ POSITIONS ═══ */
@@ -1774,9 +1866,9 @@ async function Profile(app){
 }
 
 /* ── router ── */
-const routes={'/':DigitTerminal,'/classic':ClassicTerminal,'/acca':Acca,'/scanner':Scanner,
-  '/support':Support,'/deposit':Deposit,'/withdraw':Withdraw,'/positions':Positions,
-  '/history':Positions,'/profile':Profile};
+const routes={'/':DigitTerminal,'/markets':MarketsPage,'/classic':ClassicTerminal,'/acca':Acca,
+  '/scanner':Scanner,'/support':Support,'/deposit':Deposit,'/withdraw':Withdraw,
+  '/positions':Positions,'/history':Positions,'/profile':Profile};
 const guarded=['/deposit','/withdraw','/positions','/history','/profile','/acca'];
 function render(){
   cleanups.forEach(f=>{try{f()}catch{}});cleanups=[];
