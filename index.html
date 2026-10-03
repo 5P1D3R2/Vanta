@@ -3,6 +3,8 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#0B0F0E">
+<meta name="description" content="VANTA — live digit trading terminal. Even/Odd, Over/Under, Matches/Differs with AUTO bot.">
 <title>VANTA · Trade Digits</title>
 <link rel="icon" href='data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><rect x="5.5" y="5" width="5" height="11" rx="1" fill="%232EE58A"/><rect x="14" y="7" width="5" height="8" rx="1" fill="%23EAF2EE"/></svg>'>
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -23,10 +25,10 @@ a{color:inherit;text-decoration:none}
 .u-c{color:var(--grn)!important}.d-c{color:var(--red)!important}
 .ic{flex:none;vertical-align:-3px}
 ::placeholder{color:var(--dim)}
-input,select{font:500 14px var(--fm);color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:11px 12px;outline:0;width:100%}
+input,select{font:500 16px var(--fm);color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:8px;padding:11px 12px;outline:0;width:100%}
 input:focus{border-color:var(--grn)}
 h1,h2,h3{font-weight:700;margin:0}
-button{font-family:var(--fb)}
+button{font-family:var(--fb);touch-action:manipulation}
 .btn{display:inline-flex;align-items:center;justify-content:center;gap:7px;font:600 13.5px var(--fb);padding:11px 16px;border-radius:9px;border:0;cursor:pointer;color:inherit;transition:filter .15s,transform .1s;white-space:nowrap}
 .btn:active{transform:scale(.97)}
 .btn-up{background:var(--grn);color:#04231A;font-weight:700}.btn-up:hover{filter:brightness(1.08)}
@@ -42,7 +44,7 @@ button{font-family:var(--fb)}
 .qchips button{flex:1;font:600 12px var(--fm);padding:9px 0;background:var(--panel2);border:1px solid var(--line);border-radius:8px;color:var(--mut);cursor:pointer}
 .qchips button:hover{color:var(--grn)}
 .fld{display:block;margin-bottom:13px}
-.fld>span:first-child{display:block;font-size:11px;color:var(--mut);margin-bottom:6px;font-weight:600}
+.fld>span:first-child{display:block;font-size:12px;color:var(--mut);margin-bottom:6px;font-weight:600}
 .err{display:block;color:var(--red);font-size:11.5px;margin-top:4px;font-style:normal}
 #toasts{position:fixed;top:12px;right:12px;z-index:600;display:flex;flex-direction:column;gap:8px;width:min(340px,calc(100vw - 24px))}
 .toast{display:flex;gap:10px;background:var(--panel);border:1px solid var(--line2);border-left:3px solid var(--mut);border-radius:9px;padding:11px 12px;box-shadow:0 12px 30px rgba(0,0,0,.5);animation:tin .2s}
@@ -55,7 +57,6 @@ button{font-family:var(--fb)}
 .toast.out{animation:tout .2s forwards}
 @keyframes tin{from{transform:translateX(30px);opacity:0}}
 @keyframes tout{to{transform:translateX(30px);opacity:0}}
-/* ── header ── */
 .top{height:52px;display:flex;align-items:center;gap:6px;padding:0 8px;border-bottom:1px solid var(--line);position:sticky;top:0;background:var(--bg);z-index:90}
 .icbtn{width:34px;height:34px;border-radius:9px;background:var(--panel);border:1px solid var(--line);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;flex:none;padding:0}
 .icbtn:hover{color:var(--text)}
@@ -77,7 +78,6 @@ button{font-family:var(--fb)}
 .drop-it.sel{background:rgba(46,229,138,.08)}
 .drop-it.danger{color:var(--red)}
 .drop-sep{height:1px;background:var(--line);margin:5px 4px}
-/* ── drawer ── */
 .dwrap{position:fixed;inset:0;z-index:200;visibility:hidden}
 .dwrap.on{visibility:visible}
 .dov{position:absolute;inset:0;background:rgba(0,0,0,.55);opacity:0;transition:.2s}
@@ -88,42 +88,46 @@ button{font-family:var(--fb)}
 .dlink{display:flex;align-items:center;gap:11px;padding:11px 12px;border-radius:10px;color:var(--text);font:600 13.5px var(--fb)}
 .dlink:hover{background:var(--panel2)}
 .dlink.danger{color:var(--red)}
-/* ── bottom nav ── */
 .bnav{position:fixed;bottom:0;left:0;right:0;display:flex;background:var(--panel);border-top:1px solid var(--line);z-index:88;padding-bottom:env(safe-area-inset-bottom)}
 .bnav a{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 0 7px;color:var(--dim);font:600 10.5px var(--fb)}
 .bnav a.on{color:var(--grn)}
 .bnav .bub{width:48px;height:48px;border-radius:50%;background:linear-gradient(135deg,#7C5CFF,#2EE58A);display:flex;align-items:center;justify-content:center;margin-top:-24px;box-shadow:0 4px 18px rgba(124,92,255,.4),0 0 14px rgba(46,229,138,.3);color:#fff}
-/* ── page frame ── */
 .pagec{max-width:600px;margin:0 auto;width:100%}
 .gtabs{display:flex;gap:5px;padding:9px 10px 2px}
 .gtabs button{flex:1;padding:9px 2px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 11px var(--fb);cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .gtabs button.on{background:rgba(46,229,138,.12);border-color:rgba(46,229,138,.55);color:var(--grn)}
-/* ── chart card ── */
-.ccard{position:relative;margin:8px 10px 0;height:clamp(240px,36vh,400px);background:#0E1513;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ccard{position:relative;margin:8px 10px 0;height:clamp(240px,36vh,420px);background:#0E1513;border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.ccard.fs{position:fixed;inset:0;z-index:250;margin:0;height:auto;border-radius:0}
 .ccard canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none}
 .cchips{position:absolute;top:10px;left:10px;z-index:3;display:flex;gap:4px;background:rgba(22,29,27,.92);border:1px solid var(--line2);border-radius:10px;padding:3px}
 .cchips button{border:0;background:none;color:var(--mut);font:700 10.5px var(--fm);padding:7px 9px;border-radius:7px;cursor:pointer}
 .cchips button.on{background:rgba(46,229,138,.16);color:var(--grn)}
-.csel{position:absolute;top:10px;left:10px;right:56px;z-index:2;display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:12px;background:rgba(22,29,27,.94);border:1px solid var(--line2);cursor:pointer;text-align:left;color:var(--text);min-width:0}
-.cchips~.csel{left:10px;top:52px}
+.csel{position:absolute;top:52px;left:10px;right:56px;z-index:2;display:flex;align-items:center;gap:8px;padding:6px 9px;border-radius:12px;background:rgba(22,29,27,.94);border:1px solid var(--line2);cursor:pointer;text-align:left;color:var(--text);min-width:0}
 .csel .cico{width:28px;height:28px;border-radius:8px;background:rgba(46,229,138,.12);color:var(--grn);display:flex;align-items:center;justify-content:center;flex:none}
 .csel .ct{min-width:0;flex:1}
 .csel b{display:block;font:700 12px var(--fb);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .csel .cpr{font:600 11px var(--fm);white-space:nowrap}
 .csel .cch{font:600 10px var(--fm);color:var(--dim);margin-left:5px}
 .cpay{position:absolute;top:10px;right:10px;z-index:3;padding:9px;border-radius:10px;background:rgba(22,29,27,.92);border:1px solid var(--line2);color:var(--text);font:700 11.5px var(--fm)}
-/* ── digits ── */
-.dstrip{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;padding:10px 10px 0}
+.cexp{position:absolute;top:10px;right:56px;z-index:3;width:30px;height:30px;border-radius:9px;background:rgba(22,29,27,.92);border:1px solid var(--line2);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
+.cexp:hover{color:var(--text)}
+.ohlc{position:absolute;bottom:22px;left:10px;z-index:2;display:flex;gap:7px;font:600 9.5px var(--fm);color:var(--mut);background:rgba(14,21,19,.85);padding:4px 8px;border-radius:7px;pointer-events:none;opacity:0;transition:opacity .12s}
+.ohlc.show{opacity:1}
+.ohlc b{font-weight:700}
+.ohlc .o-h{color:#8CA098}
+.dstrip{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;padding:10px 10px 0;min-height:64px;align-items:start}
 .dd{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;cursor:pointer;padding:0;min-width:0}
 .dd .dc{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 13px var(--fm);transition:transform .18s,background .18s,box-shadow .18s}
 .dd.e .dc{color:var(--grn)}
 .dd.o .dc{color:var(--red)}
 .dd.last .dc{background:#fff;color:#0A0F0D;border-color:#fff;transform:scale(1.12);box-shadow:0 0 16px rgba(255,255,255,.25)}
+.dd.last.pop .dc{animation:dpop .4s}
+@keyframes dpop{0%{transform:scale(1.45)}100%{transform:scale(1.12)}}
 .dd.tgt .dc{border-color:var(--cyan);box-shadow:0 0 0 2px rgba(47,224,208,.35);color:var(--cyan)}
 .dd .dp{font:600 8px var(--fm);color:var(--dim);white-space:nowrap}
 .dd.e .dp{color:rgba(46,229,138,.75)}
 .dd.o .dp{color:rgba(255,90,110,.75)}
-/* ── auto/manual / stake ── */
+.dwait{grid-column:1/-1;text-align:center;color:var(--dim);font:600 11.5px var(--fb);padding:14px 0}
 .mtoggle{display:flex;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:5px;margin:13px 10px 0}
 .mtoggle button{flex:1;padding:10px;border-radius:999px;border:0;background:none;color:var(--mut);font:800 13px var(--fb);cursor:pointer;letter-spacing:.05em}
 .mtoggle button.on{background:var(--grn);color:#04231A}
@@ -132,9 +136,9 @@ button{font-family:var(--fb)}
 .stk .stm{text-align:center;flex:1;min-width:0}
 .stk .stm span{display:block;font:700 9px var(--fb);letter-spacing:.16em;color:var(--dim)}
 .stk .stm .sv{display:flex;align-items:center;justify-content:center;gap:4px;color:var(--dim);font:600 14px var(--fm)}
-.stk input{width:92px;background:none;border:0;color:var(--text);font:700 24px var(--fm);text-align:center;padding:0}
+.stk input{width:96px;background:none;border:0;color:var(--text);font:700 24px var(--fm);text-align:center;padding:0}
 .qrow{display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin:9px 10px 0}
-.qrow button{padding:9px 0;font:600 11.5px var(--fm);background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--mut);cursor:pointer;padding-left:0;padding-right:0}
+.qrow button{padding:9px 0;font:600 11.5px var(--fm);background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--mut);cursor:pointer}
 .qrow button.on{border-color:var(--grn);color:var(--grn);background:rgba(46,229,138,.08)}
 .erow{display:grid;grid-template-columns:repeat(4,1fr);gap:5px;margin:7px 10px 0}
 .erow button{padding:8px 0;font:600 11px var(--fm);background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--dim);cursor:pointer}
@@ -144,9 +148,8 @@ button{font-family:var(--fb)}
 .tsl .tl{display:flex;gap:4px;align-items:center;font:700 8px var(--fb);letter-spacing:.04em;color:var(--dim);white-space:nowrap}
 .tsl .tcl{color:var(--grn)}.tsl .tcr{color:var(--red)}.tsl .tcm{color:#9B7CFF}
 .tsl .tv{display:flex;gap:3px;align-items:baseline;margin-top:2px}
-.tsl .tv b{font:600 11px var(--fm);color:var(--dim)}
-.tsl input{width:100%;background:none;border:0;color:var(--text);font:700 14px var(--fm);padding:0}
-/* ── duo buttons ── */
+.tsl .tv b{font:600 12px var(--fm);color:var(--dim)}
+.tsl input{width:100%;background:none;border:0;color:var(--text);font:700 16px var(--fm);padding:0}
 .duo{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 10px 0}
 .dbtn{position:relative;display:flex;flex-direction:column;gap:2px;padding:13px 14px 10px;border-radius:14px;border:2px solid;cursor:pointer;background:#0F1715;text-align:left;transition:filter .15s,transform .1s;min-height:76px}
 .dbtn:hover{filter:brightness(1.12)}
@@ -286,7 +289,7 @@ button{font-family:var(--fb)}
 
 <script>
 'use strict';
-/* VANTA v8 · mobile-fit · WORKING candlesticks (1T/5s/15s/1m switch) · live digits · AUTO bot */
+/* VANTA v10 · FINAL+ · crosshair OHLC · fullscreen chart · 1s timeframe · all v9 fixes */
 const API_URL='https://vanta-1-7q8l.onrender.com';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 
@@ -320,6 +323,7 @@ logout:'<path d="M9 21H6a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3M16 17l5-5-5-5M21 12H9"/
 copy:'<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>',
 send:'<path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/>',
 chart:'<path d="M7 3v3M7 17v4M4.5 6h5v11h-5zM17 7v3M17 16v5M14.5 10h5v6h-5z"/>',
+expand:'<path d="M15 3h6v6M9 21H3v-6M21 3l-7 7M3 21l7-7"/>',
 chat:'<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2Z"/>',
 spark:'<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z"/>',
 target:'<circle cx="12" cy="12" r="8"/><circle cx="12" cy="12" r="3"/>',
@@ -428,7 +432,6 @@ const Market={
     const key=a.id+'|'+tf,now=Date.now();
     let e=this._cc[key];
     if(!e||now-e.at>350){e=this._cc[key]={at:now,arr:this._build(a,tf)};}
-    /* keep the last candle live without rebuilding everything each frame */
     const arr=e.arr,last=arr[arr.length-1];
     if(last){if(a.price>last.h)last.h=a.price;if(a.price<last.l)last.l=a.price;last.c=a.price;}
     return arr;
@@ -443,18 +446,30 @@ const Market={
   fmtP(a,p=a.price){return (+p).toLocaleString('en-US',{minimumFractionDigits:a.dec,maximumFractionDigits:a.dec})},
 };
 
-/* ══ CANDLE CHART · pan + pinch zoom + live last candle ══ */
 function rr(c,x,y,w,h,rad){c.beginPath();c.moveTo(x+rad,y);c.arcTo(x+w,y,x+w,y+h,rad);c.arcTo(x+w,y+h,x,y+h,rad);c.arcTo(x,y+h,x,y,rad);c.arcTo(x,y,x+w,y,rad);c.closePath()}
+function waiting(c,W,H){c.fillStyle='#5C6B65';c.font='600 12px Inter,sans-serif';
+  c.textAlign='center';c.textBaseline='middle';
+  c.fillText(Market.connected?'Receiving ticks…':'Waiting for live prices…',W/2,H/2);}
+
+/* ══ CANDLE CHART · crosshair + OHLC hover + pan/zoom + fullscreen ══ */
 class CandleChart{
   constructor(cv,o){
-    this.cv=cv;this.ctx=cv.getContext('2d');this.o=o;this.dead=false;
-    this.slot=9;this.off=0;this.ease=null;this.drag=null;this.pinch=null;
+    this.cv=cv;this.ctx=cv.getContext('2d');this.o=Object.assign({trades:null},o);this.dead=false;
+    this.slot=9;this.off=0;this.ease=null;this.drag=null;this.pinch=null;this.hover=null;
     this.ro=new ResizeObserver(()=>this.rs());this.ro.observe(cv.parentElement);this.rs();
-    cv.addEventListener('mousedown',e=>{this.drag={x:e.clientX,off:this.off}});
-    window.addEventListener('mousemove',e=>{if(this.drag)this.off=clamp(this.drag.off+(e.clientX-this.drag.x)/this.slot,0,this.maxOff())});
+    cv.addEventListener('mousedown',e=>{this.drag={x:e.clientX,off:this.off,moved:false}});
+    window.addEventListener('mousemove',e=>{
+      if(this.drag){
+        const dx=e.clientX-this.drag.x;
+        if(Math.abs(dx)>3)this.drag.moved=true;
+        this.off=clamp(this.drag.off+dx/this.slot,0,this.maxOff());
+        this.hover=null;
+      }else this.setHover(e.clientX,e.clientY);
+    });
     window.addEventListener('mouseup',()=>this.drag=null);
+    cv.addEventListener('mouseleave',()=>{this.hover=null});
     cv.addEventListener('touchstart',e=>{
-      if(e.touches.length===1)this.drag={x:e.touches[0].clientX,off:this.off};
+      if(e.touches.length===1){this.drag={x:e.touches[0].clientX,off:this.off,moved:false,t0:Date.now()};}
       else if(e.touches.length===2){this.drag=null;
         const d=Math.hypot(e.touches[0].clientX-e.touches[1].clientX,e.touches[0].clientY-e.touches[1].clientY);
         this.pinch={d,slot:this.slot};}
@@ -465,7 +480,13 @@ class CandleChart{
         this.slot=clamp(this.pinch.slot*(d/this.pinch.d),3.5,26);
         this.off=clamp(this.off,0,this.maxOff());
       }else if(e.touches.length===1&&this.drag){
-        this.off=clamp(this.drag.off+(e.touches[0].clientX-this.drag.x)/this.slot,0,this.maxOff());}
+        const dx=e.touches[0].clientX-this.drag.x;
+        if(Math.abs(dx)>6)this.drag.moved=true;
+        if(this.drag.moved){
+          this.off=clamp(this.drag.off+dx/this.slot,0,this.maxOff());
+          this.hover=null;}
+        else this.setHover(e.touches[0].clientX,e.touches[0].clientY);
+      }
     },{passive:true});
     cv.addEventListener('touchend',()=>{this.drag=null;this.pinch=null},{passive:true});
     cv.addEventListener('wheel',e=>{e.preventDefault();
@@ -478,19 +499,24 @@ class CandleChart{
     this.cv.width=Math.max(1,this.W*d);this.cv.height=Math.max(1,this.H*d);
     this.ctx.setTransform(d,0,0,d,0,0);}
   destroy(){this.dead=true;this.ro.disconnect()}
+  reset(){this.ease=null;this.hover=null}
   cds(){return Market.candles(Market.byId(dgf(this.o.asset)),dgf(this.o.tf)||5)}
   maxOff(){return Math.max(0,this.cds().length-Math.floor((this.W-70)/this.slot)-1)}
-  loop(){if(this.dead)return;requestAnimationFrame(this.loop);if(this.W>40)this.draw()}
+  setHover(cx,cy){
+    const r=this.cv.getBoundingClientRect();
+    const x=cx-r.left,y=cy-r.top;
+    if(x<0||y<0||x>this.W||y>this.H){this.hover=null;return}
+    this.hover={x,y};
+  }
+  loop(){if(this.dead)return;requestAnimationFrame(this.loop);
+    if(this.cv.offsetParent===null)return;
+    if(this.W>40)this.draw()}
   draw(){
     const c=this.ctx,W=this.W,H=this.H;
     const a=Market.byId(dgf(this.o.asset)),tf=dgf(this.o.tf)||5;
     c.clearRect(0,0,W,H);
-    if(!a){return}
-    if(!Market.connected||a.ticks.length<2){
-      c.fillStyle='#5C6B65';c.font='600 12px Inter,sans-serif';
-      c.textAlign='center';c.textBaseline='middle';
-      c.fillText(Market.connected?'Receiving ticks…':'Waiting for live prices…',W/2,H/2);
-      return;}
+    if(!a)return;
+    if(!Market.connected||a.ticks.length<2){waiting(c,W,H);return}
     const cds=this.cds();
     if(cds.length<2)return;
     const padR=60,padB=20,padT=10,padL=4;
@@ -510,12 +536,10 @@ class CandleChart{
     for(let p=Math.ceil(lo/stp)*stp;p<hi;p+=stp){const y=Y(p);
       c.strokeStyle='rgba(234,242,238,.045)';c.beginPath();c.moveTo(padL,y);c.lineTo(padL+pw,y);c.stroke();
       c.fillStyle='#5C6B65';c.textAlign='left';c.fillText(Market.fmtP(a,p),padL+pw+5,y);}
-    /* time labels */
     const kStep=Math.max(1,Math.ceil(64/this.slot)*Math.max(1,Math.round(tf/5)));
     c.textAlign='center';c.fillStyle='#5C6B65';
     for(let i=view.length-1;i>=0;i-=kStep){const k=view[i],x=X(i);
       c.fillText(new Date(k.t).toTimeString().slice(tf<60?3:0,8),clamp(x,30,padL+pw-30),H-8);}
-    /* candles */
     const bw=Math.max(1.5,this.slot*.6);
     for(let i=0;i<view.length;i++){const k=view[i],x=X(i),up=k.c>=k.o;
       const col=up?'#2EE58A':'#FF5A6E';
@@ -523,13 +547,40 @@ class CandleChart{
       c.fillStyle=col;
       const y1=Y(Math.max(k.o,k.c)),y2=Y(Math.min(k.o,k.c));
       c.fillRect(x-bw/2,y1,bw,Math.max(1,y2-y1));}
-    /* open-trade entry lines */
     for(const t of (dgf(this.o.trades)||[])){
       if(t.asset!==a.id)continue;
       const col=t.dir==='up'?'#2EE58A':'#FF5A6E',ey=Y(t.entry);
       if(ey>padT&&ey<padT+ph){
         c.strokeStyle=col;c.setLineDash([5,4]);
         c.beginPath();c.moveTo(padL,ey);c.lineTo(padL+pw,ey);c.stroke();c.setLineDash([]);}}
+    /* ── crosshair + OHLC readout ── */
+    let hv=this.hover;
+    if(hv&&hv.x>padL&&hv.x<padL+pw&&hv.y>padT&&hv.y<padT+ph){
+      const ci=clamp(Math.round(view.length-1-((padL+pw-this.slot*.5-hv.x)/this.slot)),0,view.length-1);
+      const k=view[ci],cx=X(ci);
+      c.strokeStyle='rgba(234,242,238,.4)';c.setLineDash([4,4]);
+      c.beginPath();c.moveTo(padL,hv.y);c.lineTo(padL+pw,hv.y);c.stroke();
+      c.beginPath();c.moveTo(cx,padT);c.lineTo(cx,padT+ph);c.stroke();c.setLineDash([]);
+      const pv=hi-(hv.y-padT)/ph*(hi-lo);
+      const pTxt=Market.fmtP(a,pv);
+      c.font='700 10px "JetBrains Mono",monospace';
+      const pw2=c.measureText(pTxt).width+10;
+      c.fillStyle='#1B232C';rr(c,padL+pw+2,hv.y-9,pw2,18,4);c.fill();
+      c.strokeStyle='#2E3A47';c.stroke();
+      c.fillStyle='#EAF2EE';c.textAlign='left';c.fillText(pTxt,padL+pw+7,hv.y+.5);
+      const tTxt=new Date(k.t).toTimeString().slice(tf<60?3:0,8);
+      const tw2=c.measureText(tTxt).width+12;
+      c.fillStyle='#1B232C';rr(c,clamp(cx-tw2/2,padL,padL+pw-tw2),H-17,tw2,15,4);c.fill();
+      c.strokeStyle='#2E3A47';c.stroke();
+      c.fillStyle='#EAF2EE';c.textAlign='center';
+      c.fillText(tTxt,clamp(cx,padL+tw2/2,padL+pw-tw2/2),H-9.5);
+      const oh=$('#ohlc');
+      if(oh){oh.classList.add('show');
+        const up=k.c>=k.o,col=up?'#2EE58A':'#FF5A6E';
+        oh.innerHTML=`O <b class="o-h">${Market.fmtP(a,k.o)}</b> H <b style="color:${col}">${Market.fmtP(a,k.h)}</b> L <b style="color:${col}">${Market.fmtP(a,k.l)}</b> C <b style="color:${col}">${Market.fmtP(a,k.c)}</b>`;}
+    }else{
+      const oh=$('#ohlc');if(oh)oh.classList.remove('show');
+    }
     /* live price pill */
     if(this.off===0){
       const lp=a.price;this.ease=this.ease==null?lp:this.ease+(lp-this.ease)*.3;
@@ -540,7 +591,7 @@ class CandleChart{
       c.fillStyle='#0A0F0D';c.textAlign='left';c.fillText(txt,padL+pw+7,y+.5);}
   }
 }
-/* ══ TICK LINE CHART (1T mode) ══ */
+/* ══ TICK LINE CHART (1T) ══ */
 class TickChart{
   constructor(cv,o){
     this.cv=cv;this.ctx=cv.getContext('2d');this.o=o;this.dead=false;
@@ -552,18 +603,16 @@ class TickChart{
     this.cv.width=Math.max(1,this.W*d);this.cv.height=Math.max(1,this.H*d);
     this.ctx.setTransform(d,0,0,d,0,0);}
   destroy(){this.dead=true;this.ro.disconnect()}
-  loop(){if(this.dead)return;requestAnimationFrame(this.loop);if(this.W>40)this.draw()}
+  loop(){if(this.dead)return;requestAnimationFrame(this.loop);
+    if(this.cv.offsetParent===null)return;
+    if(this.W>40)this.draw()}
   draw(){
     const c=this.ctx,W=this.W,H=this.H;
     const a=Market.byId(dgf(this.o.asset));
     c.clearRect(0,0,W,H);
     if(!a)return;
     const ticks=a.ticks;
-    if(!Market.connected||ticks.length<2){
-      c.fillStyle='#5C6B65';c.font='600 12px Inter,sans-serif';
-      c.textAlign='center';c.textBaseline='middle';
-      c.fillText(Market.connected?'Receiving ticks…':'Waiting for live prices…',W/2,H/2);
-      return;}
+    if(!Market.connected||ticks.length<2){waiting(c,W,H);return}
     const now=Date.now(),WIN=120000;
     let i0=ticks.length-1;
     while(i0>0&&ticks[i0-1].t>now-WIN)i0--;
@@ -634,6 +683,7 @@ const API={
 };
 
 const Live={all:[]};
+function capLive(){if(Live.all.length>300)Live.all.length=300}
 const Auth={
   u:null,
   get acc(){return localStorage.getItem('vanta_acc')||'demo'},
@@ -673,6 +723,7 @@ const Auth={
           const i=Live.all.findIndex(x=>x.id===t.id);
           if(i>=0)Live.all[i]=t;else Live.all.unshift(t);
           this.settleToast(t);});
+        capLive();
         if((r.closed||[]).length)Bus.emit('trades');
       }catch{}
     },700);
@@ -873,18 +924,19 @@ function wireShell(){
 /* ═══ DIGIT TERMINAL ═══ */
 function DigitTerminal(app){
   let asset='EURUSD',game='parity',side='even',target=5,mode='auto',expiry=60;
-  let cht='candles',ctf=5;
+  let cht='candles',ctf=5,lastShown=-1;
   app.innerHTML=shell('/',`<div class="pagec">
     <div class="gtabs" id="gtabs">
       <button data-g="exact" class="${game==='exact'?'on':''}">Matches/Differs</button>
       <button data-g="parity" class="${game==='parity'?'on':''}">Even/Odd</button>
       <button data-g="range" class="${game==='range'?'on':''}">Over/Under</button>
     </div>
-    <div class="ccard">
+    <div class="ccard" id="ccard">
       <canvas id="tc-cd" style="display:${cht==='candles'?'block':'none'}"></canvas>
       <canvas id="tc-ln" style="display:${cht==='line'?'block':'none'}"></canvas>
       <div class="cchips" id="cht">
         <button data-m="line" class="${cht==='line'?'on':''}">1T</button>
+        <button data-m="1" class="">1s</button>
         <button data-m="5" class="${cht==='candles'&&ctf===5?'on':''}">5s</button>
         <button data-m="15" class="${cht==='candles'&&ctf===15?'on':''}">15s</button>
         <button data-m="60" class="${cht==='candles'&&ctf===60?'on':''}">1m</button>
@@ -897,8 +949,10 @@ function DigitTerminal(app){
         ${icon('chevD',14)}
       </button>
       <span class="cpay" id="cpay">—</span>
+      <button class="cexp" id="cexp" title="Fullscreen">${icon('expand',14)}</button>
+      <div class="ohlc" id="ohlc"></div>
     </div>
-    <div class="dstrip" id="dstrip"></div>
+    <div class="dstrip" id="dstrip"><div class="dwait">Waiting for live prices…</div></div>
     <div class="mtoggle" id="mtoggle">
       <button data-m="auto" class="${mode==='auto'?'on':''}">AUTO</button>
       <button data-m="manual" class="${mode==='manual'?'on':''}">MANUAL</button>
@@ -925,7 +979,7 @@ function DigitTerminal(app){
       <button class="dbtn even" id="b-a"><span class="dl" id="l-a">Even</span><b class="dval" id="v-a">—</b><span class="dsub" id="p-a">—</span></button>
       <button class="dbtn odd" id="b-b"><span class="dl" id="l-b">Odd</span><b class="dval" id="v-b">—</b><span class="dsub" id="p-b">—</span></button>
     </div>
-    <p class="hint" style="margin:10px 14px 0">${icon('info',12)} Candles: drag to pan, pinch to zoom. AUTO = martingale until TARGET or STOP LOSS — keep the base stake small.</p>
+    <p class="hint" style="margin:10px 14px 0">${icon('info',12)} Hover/tap the chart for candle OHLC. Drag to pan, pinch to zoom. AUTO = martingale until TARGET or STOP LOSS — keep the base small.</p>
   </div>`);
   wireShell();
   const cdChart=new CandleChart($('#tc-cd'),{asset:()=>asset,tf:()=>ctf,
@@ -936,6 +990,9 @@ function DigitTerminal(app){
   const A=()=>Market.byId(asset);
   const sides=()=>game==='parity'?['even','odd']:game==='range'?['over','under']:['match','differ'];
   const multOf=s=>digitMult(s,target);
+  const card=$('#ccard');
+  $('#cexp').onclick=()=>{card.classList.toggle('fs');
+    $('#cexp').innerHTML=icon(card.classList.contains('fs')?'x':'expand',14);};
   function updDuo(){
     const [sa,sb]=sides(),st=parseFloat($('#stake').value)||0;
     const [ma,mb]=[multOf(sa),multOf(sb)];
@@ -951,15 +1008,18 @@ function DigitTerminal(app){
   function updStrip(){
     const a=A();if(!a)return;
     const recent=a.ticks.slice(-100);
+    if(!recent.length)return;
     const cnt=Array(10).fill(0);
     for(const k of recent)cnt[digitOfPrice(k.p,a.dec)]++;
-    const tot=recent.length||1;
+    const tot=recent.length;
     const last=lastDigit(a);
+    const pop=last!==lastShown&&lastShown!==-1;
     $('#dstrip').innerHTML=[0,1,2,3,4,5,6,7,8,9].map(d=>{
       const pct=(cnt[d]/tot*100).toFixed(1);
-      const cls=['dd',d%2===0?'e':'o',d===last?'last':'',game!=='parity'&&d===target?'tgt':''].join(' ');
+      const cls=['dd',d%2===0?'e':'o',d===last?'last'+(pop?' pop':''):'',game!=='parity'&&d===target?'tgt':''].join(' ');
       return `<button class="${cls}" data-d="${d}"><span class="dc">${d}</span><span class="dp">${pct}%</span></button>`;
     }).join('');
+    lastShown=last;
   }
   function updPrice(){
     const a=A();
@@ -982,11 +1042,11 @@ function DigitTerminal(app){
       </div></div>`;
     $('#bot-stop').onclick=()=>Bot.stop();
   }
-  updDuo();updStrip();updPrice();updBot();
+  updDuo();updPrice();updBot();
   onCleanup(Market.on(()=>{updPrice();updStrip();
     if(Bot.on&&$('#botbox'))updBot();}));
   onCleanup(Bus.on('bot',()=>{if($('#botbox'))updBot()}));
-  $('#asel').onclick=()=>assetSheet(id=>{asset=id;updPrice();updStrip();updDuo()});
+  $('#asel').onclick=()=>assetSheet(id=>{asset=id;cdChart.reset();updPrice();updStrip();updDuo()});
   $('#cht').onclick=e=>{const b=e.target.closest('button');if(!b)return;
     if(b.dataset.m==='line'){cht='line'}
     else{cht='candles';ctf=+b.dataset.m}
@@ -1045,7 +1105,7 @@ function ClassicTerminal(app){
   app.innerHTML=shell('/classic',`<div class="pagec">
     <div class="mktrow" id="mkt"></div>
     <div class="ccard"><canvas id="tc"></canvas>
-      <div class="cchips" id="tf-chips">${[['5','5s'],['15','15s'],['60','1m']]
+      <div class="cchips" id="tf-chips">${[['1','1s'],['5','5s'],['15','15s'],['60','1m']]
         .map(([v,l])=>`<button data-m="${v}" class="${+v===5?'on':''}">${l}</button>`).join('')}</div>
       <span class="cpay" id="cpay">—</span></div>
     <div style="margin:0 10px">
@@ -1105,7 +1165,7 @@ function ClassicTerminal(app){
       el.textContent=Market.fmtP(a);
       el.classList.toggle('u-c',a.dir>0);el.classList.toggle('d-c',a.dir<0);});}));
   onCleanup(Bus.on('trades',renderPos));
-  $('#mkt').onclick=e=>{const b=e.target.closest('.mkc');if(!b)return;asset=b.dataset.a;mkt();upd();};
+  $('#mkt').onclick=e=>{const b=e.target.closest('.mkc');if(!b)return;asset=b.dataset.a;chart.reset();mkt();upd();};
   $('#tf-chips').onclick=e=>{const b=e.target.closest('button');if(!b)return;
     tf=+b.dataset.m;$$('#tf-chips button').forEach(x=>x.classList.toggle('on',x===b));};
   const stEl=$('#stake');
@@ -1183,6 +1243,8 @@ async function Positions(app){
   $$('#h-tabs button').forEach(btn=>btn.onclick=()=>{tab=btn.dataset.t;
     $$('#h-tabs button').forEach(x=>x.classList.toggle('on',x===btn));draw()});
   draw();
+  const tick=setInterval(()=>{if(tab==='open'&&$('#h-body'))draw()},1000);
+  onCleanup(()=>clearInterval(tick));
   const off=Bus.on('trades',()=>{API.listTrades().then(t=>{trades=t;draw()}).catch(()=>{})});
   onCleanup(off);
 }
@@ -1324,9 +1386,9 @@ function Deposit(app){
         <label class="hint" style="font-weight:700;color:var(--mut);text-transform:uppercase;font-size:10px;letter-spacing:.08em;margin:12px 0 4px">Amount (USD) · min $${MIN_DEPOSIT.toFixed(2)}</label>
         <input id="dep-amt" inputmode="decimal" placeholder="10.00" value="${dep?dep.amount:''}">
         <div class="qchips">${[MIN_DEPOSIT,10,25,50,100].map(v=>`<button data-q="${v}">${v}</button>`).join('')}</div>
-        ${method==='mpesa'?`<label class="hint" style="font-weight:700;color:var(--mut);font-size:11px;margin:10px 0 4px">M-Pesa phone number</label>
+        ${method==='mpesa'?`<label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:10px 0 4px">M-Pesa phone number</label>
         <input id="mp-phone" inputmode="tel" placeholder="07XX XXX XXX">`:''}
-        <label class="hint" style="font-weight:700;color:var(--mut);font-size:11px;margin:12px 0 4px">Promo code (optional)</label>
+        <label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:12px 0 4px">Promo code (optional)</label>
         <input id="promo" placeholder="e.g. WELCOME20" value="${dep?dep.bonusCode||'':''}" style="text-transform:uppercase">
         <p class="hint">${icon('gift',13)} <b>WELCOME20</b> +20% · <b>BOOST50</b> +50% (min $100)</p>
       </div>${sumPanel()}`;
@@ -1342,7 +1404,7 @@ function Deposit(app){
         <h3 style="font-size:15px;margin-bottom:4px">Send ${money(dep.total)} in ${method.toUpperCase()}</h3>
         <p class="hint" style="margin:0 0 12px">Network: <b>${esc(dep.instructions.network)}</b> — wrong network can lose funds.</p>
         <div class="qrbox"><canvas id="qr" width="160" height="160"></canvas></div>
-        <label class="hint" style="font-weight:700;color:var(--mut);font-size:11px;margin:0 0 4px">Deposit address</label>
+        <label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:0 0 4px">Deposit address</label>
         <div class="addr"><code>${esc(dep.instructions.address)}</code>
           <button id="cp-addr">${icon('copy',14)}</button></div>
         <p class="hint" style="margin-bottom:12px">Address is a <b>placeholder</b> until a crypto provider is wired. Test mode: confirm below.</p>
@@ -1350,10 +1412,10 @@ function Deposit(app){
       </div>${sumPanel()}`;
     if(step===2)return `<div class="pn"><h3 style="font-size:15px;margin-bottom:12px">Card · ${money(dep.total)}</h3>
         <div class="card-f">
-          <div class="full"><label class="hint" style="font-weight:600;color:var(--mut);font-size:11px">Card number</label><input id="c-num" inputmode="numeric" placeholder="4242 4242 4242 4242"></div>
-          <div><label class="hint" style="font-weight:600;color:var(--mut);font-size:11px">Expiry</label><input id="c-exp" inputmode="numeric" placeholder="MM/YY"></div>
-          <div><label class="hint" style="font-weight:600;color:var(--mut);font-size:11px">CVV</label><input id="c-cvv" inputmode="numeric" placeholder="123" type="password"></div>
-          <div class="full"><label class="hint" style="font-weight:600;color:var(--mut);font-size:11px">Name on card</label><input id="c-name" placeholder="ALEX TRADER"></div>
+          <div class="full"><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">Card number</label><input id="c-num" inputmode="numeric" placeholder="4242 4242 4242 4242"></div>
+          <div><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">Expiry</label><input id="c-exp" inputmode="numeric" placeholder="MM/YY"></div>
+          <div><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">CVV</label><input id="c-cvv" inputmode="numeric" placeholder="123" type="password"></div>
+          <div class="full"><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">Name on card</label><input id="c-name" placeholder="ALEX TRADER"></div>
         </div>
         <p class="hint" style="margin:10px 0 12px">Test checkout — <b>4242 4242 4242 4242</b>, any future expiry, any CVV.</p>
         <button class="btn btn-up wide" id="c-pay">${icon('lock',14)} Pay ${money(dep.total)}</button>
@@ -1491,10 +1553,10 @@ function Withdraw(app){
         ${METHODS.map(m=>`<button class="mrow ${m.id===method?'on':''}" data-m="${m.id}">
           <span class="mg">${m.id==='card'?icon('card',17):{mpesa:'M',usdt:'₮',btc:'₿',eth:'Ξ'}[m.id]}</span>
           <span><b>${m.name}</b><i>${m.id==='mpesa'?'to your Safaricom number':m.id==='card'?'fee 1.5%':'fee '+money(m.fee)}</i></span></button>`).join('')}
-        <label class="hint" style="font-weight:700;color:var(--mut);font-size:11px;margin:12px 0 4px">Amount (USD) · available ${money(bal)}</label>
+        <label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:12px 0 4px">Amount (USD) · available ${money(bal)}</label>
         <input id="w-amt" inputmode="decimal" placeholder="50.00">
         <div class="qchips">${[25,50,100,250].map(v=>`<button data-q="${v}">${v}</button>`).join('')}<button data-q="max">MAX</button></div>
-        <label class="hint" style="font-weight:700;color:var(--mut);font-size:11px;margin:10px 0 4px">${method==='mpesa'?'M-Pesa phone number':'Payout address'}</label>
+        <label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:10px 0 4px">${method==='mpesa'?'M-Pesa phone number':'Payout address'}</label>
         <input id="w-addr" placeholder="${M().ph}">
         <div class="sum-r" style="margin-top:10px"><span>Fee</span><b id="w-fee">—</b></div>
         ${method==='mpesa'?`<div class="sum-r"><span>Approx. M-Pesa credit</span><b id="w-kes">—</b></div>`:''}
@@ -1572,7 +1634,7 @@ function Acca(app){
           <button data-rm="${i}" style="background:none;border:0;color:var(--dim);cursor:pointer;padding:4px">${icon('x',14)}</button>
         </div>`}).join('')||`<div class="empty" style="padding:12px">${icon('layers',18)}<p style="font-size:12px">No legs yet — add 2–5 markets</p></div>`}
       </div>
-      <label class="hint" style="font-weight:700;color:var(--mut);font-size:11px;margin:12px 0 4px">Amount</label>
+      <label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:12px 0 4px">Amount</label>
       <input id="amt" inputmode="decimal" value="10">
       <div class="qchips">${[5,10,25,50,100].map(v=>`<button data-q="${v}">${v}</button>`).join('')}</div>
       <div class="erow" style="margin-left:0;margin-right:0">${[['60','1m'],['120','2m'],['300','5m']]
