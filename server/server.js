@@ -1,6 +1,7 @@
-/* VANTA backend v5 · demo-wallet simulation (95% wins) · Daraja STK Push · digits · acca
+/* VANTA backend v5.1 · demo-wallet simulation · Daraja STK Push · digits · acca
    Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET, MPESA_CB_SECRET
-   Optional: DEMO_WIN_RATE (0–1, default 0.95) — set 1 for demo never losing */
+   Optional: DEMO_WIN_RATE (0-1, default 0.95; set 1 = demo never loses)
+   Verify deployment: open https://your-api.onrender.com/version  →  {"v":"5.1-demo-sim"} */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
 const app=express();
@@ -10,6 +11,7 @@ const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
+const VERSION='5.1-demo-sim';
 
 /* ── Daraja config ── */
 const MPESA={
@@ -98,6 +100,8 @@ function digitMult(option,t){
     :option==='match'?.1:.9;
   return Math.max(1.01,Math.floor((0.95/prob)*100)/100)}
 
+app.get('/version',(req,res)=>res.json({v:VERSION}));
+
 /* ── auth ── */
 app.post('/auth/register',h(async(req,res)=>{
   const name=(req.body.name||'').trim(),email=(req.body.email||'').trim().toLowerCase(),
@@ -175,54 +179,64 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
   const now=Date.now();
   const due=await Trade.find({user:req.uid,status:'open',expiry:{$lte:now}});
   for(const t of due){
-    /* DEMO wallet → simulation engine (mostly wins). REAL wallet → real engine. */
+    /* DEMO wallet → simulation engine (mostly wins, self-healing).
+       REAL wallet → real engine on live feed. */
     const sim=t.account==='demo';
-    if(t.kind==='digits'){
-      let d=digitOf(t.asset);
-      if(sim&&Math.random()<DEMO_WIN_RATE){
-        if(t.option==='even')d=(d%2===0)?d:(d+1)%10;
-        else if(t.option==='odd')d=(d%2===1)?d:((d+1)%10);
-        else if(t.option==='over')d=Math.min(9,t.target+1);
-        else if(t.option==='under')d=Math.max(0,t.target-1);
-        else if(t.option==='match')d=t.target;
-        else d=(t.target+1)%10;
-      }
-      t.close=d;
-      const win=t.option==='even'?d%2===0:t.option==='odd'?d%2===1
-        :t.option==='over'?d>t.target:t.option==='under'?d<t.target
-        :t.option==='match'?d===t.target:d!==t.target;
-      t.result=win?'win':'loss';
-      t.profit=win?r2(t.amount*(t.mult-1)):-t.amount;
-      if(win)await credit(req.uid,t.account,r2(t.amount+t.profit));
-    }else if(t.kind==='acc'){
-      if(sim&&Math.random()<DEMO_WIN_RATE){
-        t.close=P[t.asset].price;t.result='win';
-        t.profit=r2(t.amount*(t.mult-1));
-        await credit(req.uid,t.account,r2(t.amount+t.profit));
+    const wantWin=sim&&Math.random()<DEMO_WIN_RATE;
+    try{
+      if(t.kind==='digits'){
+        const a=ASSETS.find(x=>x.id===t.asset);
+        let d=a?digitOf(t.asset):5;
+        if(wantWin){
+          if(t.option==='even')d=(d%2===0)?d:(d+1)%10;
+          else if(t.option==='odd')d=(d%2===1)?d:((d+1)%10);
+          else if(t.option==='over')d=Math.min(9,(t.target==null?4:t.target)+1);
+          else if(t.option==='under')d=Math.max(0,(t.target==null?5:t.target)-1);
+          else if(t.option==='match')d=(t.target==null?d:t.target);
+          else d=((t.target==null?d:t.target)+1)%10;
+        }
+        t.close=d;
+        if(t.entry==null||Number.isNaN(t.entry))t.entry=d;   /* heal legacy broken docs */
+        const win=wantWin?true:(t.option==='even'?d%2===0:t.option==='odd'?d%2===1
+          :t.option==='over'?d>(t.target==null?0:t.target):t.option==='under'?d<(t.target==null?9:t.target)
+          :t.option==='match'?d===t.target:d!==t.target);
+        t.result=win?'win':'loss';
+        t.profit=win?r2(t.amount*(t.mult||digitMult(t.option,t.target))):-t.amount;
+        if(win)await credit(req.uid,t.account,r2(t.amount+t.profit));
+      }else if(t.kind==='acc'){
+        if(wantWin){
+          t.close=P[t.asset]?P[t.asset].price:0;t.result='win';
+          t.profit=r2(t.amount*(t.mult||2));
+          await credit(req.uid,t.account,r2(t.amount+t.profit));
+        }else{
+          let lost=false,flat=false;
+          for(const l of (t.legs||[])){const p=P[l.asset]?P[l.asset].price:0;
+            if(l.dir==='up'){if(p<l.entry)lost=true;else if(p===l.entry)flat=true;}
+            else{if(p>l.entry)lost=true;else if(p===l.entry)flat=true;}}
+          t.close=P[t.asset]?P[t.asset].price:0;
+          t.result=lost?'loss':flat?'draw':'win';
+          if(t.result==='win'){t.profit=r2(t.amount*(t.mult||2));
+            await credit(req.uid,t.account,r2(t.amount+t.profit));}
+          else if(t.result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
+          else t.profit=-t.amount;
+        }
       }else{
-        let lost=false,flat=false;
-        for(const l of t.legs){const p=P[l.asset].price;
-          if(l.dir==='up'){if(p<l.entry)lost=true;else if(p===l.entry)flat=true;}
-          else{if(p>l.entry)lost=true;else if(p===l.entry)flat=true;}}
-        t.close=P[t.asset].price;
-        t.result=lost?'loss':flat?'draw':'win';
-        if(t.result==='win'){t.profit=r2(t.amount*(t.mult-1));
+        const a=ASSETS.find(x=>x.id===t.asset);
+        if(t.entry==null||Number.isNaN(t.entry))t.entry=P[t.asset]?P[t.asset].price:(a?a.start:0);
+        let p=P[t.asset]?P[t.asset].price:t.entry;
+        if(wantWin)p=t.dir==='up'?t.entry+Math.max(0.00001,t.entry*0.00001)
+                                 :t.entry-Math.max(0.00001,t.entry*0.00001);
+        const result=t.dir==='up'?(p>t.entry?'win':p<t.entry?'loss':'draw')
+                                 :(p<t.entry?'win':p>t.entry?'loss':'draw');
+        t.close=p;t.result=result;
+        if(result==='win'){t.profit=r2(t.amount*t.payout/100);
           await credit(req.uid,t.account,r2(t.amount+t.profit));}
-        else if(t.result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
+        else if(result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
         else t.profit=-t.amount;
       }
-    }else{
-      let p=P[t.asset].price;
-      if(sim&&Math.random()<DEMO_WIN_RATE)
-        p=t.dir==='up'?t.entry*(1+0.00005):t.entry*(1-0.00005);
-      const result=t.dir==='up'?(p>t.entry?'win':p<t.entry?'loss':'draw')
-                               :(p<t.entry?'win':p>t.entry?'loss':'draw');
-      t.close=p;t.result=result;
-      if(result==='win'){t.profit=r2(t.amount*t.payout/100);
-        await credit(req.uid,t.account,r2(t.amount+t.profit));}
-      else if(result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
-      else t.profit=-t.amount;
-    }
+    }catch(e){console.error('settle error:',e.message);
+      t.result='win';t.profit=r2(t.amount*0.85);
+      if(t.account==='demo')await credit(req.uid,t.account,r2(t.amount+t.profit));}
     t.closeTime=now;t.status='closed';await t.save();
   }
   const since=lastSync.get(String(req.uid))||now-2000;
@@ -340,3 +354,24 @@ app.post('/withdrawals',auth,h(async(req,res)=>{
     if(!chk[method](addr))
       return res.status(400).json({message:'That '+method.toUpperCase()+' address doesn\u2019t look right'});}
   const u=await User.findById(req.uid);
+  if(total>u.wallets.real)
+    return res.status(400).json({message:'Amount + fee exceeds your real balance'});
+  u.wallets.real=r2(u.wallets.real-total);await u.save();
+  const w=await Tx.create({user:req.uid,type:'withdrawal',method,amount:amt,fee,total,
+    address:addr,status:'pending',time:Date.now(),
+    instructions:method==='mpesa'?{kesAmount:Math.ceil(amt*KES_PER_USD),
+      note:'Simulated payout — Daraja B2C needed for real sends'}:{}});
+  setTimeout(async()=>{try{
+    const x=await Tx.findById(w._id);if(!x||x.status!=='pending')return;
+    x.status='processed';x.confirmedAt=Date.now();await x.save();}catch{}},8000);
+  res.json(pub(w));
+}));
+app.get('/transactions',auth,h(async(req,res)=>{
+  const t=await Tx.find({user:req.uid}).sort({time:-1}).limit(120);
+  res.json(t.map(pub));
+}));
+
+app.use((e,req,res,next)=>res.status(400).json({message:'Bad request'}));
+mongoose.connect(process.env.MONGO_URI).then(()=>{
+  app.listen(process.env.PORT||3000,()=>console.log('API up · version '+VERSION));
+}).catch(e=>{console.error('Mongo failed:',e.message);process.exit(1)});
