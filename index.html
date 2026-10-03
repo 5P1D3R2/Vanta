@@ -119,6 +119,8 @@ button{font-family:var(--fb);touch-action:manipulation}
 .cexp{position:absolute;top:10px;right:62px;z-index:3;width:30px;height:30px;border-radius:9px;background:rgba(22,29,27,.92);border:1px solid var(--line2);color:var(--mut);display:flex;align-items:center;justify-content:center;cursor:pointer;padding:0}
 .cexp:hover{color:var(--text)}
 .livebtn{position:absolute;bottom:26px;right:10px;z-index:3;border:1px solid rgba(46,229,138,.5);background:rgba(22,29,27,.92);color:var(--grn);font:700 10px var(--fb);padding:6px 10px;border-radius:999px;cursor:pointer}
+.cdown{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);z-index:5;background:rgba(22,29,27,.94);border:1px solid var(--gold);color:var(--gold);font:700 13px var(--fm);padding:8px 16px;border-radius:999px;display:none;align-items:center;gap:7px;white-space:nowrap}
+.cdown.on{display:flex}
 .dstrip{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;padding:10px 10px 0;min-height:64px;align-items:start}
 .dd{display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:0;cursor:pointer;padding:0;min-width:0}
 .dd .dc{width:100%;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font:700 13px var(--fm);transition:transform .18s,background .18s,box-shadow .18s}
@@ -174,6 +176,11 @@ button{font-family:var(--fb);touch-action:manipulation}
 .botbox .bs b{font:700 14px var(--fm)}
 .hint{font-size:11.5px;color:var(--dim);line-height:1.55;margin:8px 0 0}
 .hint b{color:var(--grn);font-family:var(--fm)}
+.simbar{margin:9px 10px 0;padding:9px 12px;border:1px solid rgba(240,185,11,.5);background:rgba(240,185,11,.08);color:var(--gold);font:600 11.5px var(--fb);border-radius:10px;display:flex;gap:7px;align-items:center;line-height:1.45}
+.simgold{font:800 9px var(--fb);letter-spacing:.08em;color:#1E1E1E;background:var(--gold);padding:3px 6px;border-radius:5px;flex:none}
+.simacc{color:var(--gold)!important;border-color:rgba(240,185,11,.5)!important}
+.tlc .pos-r{border-bottom:0;padding-bottom:4px}
+.tsub{font:500 9.5px var(--fm);color:var(--dim);padding:0 2px 8px 31px;border-bottom:1px solid var(--line);margin-top:-3px}
 .pg{max-width:600px;margin:0 auto;padding:14px 12px 100px;width:100%}
 .pg.widepg{max-width:1100px}
 .pg-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:13px}
@@ -281,7 +288,6 @@ button{font-family:var(--fb);touch-action:manipulation}
 .srow .sp{margin-left:auto;text-align:right}
 .srow .sp .s1{font:600 12.5px var(--fm);display:block}
 .srow .sp .s2{font:600 10px var(--fm);color:var(--grn)}
-/* ── TradingView embeds ── */
 .mktabs{display:flex;gap:5px;padding:9px 10px 2px}
 .mktabs button{flex:1;padding:9px 2px;border-radius:999px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 11.5px var(--fb);cursor:pointer}
 .mktabs button.on{background:rgba(46,229,138,.12);border-color:rgba(46,229,138,.55);color:var(--grn)}
@@ -296,9 +302,6 @@ button{font-family:var(--fb);touch-action:manipulation}
 @media(max-width:640px){.tvwrap{height:440px}}
 .tvc{position:absolute;bottom:0;left:0;right:0;z-index:2;text-align:center;font:400 10px var(--fb);color:var(--dim);background:rgba(14,21,19,.92);padding:3px 0}
 .tvc a{color:var(--cyan)}
-.tvselname{display:flex;align-items:center;justify-content:space-between;gap:10px;margin:10px 12px 0}
-.tvselname b{font-size:15px}
-.tvselname .sym{font:600 11px var(--fm);color:var(--dim)}
 #tv-real{position:absolute;inset:0;z-index:1}
 #tv-real .tradingview-widget-container{height:100%;width:100%}
 @media(max-width:380px){
@@ -314,11 +317,11 @@ button{font-family:var(--fb);touch-action:manipulation}
 
 <script>
 'use strict';
-/* VANTA v15 · TradingView REAL feed (chart + pair selector + timeframes)
-   moved INTO the homepage digit terminal. Default: XAU/USD.
-   Vanta-feed charts (1T/1s/5s/15s/1m/Line) remain as chips.
-   Digits & trades settle on the Vanta feed for the 6 core assets;
-   the other 12 TradingView pairs are chart-only (clearly marked). */
+/* VANTA v16 · v15 + ADMIN SIMULATION MODE
+   · ADMIN_EMAIL account's trades route to the simulation engine (forced-win settlement)
+   · normal users settle on the standard engine — unchanged
+   · durations 1s/1m/2m/5m · live countdown overlay · completed-trades list
+   · SIMULATION labeling: header badge, banner, trade cards, profile */
 const API_URL='https://vanta-1-7q8l.onrender.com';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 
@@ -330,6 +333,7 @@ const dgf=x=>typeof x==='function'?x():x;
 const money=v=>'$'+Number(v||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const fmtDT=t=>{const d=new Date(t);return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})+' '+d.toTimeString().slice(0,5)};
+const tm=t=>new Date(t).toTimeString().slice(0,8);
 const count=ms=>{const s=Math.max(0,Math.ceil(ms/1000));return Math.floor(s/60)+':'+String(s%60).padStart(2,'0')};
 function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
 function niceStep(x){const p=Math.pow(10,Math.floor(Math.log10(x)));const n=x/p;return (n<1.5?1:n<3?2:n<7?5:10)*p}
@@ -744,6 +748,7 @@ const Auth={
   get acc(){return localStorage.getItem('vanta_acc')||'demo'},
   set acc(v){localStorage.setItem('vanta_acc',v)},
   bal(a=this.acc){return this.u?this.u.wallets[a]:0},
+  isSim(){return !!(this.u&&this.u.sim)},
   bump(acc,v){if(this.u){this.u.wallets[acc]=Math.round((this.u.wallets[acc]+v)*100)/100;Bus.emit('wallet')}},
   async boot(){
     const t=API.token();
@@ -754,11 +759,12 @@ const Auth={
   logout(){Bot.stop();API.setToken(null);this.u=null;Live.all=[];toast('info','Logged out');render()},
   settleToast(t){
     const a=Market.byId(t.asset);
+    const simTag=t.sim?' · SIM':'';
     const what=t.kind==='digits'?t.option.toUpperCase()+(t.target!=null?' '+t.target:'')
       :t.kind==='acc'?'ACCA ×'+t.legs.length:t.dir.toUpperCase();
     const det=t.kind==='digits'?'digit '+t.entry+' → '+t.close
       :t.kind==='acc'?'all legs must land':Market.fmtP(a,t.entry)+' → '+Market.fmtP(a,t.close);
-    if(t.result==='win')toast('win',`Won ${money(t.profit)} · ${what}`,`${a.name} · ${det}`);
+    if(t.result==='win')toast('win',`Won ${money(t.profit)} · ${what}${simTag}`,`${a.name} · ${det}`);
     else if(t.result==='draw')toast('info','Flat close — stake refunded',`${a.name} · ${what}`);
     else toast('loss',`Lost ${money(t.amount)} · ${what}`,`${a.name} · ${det}`);
   },
@@ -910,6 +916,7 @@ function shell(page,body){
       </div>`:''}
     </div>
     <div class="tr">
+      ${u&&u.sim?`<span class="simgold" title="Simulation account">SIM</span>`:''}
       <button class="icbtn" id="snd-btn">${icon(soundOn?'vol':'volX',16)}</button>
       <button class="deposit-btn" id="dep-btn">Deposit</button>
       <button class="icbtn" id="bell-btn">${icon('bell',16)}</button>
@@ -927,7 +934,7 @@ function shell(page,body){
           <button class="icbtn" id="drawer-x">${icon('x',16)}</button></div>
         ${u?`<div style="padding:0 12px 10px"><span class="abadge ${acc==='demo'?'d':'r'}" style="width:22px;height:22px;font-size:10px;display:inline-flex;vertical-align:middle">${acc==='demo'?'D':'R'}</span>
           <b class="mono" style="margin-left:8px;font-size:15px">${money(Auth.bal())}</b>
-          <span style="color:var(--dim);font-size:11px;margin-left:6px">${acc.toUpperCase()}</span></div>`:''}
+          <span style="color:var(--dim);font-size:11px;margin-left:6px">${acc.toUpperCase()}${u.sim?' · SIM':''}</span></div>`:''}
         <a class="dlink" href="#/">${icon('zap',17)} Digit Trading</a>
         <a class="dlink" href="#/markets">${icon('chart',17)} Live Markets</a>
         <a class="dlink" href="#/classic">${icon('chart',17)} UP / DOWN</a>
@@ -965,21 +972,22 @@ function wireShell(){
   }));
 }
 
-/* ═══ DIGIT TERMINAL — TradingView REAL feed built into the card ═══ */
+/* ═══ DIGIT TERMINAL — TradingView REAL feed · admin sim mode ═══ */
 function DigitTerminal(app){
-  /* tvSym = TradingView symbol shown on the chart; vta = Vanta asset the digits settle on */
   let tvSym='OANDA:XAUUSD',tvIv='1',tvCat='Metals';
   let vta='XAUUSD',game='parity',side='even',target=5,mode='auto',expiry=60;
   let cht='real',ctf=5,lastShown=-1,pulses=[],tvFor=null;
   const A=()=>vta?Market.byId(vta):null;
   const sides=()=>game==='parity'?['even','odd']:game==='range'?['over','under']:['match','differ'];
   const multOf=s=>digitMult(s,target);
+  const simOn=Auth.isSim();
   app.innerHTML=shell('/',`<div class="pagec">
     <div class="gtabs" id="gtabs">
       <button data-g="exact" class="${game==='exact'?'on':''}">Matches/Differs</button>
       <button data-g="parity" class="${game==='parity'?'on':''}">Even/Odd</button>
       <button data-g="range" class="${game==='range'?'on':''}">Over/Under</button>
     </div>
+    ${simOn?`<div class="simbar">${icon('info',14)} <span><b>SIMULATION MODE</b> — this admin account trades on the simulation engine. Results are demonstration only, not live-market outcomes.</span></div>`:''}
     <div class="ccard" id="ccard">
       <canvas id="tc-cd" style="display:none"></canvas>
       <canvas id="tc-ln" style="display:none"></canvas>
@@ -1005,6 +1013,7 @@ function DigitTerminal(app){
       <span class="cpay" id="cpay">—</span>
       <button class="cexp" id="cexp" title="Fullscreen">${icon('expand',14)}</button>
       <button class="livebtn" id="live-btn" hidden>LIVE →</button>
+      <div class="cdown" id="cdown"></div>
     </div>
     <div class="dstrip" id="dstrip"><div class="dwait">Waiting for live prices…</div></div>
     <div class="mtoggle" id="mtoggle">
@@ -1018,7 +1027,7 @@ function DigitTerminal(app){
       <button id="st-up">+</button>
     </div>
     <div class="qrow" id="qrow">${[1,5,10,25,50,100].map(v=>`<button data-q="${v}" class="${v===10?'on':''}">$${v}</button>`).join('')}</div>
-    <div class="erow" id="erow">${[['30','30s'],['60','1m'],['120','2m'],['300','5m']]
+    <div class="erow" id="erow">${[['1','1s'],['60','1m'],['120','2m'],['300','5m']]
       .map(([v,l])=>`<button data-x="${v}" class="${v==='60'?'on':''}">${l}</button>`).join('')}</div>
     <div class="tslrow" id="tslrow">
       <div class="tsl"><span class="tl tcl">${icon('target',11)} TARGET</span>
@@ -1033,7 +1042,11 @@ function DigitTerminal(app){
       <button class="dbtn even" id="b-a"><span class="dl" id="l-a">Even</span><b class="dval" id="v-a">—</b><span class="dsub" id="p-a">—</span></button>
       <button class="dbtn odd" id="b-b"><span class="dl" id="l-b">Odd</span><b class="dval" id="v-b">—</b><span class="dsub" id="p-b">—</span></button>
     </div>
-    <p class="hint" style="margin:10px 14px 0">${icon('info',12)} Chart = <b>real market data</b> via TradingView — use it for analysis. Digits &amp; trades settle on the Vanta feed for the 6 tradeable markets (EUR/USD, GBP/USD, USD/JPY, GOLD, BTC, ETH); other pairs are <b>view only</b>. Tap 1T/1s/5s… to see the settlement-feed chart.</p>
+    <div class="pn" style="margin:12px 10px 0">
+      <label class="hint" style="font-weight:700;color:var(--mut);text-transform:uppercase;font-size:10px;letter-spacing:.08em;margin:0 0 6px">Completed trades${simOn?' · SIMULATION':''}</label>
+      <div id="tr-list"></div>
+    </div>
+    <p class="hint" style="margin:10px 14px 0">${icon('info',12)} Chart = <b>real market data</b> via TradingView — for analysis. Digits &amp; trades settle on the Vanta feed for the 6 tradeable markets (EUR/USD, GBP/USD, USD/JPY, GOLD, BTC, ETH); other pairs are <b>view only</b>.${simOn?' Your account is in <b>SIMULATION</b> — all results are simulated wins.':' Tap 1T/1s/5s… to see the settlement-feed chart.'}</p>
   </div>`);
   wireShell();
   const cdChart=new CandleChart($('#tc-cd'),{asset:()=>vta,tf:()=>ctf,
@@ -1043,13 +1056,21 @@ function DigitTerminal(app){
   const lnChart=new TickChart($('#tc-ln'),{asset:()=>vta});
   onCleanup(()=>cdChart.destroy());
   onCleanup(()=>lnChart.destroy());
-  const sidesA=()=>sides();
-  const multOfA=s=>digitMult(s,target);
   const card=$('#ccard');
   $('#cexp').onclick=()=>{card.classList.toggle('fs');
     $('#cexp').innerHTML=icon(card.classList.contains('fs')?'x':'expand',14);};
   const liveBtn=$('#live-btn');
   liveBtn.onclick=()=>{cdChart.offset=0;liveBtn.hidden=true;};
+  /* countdown overlay — nearest-expiry open trade */
+  const cdIv=setInterval(()=>{
+    const el=$('#cdown');if(!el)return;
+    const open=Live.all.filter(t=>t.status==='open');
+    if(!open.length){el.classList.remove('on');return}
+    const t=open.reduce((m,x)=>x.expiry<m.expiry?x:m);
+    el.classList.add('on');
+    el.innerHTML=`${icon('clock',13)} <span>${esc(tradeLabel(t))}</span> <span style="color:#fff">${count(t.expiry-Date.now())}</span>`;
+  },100);
+  onCleanup(()=>clearInterval(cdIv));
   function tvRealRender(){
     const box=$('#tv-real');if(!box)return;
     if(tvFor===tvSym)return;
@@ -1069,7 +1090,6 @@ function DigitTerminal(app){
       support_host:'https://www.tradingview.com'});
     box.querySelector('.tradingview-widget-container').appendChild(sc);
   }
-  /* full pair selector — grouped by category, 18 instruments */
   function pairSheet(){
     let cat=TV_MARKETS.find(g=>g.items.some(it=>it.s===tvSym))?.cat||'Forex';
     const ov=sheet(`<div style="font:700 15px var(--fb);margin-bottom:10px">Choose market</div>
@@ -1110,8 +1130,8 @@ function DigitTerminal(app){
     updPrice();updStrip();updDuo();
   }
   function updDuo(){
-    const [sa,sb]=sidesA(),st=parseFloat($('#stake').value)||0;
-    const [ma,mb]=[multOfA(sa),multOfA(sb)];
+    const [sa,sb]=sides(),st=parseFloat($('#stake').value)||0;
+    const [ma,mb]=[multOf(sa),multOf(sb)];
     $('#l-a').textContent=sa==='even'?'Even':sa==='over'?`Over ${target}`:`Match ${target}`;
     $('#l-b').textContent=sb==='odd'?'Odd':sb==='under'?`Under ${target}`:`Differ ${target}`;
     $('#v-a').textContent=money(st*(ma-1));$('#v-b').textContent=money(st*(mb-1));
@@ -1151,7 +1171,7 @@ function DigitTerminal(app){
     const box=$('#botbox');
     if(!Bot.on){box.innerHTML='';return}
     box.innerHTML=`<div class="botbox">
-      <div class="bh">${icon('spark',14)} AUTO RUNNING · ${Bot.cfg.side.toUpperCase()}${Bot.cfg.digitTarget!=null?' '+Bot.cfg.digitTarget:''} on ${Market.byId(Bot.cfg.asset)?.name||''}
+      <div class="bh">${icon('spark',14)} AUTO RUNNING${simOn?' (SIM)':''} · ${Bot.cfg.side.toUpperCase()}${Bot.cfg.digitTarget!=null?' '+Bot.cfg.digitTarget:''} on ${Market.byId(Bot.cfg.asset)?.name||''}
         <button class="btn btn-dn sm" id="bot-stop" style="margin-left:auto">${icon('stop',12)} STOP</button></div>
       <div class="bs">
         <div><span>ROUND</span><b class="mono">${Bot.rounds}</b></div>
@@ -1160,17 +1180,37 @@ function DigitTerminal(app){
       </div></div>`;
     $('#bot-stop').onclick=()=>Bot.stop();
   }
-  updDuo();updPrice();updBot();tvRealRender();
-  onCleanup(Market.on(()=>{updPrice();updStrip();
+  function renderTL(){
+    const el=$('#tr-list');if(!el)return;
+    const cl=Live.all.filter(t=>t.status==='closed').slice(0,10);
+    el.innerHTML=cl.length?cl.map(t=>{
+      const a=Market.byId(t.asset)||{name:t.asset,dec:2};
+      const durS=t.closeTime&&t.entryTime?Math.max(1,Math.round((t.closeTime-t.entryTime)/1000)):null;
+      const detail=t.kind==='digits'?`digit ${t.entry} → ${t.close}`
+        :t.kind==='acc'?'all legs':Market.fmtP(a,t.entry)+' → '+Market.fmtP(a,t.close);
+      return `<div class="tlc">
+        <div class="pos-r">
+          <span class="dir ${t.result==='win'?'up':t.result==='loss'?'down':'up'}">${t.result==='win'?'✓':t.result==='loss'?'✕':'='}</span>
+          <span class="pos-i"><b>${a.name} <i class="pos-acc">${t.account.toUpperCase()}</i>${t.sim?' <i class="pos-acc simacc">SIM</i>':''}</b>
+            <i class="mono">${tradeLabel(t)} · ${detail}</i></span>
+          <span class="pos-s ${t.result==='win'?'w':t.result==='loss'?'l':'w'}">${t.result==='win'?'+'+money(t.profit):t.result==='loss'?'−'+money(t.amount):'refund'}</span>
+          <span class="pos-t mono">${durS?durS+'s':'—'}</span></div>
+        <div class="tsub">ENTRY ${tm(t.entryTime)} · CLOSE ${t.closeTime?tm(t.closeTime):'…'}${t.sim?' · SIMULATED RESULT':''}</div>
+      </div>`;
+    }).join(''):`<div class="empty" style="padding:14px">${icon('clock',18)}<p style="font-size:12px">No completed trades yet</p></div>`;
+  }
+  updDuo();updPrice();updBot();updStrip();renderTL();tvRealRender();
+  onCleanup(Market.on(()=>{updPrice();updStrip();renderTL();
     liveBtn.hidden=!(cht==='candles'||cht==='line')||cdChart.offset===0;
     if(Bot.on&&$('#botbox'))updBot();}));
   onCleanup(Bus.on('bot',()=>{if($('#botbox'))updBot()}));
+  onCleanup(Bus.on('trades',renderTL));
   onCleanup(Bus.on('pulse',t=>{if(t.asset===vta)pulses.push({time:t.expiry,price:t.close,win:t.result==='win',at:performance.now()})}));
   $('#asel').onclick=()=>pairSheet();
   $('#tvtf2').onclick=e=>{const b=e.target.closest('button');if(!b)return;
     tvIv=b.dataset.i;
     $$('#tvtf2 button').forEach(x=>x.classList.toggle('on',x===b));
-    if(cht!=='real')cht='real';
+    cht='real';
     $$('#cht button').forEach(x=>x.classList.toggle('on',x.dataset.v==='real'));
     $('#tv-real').style.display='block';$('#tc-cd').style.display='none';$('#tc-ln').style.display='none';
     tvRealRender();};
@@ -1230,8 +1270,8 @@ function DigitTerminal(app){
         Bus.emit('trades');})
       .catch(e=>toast('warn','Order rejected',e.message));
   }
-  $('#b-a').onclick=()=>act(sidesA()[0]);
-  $('#b-b').onclick=()=>act(sidesA()[1]);
+  $('#b-a').onclick=()=>act(sides()[0]);
+  $('#b-b').onclick=()=>act(sides()[1]);
 }
 
 /* ═══ CLASSIC UP/DOWN (unchanged) ═══ */
@@ -1253,7 +1293,7 @@ function ClassicTerminal(app){
         <div class="stm"><span>STAKE</span><span class="sv">$ <input id="stake" inputmode="decimal" value="10"></span></div>
         <button id="st-up">+</button></div>
       <div class="qrow" style="margin-left:0;margin-right:0">${[10,25,50,100,500].map(v=>`<button data-q="${v}">${v}</button>`).join('')}<button data-q="x2">×2</button></div>
-      <div class="erow" style="margin-left:0;margin-right:0">${[['30','30s'],['60','1m'],['120','2m'],['300','5m']]
+      <div class="erow" style="margin-left:0;margin-right:0">${[['1','1s'],['30','30s'],['60','1m'],['120','2m'],['300','5m']]
         .map(([v,l])=>`<button data-x="${v}" class="${v==='60'?'on':''}">${l}</button>`).join('')}</div>
       <div class="duo">
         <button class="dbtn up" id="b-up"><span class="dl">▲ UP</span><b class="dval" id="v-up">—</b><span class="dsub" id="p-up">—</span></button>
@@ -1335,7 +1375,7 @@ function ClassicTerminal(app){
   $('#b-dn').onclick=()=>place('down');
 }
 
-/* ═══ MARKETS — TradingView page (kept, per "don't remove") ═══ */
+/* ═══ MARKETS — TradingView page (unchanged) ═══ */
 function MarketsPage(app){
   let sym='OANDA:XAUUSD',iv='1',cat='Metals';
   app.innerHTML=shell('/markets',`<div class="pg widepg">
@@ -1406,7 +1446,7 @@ async function Positions(app){
         const a=Market.byId(t.asset)||{name:t.asset,dec:2};
         return `<div class="pos-r">
           <span class="dir ${t.kind==='digits'?(t.option==='even'||t.option==='over'||t.option==='match'?'up':'down'):t.dir==='up'?'up':'down'}">${t.kind==='digits'?'#':t.dir==='up'?'▲':'▼'}</span>
-          <span class="pos-i"><b>${a.name} <i class="pos-acc">${t.account.toUpperCase()}</i></b>
+          <span class="pos-i"><b>${a.name} <i class="pos-acc">${t.account.toUpperCase()}</i>${t.sim?' <i class="pos-acc simacc">SIM</i>':''}</b>
             <i class="mono">${tradeLabel(t)} · ${money(t.amount)}</i></span>
           <span class="pos-t mono">${count(t.expiry-Date.now())}</span>
           <span class="badge open">LIVE</span></div>`;
@@ -1419,7 +1459,7 @@ async function Positions(app){
         const cl2=t.kind==='digits'?'digit '+t.close:t.kind==='acc'?'—':Market.fmtP(a,t.close);
         return `<div class="pos-r">
           <span class="dir ${t.result==='win'?'up':t.result==='loss'?'down':'up'}">${t.result==='win'?'✓':t.result==='loss'?'✕':'='}</span>
-          <span class="pos-i"><b>${a.name} <i class="pos-acc">${t.account.toUpperCase()}</i></b>
+          <span class="pos-i"><b>${a.name} <i class="pos-acc">${t.account.toUpperCase()}</i>${t.sim?' <i class="pos-acc simacc">SIM</i>':''}</b>
             <i class="mono">${tradeLabel(t)} · ${ent} → ${cl2}</i></span>
           <span class="pos-s ${t.result==='win'?'w':t.result==='loss'?'l':'w'}">${t.result==='win'?'+'+money(t.profit):t.result==='loss'?'−'+money(t.amount):'refund'}</span>
           <span class="pos-t mono">${fmtDT(t.closeTime).slice(0,6)}</span></div>`;
@@ -1908,6 +1948,7 @@ async function Profile(app){
         <div class="abadge d" style="width:50px;height:50px;font-size:19px">${esc(Auth.u.name.trim().slice(0,1).toUpperCase())}</div>
         <div><b style="font-size:15px">${esc(Auth.u.name)}</b><br><span style="font-size:12px;color:var(--mut)">${esc(Auth.u.email)}</span></div>
       </div>
+      ${Auth.isSim()?`<div class="simbar" style="margin:0 0 12px">${icon('info',14)} <span><b>SIMULATION ACCOUNT</b> — trades on this account run on the simulation engine (demonstration results).</span></div>`:''}
       <div class="sum-r"><span>Member since</span><b>${new Date(Auth.u.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</b></div>
       <div class="sum-r"><span>DEMO practice balance</span><b>${money(Auth.u.wallets.demo)}</b></div>
       <div class="sum-r"><span>REAL deposited funds</span><b>${money(Auth.u.wallets.real)}</b></div>
