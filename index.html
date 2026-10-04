@@ -233,17 +233,6 @@ button{font-family:var(--fb);touch-action:manipulation}
 .stat{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:12px}
 .stat span{font-size:10px;letter-spacing:.08em;text-transform:uppercase;color:var(--dim);font-weight:600}
 .stat b{display:block;font:600 18px var(--fm);margin-top:4px}
-.scan-it{background:var(--panel2);border:1px solid var(--line2);border-radius:10px;padding:12px;margin-bottom:9px}
-.scan-top{display:flex;justify-content:space-between;align-items:center;gap:10px}
-.scan-top b{font-size:13px}
-.scan-sig{font:700 10.5px var(--fb);padding:4px 9px;border-radius:6px}
-.scan-sig.up{background:rgba(46,229,138,.15);color:var(--grn)}
-.scan-sig.down{background:rgba(255,90,110,.15);color:var(--red)}
-.scan-sig.dg{background:rgba(240,185,11,.15);color:var(--gold)}
-.scan-sig.n{background:rgba(255,255,255,.06);color:var(--mut)}
-.scan-bar{height:4px;background:var(--line);border-radius:3px;margin:9px 0 6px;overflow:hidden}
-.scan-bar i{display:block;height:100%;background:var(--grn)}
-.scan-why{font-size:11.5px;color:var(--mut);line-height:1.5}
 .chat{display:flex;flex-direction:column;gap:9px;min-height:36vh;padding:4px 0}
 .msg{max-width:82%;padding:9px 12px;border-radius:12px;font-size:13.5px;line-height:1.55;white-space:pre-wrap}
 .msg.me{align-self:flex-end;background:var(--grn);color:#04231A;border-bottom-right-radius:3px}
@@ -301,6 +290,49 @@ button{font-family:var(--fb);touch-action:manipulation}
 .tvc a{color:var(--cyan)}
 #tv-real{position:absolute;inset:0;z-index:1}
 #tv-real .tradingview-widget-container{height:100%;width:100%}
+/* ── Entry Scanner modal (tnnbinary style) ── */
+.sc-box{background:#0E1513;border:1px solid var(--line2);border-radius:18px;width:min(460px,100%);max-height:92dvh;overflow:auto;position:relative;padding:0 16px 20px;animation:sup .2s;margin:auto}
+.sc-head{display:flex;align-items:center;gap:12px;padding:18px 2px 14px;border-bottom:1px solid var(--line);margin:0 -16px 14px;padding-left:16px;padding-right:16px}
+.sc-ico{width:46px;height:46px;border-radius:14px;background:var(--grn);display:flex;align-items:center;justify-content:center;color:#04231A;box-shadow:0 0 22px rgba(46,229,138,.55);flex:none}
+.sc-head h3{font:800 19px var(--fb);flex:1}
+.sc-intro{font-size:13.5px;color:var(--mut);line-height:1.65;background:var(--panel2);border:1px solid var(--line);border-radius:12px;padding:12px 14px;margin:2px 0 6px}
+.sc-intro b{color:var(--text)}
+.sc-lab{display:block;font:700 13px var(--fb);color:var(--text);margin:14px 0 8px}
+.sc-sel{font:700 15px var(--fb);color:var(--text);background:var(--panel2);border:1px solid var(--line2);border-radius:12px;padding:14px 12px;outline:0;width:100%;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%238CA098' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+.sc-sel:focus{border-color:var(--grn)}
+.sc-scope{display:flex;gap:5px;margin:10px 0 2px}
+.sc-scope button{flex:1;padding:8px 0;border-radius:9px;border:1px solid var(--line);background:var(--panel);color:var(--mut);font:700 10.5px var(--fm);cursor:pointer}
+.sc-scope button.on{border-color:var(--grn);color:var(--grn);background:rgba(46,229,138,.07)}
+.sc-prog{display:flex;justify-content:space-between;align-items:center;font:500 12.5px var(--fb);color:var(--mut);margin:16px 0 7px}
+.sc-prog b{font:700 13px var(--fm);color:var(--text)}
+.sc-bar{height:7px;background:var(--panel2);border-radius:5px;overflow:hidden;margin-bottom:14px}
+.sc-bar i{display:block;height:100%;width:0;background:var(--grn);border-radius:5px;transition:width .25s}
+.sc-go{background:var(--grn);color:#04231A;font:800 15px var(--fb);border:0;border-radius:999px;padding:16px;width:100%;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:9px;box-shadow:0 0 24px rgba(46,229,138,.35);transition:filter .15s}
+.sc-go:hover{filter:brightness(1.06)}
+.sc-go:disabled{opacity:.6;pointer-events:none}
+.sc-bot{background:none;border:1px solid rgba(46,229,138,.45);color:var(--grn);font:700 14px var(--fb);border-radius:999px;padding:14px;width:100%;cursor:pointer;margin-top:10px;display:flex;align-items:center;justify-content:center;gap:8px;transition:filter .15s}
+.sc-bot:hover{filter:brightness(1.15)}
+.sc-bot:disabled{opacity:.4;pointer-events:none}
+.sc-best{margin-top:14px;border:1px solid rgba(46,229,138,.5);background:rgba(46,229,138,.06);border-radius:14px;padding:13px 14px;animation:sup .2s}
+.sc-best .k{font:800 10.5px var(--fb);letter-spacing:.1em;color:var(--grn)}
+.sc-best .row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:6px}
+.sc-best .nm{font:800 18px var(--fb);color:#fff}
+.sc-best .sd{font:600 12.5px var(--fb);color:var(--mut);margin-top:2px}
+.sc-best .sd b{color:var(--text)}
+.sc-best .pct{display:inline-flex;align-items:center;gap:5px;font:800 16px var(--fb);color:var(--grn);background:rgba(46,229,138,.12);padding:8px 12px;border-radius:999px}
+.sc-strip{display:grid;grid-template-columns:repeat(10,1fr);gap:3px;margin-top:12px}
+.sc-fd{text-align:center}
+.sc-fd b{display:flex;align-items:center;justify-content:center;aspect-ratio:1;border-radius:50%;background:var(--panel2);border:1px solid var(--line);font:700 12px var(--fm)}
+.sc-fd b.hi{background:#fff;color:#0A0F0D;border-color:#fff}
+.sc-fd.e b{color:var(--grn)}.sc-fd.o b{color:var(--red)}
+.sc-fd span{font:600 7.5px var(--fm);color:var(--dim)}
+.sc-note{font-size:10.5px;color:var(--dim);line-height:1.5;margin-top:12px}
+.sc-rows{margin-top:12px}
+.sc-row{display:flex;justify-content:space-between;align-items:center;padding:8px 2px;border-bottom:1px dashed var(--line);font-size:12px}
+.sc-row:last-child{border:0}
+.sc-row b{font:700 12px var(--fb)}
+.sc-row .pc{font:700 12px var(--fm);color:var(--mut)}
+.sc-row .pc.top{color:var(--grn)}
 @media(max-width:380px){
   #bell-btn{display:none}
   .brand span{display:none}
@@ -314,10 +346,9 @@ button{font-family:var(--fb);touch-action:manipulation}
 
 <script>
 'use strict';
-/* VANTA v17.2 · all SIM indicators removed (header chip, trade tags, bot label)
-   · admin account (ADMIN_EMAIL) → always-win sim on BOTH wallets (server-side, invisible)
-   · normal users' DEMO wallet → 95% win sim (server DEMO_WIN_RATE), REAL wallet → real engine
-   · TradingView REAL feed default · durations 1s/1m/2m/5m · countdown · trade list */
+/* VANTA v18 · Entry Scanner modal (tnnbinary style) — deep scans every tradeable
+   market on the live Vanta feed, surfaces the BEST entry for the chosen digit game,
+   and can load the AUTO bot onto that entry. All v17.2 features preserved. */
 const API_URL='https://vanta-1-7q8l.onrender.com';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 
@@ -364,6 +395,8 @@ lock:'<rect x="4" y="11" width="16" height="10" rx="2"/><path d="M8 11V7a4 4 0 0
 gift:'<path d="M20 12v9H4v-9M2 7h20v5H2zM12 22V7M12 7H8.5a2.5 2.5 0 0 1 0-5C11 2 12 7 12 7ZM12 7h3.5a2.5 2.5 0 0 0 0-5C13 2 12 7 12 7Z"/>',
 card:'<rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20M6 15h4"/>',
 zap:'<path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z"/>',
+search:'<circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/>',
+trend:'<path d="m3 17 6-6 4 4 8-8"/><path d="M14 7h7v7"/>',
 };
 const icon=(n,s=17,cls='')=>`<svg class="ic ${cls}" width="${s}" height="${s}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${I[n]||''}</svg>`;
 const logoC=(s=22)=>`<svg width="${s}" height="${s}" viewBox="0 0 24 24" fill="none"><path d="M8 2.5v2.5M8 16v5" stroke="#2EE58A" stroke-width="2" stroke-linecap="round"/><rect x="5.5" y="5" width="5" height="11" rx="1" fill="#2EE58A"/><path d="M16.5 4v3M16.5 15v6" stroke="#EAF2EE" stroke-width="2" stroke-linecap="round"/><rect x="14" y="7" width="5" height="8" rx="1" fill="#EAF2EE"/></svg>`;
@@ -796,7 +829,7 @@ const Bot={
     this.cfg={side,asset,expiry,base,digitTarget:cfg.target??null,
       tgtP:Math.max(1,cfg.tgtP||200),stopL:Math.max(1,cfg.stopL||999),mult:Math.max(1,cfg.mult||2)};
     Bus.emit('bot');
-    toast('ok','AUTO started',`${side.toUpperCase()}${this.cfg.digitTarget!=null?' '+this.cfg.digitTarget:''} · target +${money(this.cfg.tgtP)} · stop −${money(this.cfg.stopL)} · ×${this.cfg.mult}`);
+    toast('ok','AUTO started',`${side.toUpperCase()}${this.cfg.digitTarget!=null?' '+this.cfg.digitTarget:''} on ${Market.byId(asset)?.name||asset} · target +${money(this.cfg.tgtP)} · ×${this.cfg.mult}`);
     this.run();
   },
   async run(){
@@ -917,7 +950,7 @@ function shell(page,body){
     <nav class="bnav">
       <a href="#/markets" class="${page==='/markets'?'on':''}">${icon('chart',18)}<span>Markets</span></a>
       <a href="#/support" class="${page==='/support'?'on':''}">${icon('chat',18)}<span>Live Chat</span></a>
-      <a href="#/scanner" class="${page==='/scanner'?'on':''}"><span class="bub">${icon('spark',20)}</span><span>AI</span></a>
+      <a href="javascript:void(0)" id="bnav-ai" class="${page==='/scanner'?'on':''}"><span class="bub">${icon('spark',20)}</span><span>AI</span></a>
       <a href="#/positions" class="${page==='/positions'?'on':''}">${icon('clock',18)}<span>Positions</span></a>
     </nav>
     <div class="dwrap" id="drawer">
@@ -958,6 +991,7 @@ function wireShell(){
   $('#snd-btn').onclick=e=>{soundOn=!soundOn;
     e.currentTarget.innerHTML=icon(soundOn?'vol':'volX',16);
     toast('info',soundOn?'Sound on':'Sound muted')};
+  const aiBtn=$('#bnav-ai');if(aiBtn)aiBtn.onclick=e=>{e.preventDefault();openScanner();};
   onCleanup(Bus.on('wallet',()=>{
     const b=$('#acct-b b');if(b&&Auth.u)b.textContent=money(Auth.bal());
     $$('.drop-it[data-acc] .mono').forEach(x=>{const k=x.closest('[data-acc]').dataset.acc;
@@ -965,7 +999,140 @@ function wireShell(){
   }));
 }
 
-/* ═══ DIGIT TERMINAL — TradingView REAL feed default · durations · trade list ═══ */
+/* ═══ ENTRY SCANNER MODAL (deep scan · best entry · bot loader) ═══ */
+function openScanner(){
+  if($('#sc-ov'))return;
+  if(!Market.connected){toast('warn','Connecting…','Waiting for live prices, then scan.');return}
+  let game='parity',target=5,scanning=false,best=null;
+  const SCOPES=[['all','All'],['forex','Forex'],['metals','Metals'],['crypto','Crypto']];
+  let scope='all';
+  const ov=document.createElement('div');ov.className='mwrap';ov.id='sc-ov';
+  ov.style.alignItems='center';ov.style.overflow='auto';
+  ov.innerHTML=`<div class="sc-box">
+    <div class="sc-head">
+      <span class="sc-ico">${icon('spark',22)}</span>
+      <h3>Entry Scanner</h3>
+      <button class="mx" id="sc-x" style="position:static">${icon('x',18)}</button>
+    </div>
+    <p class="sc-intro">Pick the market category you want to scan. The deep scanner will analyze the markets and identify the strongest entry signal based on available market data and historical patterns.</p>
+    <span class="sc-lab">Market</span>
+    <select class="sc-sel" id="sc-game">
+      <option value="parity">Even / Odd</option>
+      <option value="range">Over / Under</option>
+      <option value="exact">Matches / Differs</option>
+    </select>
+    <div id="sc-target"></div>
+    <span class="sc-lab">Scope</span>
+    <div class="sc-scope" id="sc-scope">${SCOPES.map(([v,l])=>
+      `<button data-s="${v}" class="${v===scope?'on':''}">${l}</button>`).join('')}</div>
+    <div class="sc-prog"><span id="sc-lab">Ready to scan</span><b id="sc-n">0/0</b></div>
+    <div class="sc-bar"><i id="sc-fill"></i></div>
+    <button class="sc-go" id="sc-go">${icon('search',17)} Deep Scan for Best Market</button>
+    <button class="sc-bot" id="sc-bot" disabled>${icon('zap',15)} Load Deep Scanner Bot</button>
+    <div id="sc-res"></div>
+    <p class="sc-note">${icon('info',12)} Scan uses live data from the Vanta settlement feed — the same feed your trades execute on. Historical-pattern analysis: probabilities, not guarantees.</p>
+  </div>`;
+  document.body.appendChild(ov);
+  const close=()=>ov.remove();
+  ov.addEventListener('click',e=>{if(e.target===ov||e.target.closest('#sc-x'))close()});
+  const sc Markets=()=>Market.A.filter(a=>scope==='all'?true:a.cat.toLowerCase()===scope);
+  const paintTarget=()=>{
+    const el=$('#sc-target',ov);
+    el.innerHTML=game!=='parity'?`<span class="sc-lab">Target digit</span>
+      <div class="sc-strip" id="sc-digs">${[0,1,2,3,4,5,6,7,8,9].map(d=>
+        `<button class="sc-fd" data-d="${d}" style="background:none;border:0;padding:0;cursor:pointer"><b class="${d===target?'hi':''}" style="${d===target?'':'color:var(--mut)'}">${d}</b></button>`).join('')}</div>`:'';
+  };
+  paintTarget();
+  ov.addEventListener('click',e=>{
+    const s=e.target.closest('#sc-scope button');
+    if(s){scope=s.dataset.s;$$('#sc-scope button',ov).forEach(x=>x.classList.toggle('on',x===s));return}
+    const d=e.target.closest('#sc-target .sc-fd');
+    if(d){target=+d.dataset.d;paintTarget();return}
+  });
+  $('#sc-game',ov).onchange=e=>{game=e.target.value;paintTarget()};
+  $('#sc-go',ov).onclick=async()=>{
+    if(scanning)return;
+    scanning=true;best=null;
+    const go=$('#sc-go',ov),bot=$('#sc-bot',ov),lab=$('#sc-lab',ov),nEl=$('#sc-n',ov),fill=$('#sc-fill',ov),res=$('#sc-res',ov);
+    go.disabled=true;bot.disabled=true;res.innerHTML='';
+    const list=sc Markets();
+    nEl.textContent=`0/${list.length}`;
+    let results=[],done=0;
+    for(const a of list){
+      lab.textContent='Scanning markets…';
+      const closes=a.ticks.slice(-100).map(k=>k.p);
+      const digs=closes.map(p=>digitOfPrice(p,a.dec));
+      const n=digs.length||1;
+      const cnt=Array(10).fill(0);digs.forEach(d=>cnt[d]++);
+      let pick=null;
+      if(game==='parity'){
+        const pe=cnt.filter((_,d)=>d%2===0).reduce((s,x)=>s+x,0)/n*100;
+        const po=100-pe;
+        pick=pe>=po?{side:'even',score:pe}:{side:'odd',score:po};
+      }else if(game==='range'){
+        const po=cnt.filter((_,d)=>d>target).reduce((s,x)=>s+x,0)/n*100;
+        const pu=cnt.filter((_,d)=>d<target).reduce((s,x)=>s+x,0)/n*100;
+        pick=po>=pu?{side:'over',score:po}:{side:'under',score:pu};
+      }else{
+        const pm=cnt[target]/n*100;
+        const pd=100-pm;
+        pick=pd>=pm?{side:'differ',score:pd}:{side:'match',score:pm};
+      }
+      results.push({a,side:pick.side,score:Math.round(pick.score),cnt,n});
+      done++;nEl.textContent=`${done}/${list.length}`;
+      fill.style.width=(done/list.length*100)+'%';
+      await sleep(160);
+    }
+    results.sort((x,y)=>y.score-x.score);
+    best=results[0]||null;
+    lab.textContent='Scan complete';
+    go.disabled=false;go.innerHTML=`${icon('search',17)} Deep Scan for Best Market`;
+    if(best){
+      bot.disabled=false;
+      const hi=best.cnt.indexOf(Math.max(...best.cnt));
+      const n=best.n;
+      res.innerHTML=`<div class="sc-best">
+          <div class="k">BEST ENTRY FOUND</div>
+          <div class="row">
+            <div><div class="nm">${best.a.name}</div>
+            <div class="sd">Suggested side: <b>${best.side.toUpperCase()}</b></div></div>
+            <span class="pct">${icon('trend',15)} ${best.score}%</span>
+          </div>
+          <div class="sc-strip">${[0,1,2,3,4,5,6,7,8,9].map(d2=>
+            `<span class="sc-fd ${d2===hi?'hi':d2%2===0?'e':'o'}"><b class="${d2===hi?'hi':''}">${d2}</b><span>${(best.cnt[d2]/n*100).toFixed(0)}%</span></span>`).join('')}</div>
+        </div>
+        <div class="sc-rows">${results.slice(0,5).map((r,i)=>
+          `<div class="sc-row"><b>${r.a.name} · ${r.side.toUpperCase()}</b><span class="pc ${i===0?'top':''}">${r.score}%</span></div>`).join('')}</div>
+        <p class="sc-note">${icon('info',12)} Based on the last ${n} ticks per market on the live settlement feed. Historical patterns — not a guarantee. "Load Deep Scanner Bot" runs the AUTO bot on this entry with your current stake, expiry and TARGET/STOP settings.</p>`;
+    }else{
+      res.innerHTML=`<div class="empty"><p>No markets in this scope</p></div>`;
+    }
+    scanning=false;
+  };
+  $('#sc-bot',ov).onclick=()=>{
+    if(!best)return;
+    if(!requireAuth())return;
+    const st=parseFloat(($('#stake')||{}).value)||10;
+    let exp=60;
+    const on=$$('#erow button').find(b=>b.classList.contains('on'));
+    if(on)exp=+on.dataset.x;
+    const bal=Auth.bal();
+    if(!(st>=1))return toast('warn','Stake too small','Minimum stake is $1.00.');
+    if(st>bal)return toast('warn','Not enough balance',`Your ${Auth.acc.toUpperCase()} wallet holds ${money(bal)}.`);
+    const c={target:game!=='parity'?target:null,
+      stopL:Math.max(1,parseFloat(($('#bot-stop')||{}).value)||999),
+      mult:Math.max(1,parseFloat(($('#bot-mult')||{}).value)||2),
+      tgtP:Math.max(1,parseFloat(($('#bot-target')||{}).value)||200)};
+    Bot.start(best.side,best.a.id,exp,st,c);
+    close();
+  };
+}
+function Scanner(app){ /* scanner is now a modal over the terminal */
+  DigitTerminal(app);
+  setTimeout(openScanner,120);
+}
+
+/* ═══ DIGIT TERMINAL (unchanged from v17.2) ═══ */
 function DigitTerminal(app){
   let tvSym='OANDA:XAUUSD',tvIv='1',tvCat='Metals';
   let vta='XAUUSD',game='parity',side='even',target=5,mode='auto',expiry=60;
@@ -1472,52 +1639,6 @@ async function Positions(app){
   onCleanup(()=>clearInterval(tick));
   const off=Bus.on('trades',()=>{API.listTrades().then(t=>{trades=t;draw()}).catch(()=>{})});
   onCleanup(off);
-}
-
-/* ═══ AI SCANNER ═══ */
-function Scanner(app){
-  let rows=[];
-  function analyze(){
-    const out=[];
-    for(const a of Market.A){
-      const t=a.ticks;if(t.length<60)continue;
-      const cut=t[t.length-61];
-      const mom=(a.price-cut.p)/a.vol;
-      let ups=0;for(let i=t.length-30;i<t.length;i++)if(t[i].p>t[i-1].p)ups++;
-      const upRatio=ups/30;
-      const digs=t.slice(-20).map(k=>digitOfPrice(k.p,a.dec));
-      const even=digs.filter(d=>d%2===0).length/20;
-      let sig='n',why='Balanced tape — no strong edge right now.';
-      if(mom>=1.4){sig='up';why=`Strong upward momentum: ${mom.toFixed(1)}σ over 60s, ${Math.round(upRatio*100)}% of last 30 ticks rising.`;}
-      else if(mom<=-1.4){sig='down';why=`Strong downward momentum: ${mom.toFixed(1)}σ over 60s, only ${Math.round(upRatio*100)}% of last 30 ticks rising.`;}
-      else if(even>=.7){sig='dg';why=`Digit bias: ${Math.round(even*100)}% of last 20 digits were EVEN — parity one-sided.`;}
-      else if(even<=.3){sig='dg';why=`Digit bias: ${Math.round((1-even)*100)}% of last 20 digits were ODD — parity one-sided.`;}
-      const score=Math.round(clamp(Math.abs(mom)*22+Math.abs(even-.5)*80,4,97));
-      out.push({a,sig,why,score,
-        play:sig==='up'?'UP':sig==='down'?'DOWN':sig==='dg'?(even>=.7?'EVEN':'ODD'):'—'});
-    }
-    out.sort((x,y)=>y.score-x.score);
-    rows=out;
-  }
-  function drawList(){
-    $('#sc-list').innerHTML=rows.map(r=>`
-      <div class="scan-it">
-        <div class="scan-top"><b>${r.a.name} <i class="pos-acc">${r.a.cat}</i></b>
-          <span class="scan-sig ${r.sig}">${r.play==='—'?'NO EDGE':r.play+' · '+r.score+'%'}</span></div>
-        <div class="scan-bar"><i style="width:${r.score}%"></i></div>
-        <div class="scan-why">${r.why}</div>
-      </div>`).join('');
-  }
-  app.innerHTML=shell('/scanner',`<div class="pg">
-    <div class="pg-head"><h1>${icon('spark',19)} AI Scanner</h1><span class="badge open">● SCANNING</span></div>
-    <div class="pn">
-      <p class="hint" style="margin:0 0 12px">${icon('info',13)} Live statistical sweep — momentum, tick direction ratio, digit parity bias — ranked strongest first. <b>Probabilities, not guarantees.</b></p>
-      <div id="sc-list"></div>
-    </div></div>`);
-  wireShell();
-  analyze();drawList();
-  const iv=setInterval(()=>{analyze();if($('#sc-list'))drawList()},4000);
-  onCleanup(()=>clearInterval(iv));
 }
 
 /* ═══ SUPPORT ═══ */
