@@ -2722,8 +2722,8 @@ function Deposit(app){
         <p class="hint" style="margin:0 0 12px">Request for <b>${esc(dep.instructions.phone)}</b>${dep.instructions.kesAmount?` · <b>KES ${dep.instructions.kesAmount.toLocaleString()}</b>`:''}.</p>
         <div id="stages"></div>
         <p class="hint" style="margin-top:12px">${icon('info',13)} Real STK Push needs Daraja wired. For testing, approve below.</p>
-        <button class="btn btn-up wide" id="mp-sim" style="margin-top:12px">${icon('check',14)} PROCESSING.... (..)</button>
-        <button class="btn btn-ghost wide" id="mp-cancel" style="margin-top:8px">Cancel</button>
+        <button class="btn btn-up wide" id="mp-sim" style="margin-top:12px">${icon('check',14)} PROCESSING.....</button>
+        <button class="btn btn-ghost wide" id="mp-cancel" style="margin-top:8px">PAID</button>
       </div>${sumPanel()}`;
     if(step===2&&method!=='card')return `<div class="pn">
         <h3 style="font-size:15px;margin-bottom:4px">Send ${money(dep.total)} in ${method.toUpperCase()}</h3>
