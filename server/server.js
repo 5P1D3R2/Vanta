@@ -12,7 +12,7 @@ const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
-const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
+const ADMIN_EMAIL=(process.env.ADMIN_EMAIL,process.env.ADMIN_EMAIL_2||'').trim().toLowerCase();
 const VERSION='6.0-admin-sim';
 const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
