@@ -1,5 +1,5 @@
-/* VANTA backend v6 · admin simulation + demo-wallet simulation · Daraja STK Push
-   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, DARAJA_KEY, DARAJA_SECRET,
+/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push
+   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, TINYPESA_API_KEY,
         MPESA_CB_SECRET, ADMIN_EMAIL (this account always wins, both wallets)
    Optional: DEMO_WIN_RATE (0-1, default 0.95) — win rate for normal users' DEMO trades
    Verify: /version → {"v":"6.0-admin-sim"} */
@@ -8,6 +8,7 @@ const express=require('express'),cors=require('cors'),mongoose=require('mongoose
 const app=express();
 app.use(cors());
 app.use(express.json());
+app.use(express.urlencoded({extended:true}));
 const JWT_SECRET=process.env.JWT_SECRET||'change-me';
 const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
@@ -17,58 +18,49 @@ const VERSION='6.0-admin-sim';
 const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
-/* ── TinyPesa config ── */
+/* ── TinyPesa config ──
+   Set callback URL once in the TinyPesa dashboard (Settings → Callback URL):
+   https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
 const TINYPESA={
   BASE:'https://tinypesa.com/api/v1',
   KEY:(process.env.TINYPESA_API_KEY||'').trim(),
-  CB:process.env.MPESA_CB_SECRET
-    ?'https://vanta-1-7q8l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET.trim()
-    :'',
 };
-
 async function readJson(r,label){
   const txt=await r.text();
   try{return JSON.parse(txt)}
   catch{throw new Error(label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,120))}
 }
-
-const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
-  if(d.startsWith('0'))d='254'+d.slice(1);
-  if(d.length===9&&/^[17]/.test(d))d='254'+d;
-  return d};
-
 async function stkPush(amount,phone,ref='Payment'){
   if(!TINYPESA.KEY)throw new Error('TINYPESA_API_KEY not configured (check Render env)');
   const msisdn=normPhone(phone);
   if(!/^254[17]\d{8}$/.test(msisdn))throw new Error('Invalid Kenyan number: '+msisdn);
-  const r=await fetch(TINYPESA.BASE+'/express/initiate',{
-    method:'POST',
+  const r=await fetch(TINYPESA.BASE+'/express/initiate',{method:'POST',
     headers:{'Content-Type':'application/json',ApiKey:TINYPESA.KEY},
-    body:JSON.stringify({amount:Math.max(1,Math.round(amount)),msisdn,account_no:String(ref).slice(0,20)}),
-  });
+    body:JSON.stringify({amount:Math.max(1,Math.round(amount)),msisdn,
+      account_no:String(ref).slice(0,20)})});
   const j=await readJson(r,'TinyPesa initiate');
-  if(j.status===false||!j.request_id)
-    throw new Error('TinyPesa rejected: '+(j.message||JSON.stringify(j).slice(0,150)));
-  return j;
+  const rid=j.request_id||j.RequestID||j.bulkID||j.DepositId;
+  if(j.status===false||!rid)
+    throw new Error('TinyPesa rejected: '+(j.message||j.errorMessage||JSON.stringify(j).slice(0,150)));
+  return{...j,request_id:rid};
 }
-
 function parseCallback(req){
-  const b=req.body||{};
-  let cb=b;
-  if(b.BodyCopy){try{cb=JSON.parse(b.BodyCopy).stkCallback||JSON.parse(b.BodyCopy)}
+  const b=req.body||{};let cb=b;
+  if(b.BodyCopy){try{const p=JSON.parse(b.BodyCopy);cb=p.stkCallback||p}
     catch{cb={ResultCode:b.Code,ResultDesc:String(b.BodyCopy)}}}
+  else if(b.Body&&b.Body.stkCallback)cb=b.Body.stkCallback;
   else if(b.stkCallback)cb=b.stkCallback;
   const items=(cb.CallbackMetadata&&cb.CallbackMetadata.Item)||[];
   const meta=Object.fromEntries(items.map(i=>[i.Name,i.Value]));
-  return{
-    ok:String(cb.ResultCode??b.Code??1)==='0',
-    checkoutId:cb.CheckoutRequestID||'',
-    receipt:meta.MpesaReceiptNumber||'',
-    amount:meta.Amount||0,
-    phone:meta.PhoneNumber||'',
-    raw:cb,
-  };
+  return{ok:String(cb.ResultCode??b.Code??1)==='0',
+    checkoutId:cb.CheckoutRequestID||b.CheckoutRequestID||'',
+    receipt:meta.MpesaReceiptNumber||'',amount:meta.Amount||0,
+    phone:meta.PhoneNumber||'',raw:cb};
 }
+const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
+  if(d.startsWith('0'))d='254'+d.slice(1);
+  if(d.length===9&&/^[17]/.test(d))d='254'+d;
+  return d};
 
 /* ── assets + price engine ── */
 const ASSETS=[
@@ -301,20 +293,8 @@ app.post('/deposits',auth,h(async(req,res)=>{
       return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});}
     const kes=Math.ceil(amt*KES_PER_USD);
     try{
-      const tok=await safToken();const{ts,pass}=stkPassword();
-      const r=await fetch(MPESA.BASE+'/mpesa/stkpush/v1/processrequest',{method:'POST',
-        headers:{Authorization:'Bearer '+tok,'Content-Type':'application/json'},
-        body:JSON.stringify({BusinessShortCode:MPESA.SHORTCODE,Password:pass,Timestamp:ts,
-          TransactionType:'CustomerPayBillOnline',Amount:kes,PartyA:phone,PartyB:MPESA.SHORTCODE,
-          PhoneNumber:phone,CallBackURL:MPESA.CB,
-          AccountReference:'VNT'+String(d._id).slice(-8).toUpperCase(),
-          TransactionDesc:'Vanta deposit'})});
-      const j=await readJson(r,'M-Pesa push');
-      if(j.ResponseCode!=='0'){
-        d.status='failed';await d.save();
-        return res.status(502).json({message:'M-Pesa rejected: '+(j.ResponseDescription||j.errorMessage||JSON.stringify(j).slice(0,120))});
-      }
-      d.checkoutId=j.CheckoutRequestID;
+      const j=await stkPush(kes,phone,'VNT'+String(d._id).slice(-8).toUpperCase());
+      d.checkoutId=j.request_id;
       await d.save();
     }catch(e){
       d.status='failed';await d.save();
@@ -332,15 +312,13 @@ app.post('/mpesa/callback/:secret',async(req,res)=>{
   if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim())return res.status(403).end();
   res.json({ResultCode:0,ResultDesc:'Accepted'});
   try{
-    const cb=req.body.Body&&req.body.Body.stkCallback;if(!cb)return;
-    const d=await Tx.findOne({checkoutId:cb.CheckoutRequestID,type:'deposit'});
+    const tx=parseCallback(req);if(!tx.checkoutId)return;
+    const d=await Tx.findOne({checkoutId:tx.checkoutId,type:'deposit'});
     if(!d||d.status!=='awaiting_payment')return;
-    if(cb.ResultCode!==0){d.status='failed';await d.save();return;}
-    const item=(cb.CallbackMetadata&&cb.CallbackMetadata.Item)||[];
-    const paid=item.find(i=>i.Name==='Amount');
-    if(!paid||paid.Value<Math.ceil(d.amount*KES_PER_USD))return;
+    if(!tx.ok){d.status='failed';await d.save();return;}
+    if(!tx.amount||tx.amount<Math.ceil(d.amount*KES_PER_USD))return;
     d.paidAt=Date.now();
-    d.mpesaReceipt=(item.find(i=>i.Name==='MpesaReceiptNumber')||{}).Value||'';
+    d.mpesaReceipt=tx.receipt||'';
     d.status='confirmed';d.confirmedAt=Date.now();
     await credit(d.user,'real',d.total);
     await d.save();
@@ -383,7 +361,7 @@ app.post('/withdrawals',auth,h(async(req,res)=>{
   const w=await Tx.create({user:req.uid,type:'withdrawal',method,amount:amt,fee,total,
     address:addr,status:'pending',time:Date.now(),
     instructions:method==='mpesa'?{kesAmount:Math.ceil(amt*KES_PER_USD),
-      note:'Simulated payout — Daraja B2C needed for real sends'}:{}});
+      note:'Simulated payout — provider B2C needed for real sends'}:{}});
   setTimeout(async()=>{try{
     const x=await Tx.findById(w._id);if(!x||x.status!=='pending')return;
     x.status='processed';x.confirmedAt=Date.now();await x.save();}catch{}},8000);
