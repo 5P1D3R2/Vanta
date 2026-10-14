@@ -1,5 +1,5 @@
-/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push
-   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, TINYPESA_API_KEY,
+/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa (STK + link fallback)
+   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, TINYPESA_API_KEY, TINYPESA_LINK,
         MPESA_CB_SECRET, ADMIN_EMAIL (this account always wins, both wallets)
    Optional: DEMO_WIN_RATE (0-1, default 0.95) — win rate for normal users' DEMO trades
    Verify: /version → {"v":"6.0-admin-sim"} */
@@ -19,11 +19,13 @@ const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()==
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
 /* ── TinyPesa config ──
-   Set callback URL once in the TinyPesa dashboard (Settings → Callback URL):
-   https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
+   Webhook (set in TinyPesa dashboard, per link): 
+   https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET>
+   TINYPESA_LINK = your public payment link, e.g. https://tinypesa.com/vantabinary2 */
 const TINYPESA={
-  BASE:'https://tinypesa.com/api/v1',
+  BASE:(process.env.TINYPESA_BASE||'https://tinypesa.com/api/v1').replace(/\/+$/,''),
   KEY:(process.env.TINYPESA_API_KEY||'').trim(),
+  LINK:(process.env.TINYPESA_LINK||'https://tinypesa.com/vantabinary2').trim(),
 };
 async function readJson(r,label){
   const txt=await r.text();
@@ -281,7 +283,7 @@ app.post('/deposits',auth,h(async(req,res)=>{
     bonus=r2(amt*rates[code]);}
   const total=r2(amt+bonus);
   const instructions=method==='card'?{gateway:'not-wired-yet'}
-    :method==='mpesa'?{phone:normPhone(req.body.phone),network:'M-Pesa · STK Push',kesAmount:Math.ceil(amt*KES_PER_USD)}
+    :method==='mpesa'?{phone:normPhone(req.body.phone),network:'M-Pesa · TinyPesa',kesAmount:Math.ceil(amt*KES_PER_USD)}
     :{address:PLACEHOLDER[method],
       network:method==='usdt'?'TRON · TRC-20':method==='btc'?'Bitcoin':'Ethereum · ERC-20'};
   const d=await Tx.create({user:req.uid,type:'deposit',method,amount:amt,bonus,total,
@@ -292,14 +294,16 @@ app.post('/deposits',auth,h(async(req,res)=>{
       d.status='failed';await d.save();
       return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});}
     const kes=Math.ceil(amt*KES_PER_USD);
+    d.instructions={phone,network:'M-Pesa · TinyPesa',kesAmount:kes,
+      payLink:TINYPESA.LINK,
+      note:'Tap the link, enter KES '+kes+', complete the M-Pesa prompt'};
     try{
       const j=await stkPush(kes,phone,'VNT'+String(d._id).slice(-8).toUpperCase());
-      d.checkoutId=j.request_id;
-      await d.save();
+      d.checkoutId=j.request_id; /* STK works → auto prompt sent */
     }catch(e){
-      d.status='failed';await d.save();
-      return res.status(502).json({message:'M-Pesa error: '+e.message});
+      console.error('STK failed, link fallback:',e.message); /* deposit stays valid via payLink */
     }
+    await d.save();
   }
   res.json(pub(d));
 }));
@@ -312,15 +316,21 @@ app.post('/mpesa/callback/:secret',async(req,res)=>{
   if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim())return res.status(403).end();
   res.json({ResultCode:0,ResultDesc:'Accepted'});
   try{
-    const tx=parseCallback(req);if(!tx.checkoutId)return;
-    const d=await Tx.findOne({checkoutId:tx.checkoutId,type:'deposit'});
+    const tx=parseCallback(req);
+    const phone=String(tx.phone||req.body.PhoneNumber||'');
+    let d=null;
+    if(tx.checkoutId)d=await Tx.findOne({checkoutId:tx.checkoutId,type:'deposit'});
+    if(!d&&phone)d=await Tx.findOne({type:'deposit',method:'mpesa',
+      status:'awaiting_payment','instructions.phone':phone}).sort({time:1});
     if(!d||d.status!=='awaiting_payment')return;
     if(!tx.ok){d.status='failed';await d.save();return;}
-    if(!tx.amount||tx.amount<Math.ceil(d.amount*KES_PER_USD))return;
+    const paid=tx.amount||+req.body.Amount||0;
+    if(!paid)return;
+    const expected=Math.ceil(d.amount*KES_PER_USD);
     d.paidAt=Date.now();
-    d.mpesaReceipt=tx.receipt||'';
+    d.mpesaReceipt=tx.receipt||req.body.MpesaReceiptNumber||req.body.Code||'';
     d.status='confirmed';d.confirmedAt=Date.now();
-    await credit(d.user,'real',d.total);
+    await credit(d.user,'real',paid>=expected?d.total:r2(paid/KES_PER_USD));
     await d.save();
   }catch(e){console.error('mpesa callback:',e.message)}
 });
