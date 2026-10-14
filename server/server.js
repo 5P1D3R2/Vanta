@@ -1,7 +1,7 @@
-/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push (API only)
+/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push (api.tinypesa.com)
    Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY (LINK API key from dashboard),
         MPESA_CB_SECRET, ADMIN_EMAIL
-   Optional: DEMO_WIN_RATE (0-1, default 0.95)
+   Optional: TINYPESA_LINK_SLUG (default vantabinary2), DEMO_WIN_RATE (0-1, default 0.95)
    Verify: /version → {"v":"6.0-admin-sim"} */
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
@@ -18,11 +18,14 @@ const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()==
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
 /* ── TinyPesa config ──
+   Endpoint (per their current docs): POST https://api.tinypesa.com/api/v1/express/initialize/?username=<link-slug>
+   Headers: Apikey = Link API key (dashboard → link settings)
    Webhook (TinyPesa dashboard → link settings → Primary Webhook):
    https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
 const TINYPESA={
-  BASE:(process.env.TINYPESA_BASE||'https://tinypesa.com/api/v1').replace(/\/+$/,''),
+  BASE:(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
   KEY:(process.env.TINYPESA_API_KEY||'').trim(),
+  SLUG:(process.env.TINYPESA_LINK_SLUG||'vantabinary2').trim(),
 };
 async function readJson(r,label){
   const txt=await r.text();
@@ -33,12 +36,13 @@ async function stkPush(amount,phone,ref='Payment'){
   if(!TINYPESA.KEY)throw new Error('TINYPESA_API_KEY not configured (use the LINK API key from the TinyPesa dashboard)');
   const msisdn=normPhone(phone);
   if(!/^254[17]\d{8}$/.test(msisdn))throw new Error('Invalid Kenyan number: '+msisdn);
-  const r=await fetch(TINYPESA.BASE+'/express/initiate',{method:'POST',
-    headers:{'Content-Type':'application/json',ApiKey:TINYPESA.KEY},
+  const url=TINYPESA.BASE+'/express/initialize/?username='+encodeURIComponent(TINYPESA.SLUG);
+  const r=await fetch(url,{method:'POST',
+    headers:{'Content-Type':'application/json',Accept:'application/json',Apikey:TINYPESA.KEY},
     body:JSON.stringify({amount:Math.max(1,Math.round(amount)),msisdn,
       account_no:String(ref).slice(0,20)})});
   const j=await readJson(r,'TinyPesa initiate');
-  const rid=j.request_id||j.RequestID||j.bulkID||j.DepositId;
+  const rid=j.request_id||j.RequestID||j.bulkID||j.DepositId||j.transaction_id||j.id;
   if(j.status===false||!rid)
     throw new Error('TinyPesa rejected: '+(j.message||j.errorMessage||JSON.stringify(j).slice(0,150)));
   return{...j,request_id:rid};
