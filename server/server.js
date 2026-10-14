@@ -22,7 +22,7 @@ const TINYPESA={
   BASE:'https://tinypesa.com/api/v1',
   KEY:(process.env.TINYPESA_API_KEY||'').trim(),
   CB:process.env.MPESA_CB_SECRET
-    ?'https://vanta-1-7q888l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET.trim()
+    ?'https://vanta-1-7q8l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET.trim()
     :'',
 };
 
