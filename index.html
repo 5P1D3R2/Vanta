@@ -2672,11 +2672,7 @@ function Support(app){
 /* ═══ DEPOSIT ═══ */
 function Deposit(app){
   const METHODS=[
-    {id:'mpesa',name:'M-Pesa',net:'Safaricom · STK Push',glyph:'M',note:'Instant · enter PIN'},
-    {id:'usdt',name:'USDT',net:'Tether · TRC-20',glyph:'₮',note:'No fee · ~3 min'},
-    {id:'btc',name:'BTC',net:'Bitcoin',glyph:'₿',note:'No fee · ~10 min'},
-    {id:'eth',name:'ETH',net:'Ethereum · ERC-20',glyph:'Ξ',note:'No fee · ~2 min'},
-    {id:'card',name:'Card',net:'Visa · Mastercard',glyph:'',note:'Instant · 3-D Secure'},
+    {id:'mpesa',name:'M-Pesa',net:'Safaricom · M-Pesa',glyph:'M',note:'Instant · enter PIN'},
   ];
   let step=1,method='mpesa',dep=null,phase='form';
   const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
@@ -2702,6 +2698,12 @@ function Deposit(app){
     </div>`;
   }
   function depBody(){
+    if(phase==='done')return `<div class="pn" style="text-align:center;padding:34px 16px">
+        <div class="big-check">${icon('check',26)}</div>
+        <h3 style="font-size:17px;margin-bottom:4px">${money(dep.total)} credited</h3>
+        <p class="hint" style="margin:0 0 16px">${dep.bonus?`Includes ${money(dep.bonus)} bonus (${esc(dep.bonusCode)}). `:''}REAL wallet ready.</p>
+        <a class="btn btn-up big" href="#/">Trade now</a>
+      </div>`;
     if(step===1)return `<div class="pn">
         <label class="hint" style="font-weight:700;color:var(--mut);text-transform:uppercase;font-size:10px;letter-spacing:.08em;margin:0 0 8px">Payment method</label>
         ${METHODS.map(m=>`<button class="mrow ${m.id===method?'on':''}" data-m="${m.id}">
@@ -2717,59 +2719,30 @@ function Deposit(app){
         <input id="promo" placeholder="e.g. WELCOME20" value="${dep?dep.bonusCode||'':''}" style="text-transform:uppercase">
         <p class="hint">${icon('gift',13)} <b>WELCOME20</b> +20% · <b>BOOST50</b> +50% (min $100)</p>
       </div>${sumPanel()}`;
-    if(step===2&&method==='mpesa')return `<div class="pn">
+    if(step===2&&method==='mpesa'){
+      const linkMode=!!(dep.instructions&&dep.instructions.payLink&&!dep.checkoutId);
+      const kes=dep.instructions.kesAmount?dep.instructions.kesAmount.toLocaleString():'';
+      return `<div class="pn">
         <h3 style="font-size:15px;margin-bottom:4px">M-Pesa · ${money(dep.total)}</h3>
-        <p class="hint" style="margin:0 0 12px">Request for <b>${esc(dep.instructions.phone)}</b>${dep.instructions.kesAmount?` · <b>KES ${dep.instructions.kesAmount.toLocaleString()}</b>`:''}.</p>
-        <div id="stages"></div>
-        <p class="hint" style="margin-top:12px">${icon('info',13)} Real STK Push needs Daraja wired. For testing, approve below.</p>
-        <button class="btn btn-up wide" id="mp-sim" style="margin-top:12px">${icon('check',14)} PROCESSING.....</button>
-        <button class="btn btn-ghost wide" id="mp-cancel" style="margin-top:8px">PAID</button>
+        <p class="hint" style="margin:0 0 12px">Request for <b>${esc(dep.instructions.phone)}</b>${kes?` · <b>KES ${kes}</b>`:''}.</p>
+        ${linkMode?`
+        <a class="btn btn-up wide big" id="mp-link" href="${esc(dep.instructions.payLink)}" target="_blank" rel="noopener">${icon('zap',15)} Tap to Pay · KES ${kes}</a>
+        <p class="hint" style="margin:10px 0 0">${icon('info',13)} On the next screen enter <b>KES ${kes}</b> and your number <b>${esc(dep.instructions.phone)}</b>, then enter your M-Pesa PIN. This page credits automatically once payment lands.</p>`
+        :`<p class="hint" style="margin:0">${icon('info',13)} An M-Pesa PIN prompt has been sent to <b>${esc(dep.instructions.phone)}</b>. Enter your PIN to complete the payment.</p>`}
+        <div id="stages" style="margin-top:12px"></div>
+        <button class="btn btn-ghost wide" id="mp-check" style="margin-top:12px">${icon('check',14)} I've paid — check now</button>
+        <button class="btn btn-ghost wide" id="mp-cancel" style="margin-top:8px">Cancel deposit</button>
       </div>${sumPanel()}`;
-    if(step===2&&method!=='card')return `<div class="pn">
-        <h3 style="font-size:15px;margin-bottom:4px">Send ${money(dep.total)} in ${method.toUpperCase()}</h3>
-        <p class="hint" style="margin:0 0 12px">Network: <b>${esc(dep.instructions.network)}</b> — wrong network can lose funds.</p>
-        <div class="qrbox"><canvas id="qr" width="160" height="160"></canvas></div>
-        <label class="hint" style="font-weight:700;color:var(--mut);font-size:12px;margin:0 0 4px">Deposit address</label>
-        <div class="addr"><code>${esc(dep.instructions.address)}</code>
-          <button id="cp-addr">${icon('copy',14)}</button></div>
-        <p class="hint" style="margin-bottom:12px">Address is a <b>placeholder</b> until a crypto provider is wired. Test mode: confirm below.</p>
-        <button class="btn btn-up wide" id="sent">${icon('check',14)} I've sent the funds</button>
-      </div>${sumPanel()}`;
-    if(step===2)return `<div class="pn"><h3 style="font-size:15px;margin-bottom:12px">Card · ${money(dep.total)}</h3>
-        <div class="card-f">
-          <div class="full"><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">Card number</label><input id="c-num" inputmode="numeric" placeholder="4242 4242 4242 4242"></div>
-          <div><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">Expiry</label><input id="c-exp" inputmode="numeric" placeholder="MM/YY"></div>
-          <div><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">CVV</label><input id="c-cvv" inputmode="numeric" placeholder="123" type="password"></div>
-          <div class="full"><label class="hint" style="font-weight:600;color:var(--mut);font-size:12px">Name on card</label><input id="c-name" placeholder="ALEX TRADER"></div>
-        </div>
-        <p class="hint" style="margin:10px 0 12px">Test checkout — <b>4242 4242 4242 4242</b>, any future expiry, any CVV.</p>
-        <button class="btn btn-up wide" id="c-pay">${icon('lock',14)} Pay ${money(dep.total)}</button>
-      </div>${sumPanel()}`;
-    if(phase==='done')return `<div class="pn" style="text-align:center;padding:34px 16px">
-        <div class="big-check">${icon('check',26)}</div>
-        <h3 style="font-size:17px;margin-bottom:4px">${money(dep.total)} credited</h3>
-        <p class="hint" style="margin:0 0 16px">${dep.bonus?`Includes ${money(dep.bonus)} bonus (${esc(dep.bonusCode)}). `:''}REAL wallet ready.</p>
-        <a class="btn btn-up big" href="#/">Trade now</a>
-      </div>`;
+    }
     return `<div class="pn"><h3 style="font-size:15px;margin-bottom:10px">Processing…</h3>
         <div id="stages"></div></div>${sumPanel()}`;
   }
   function draw(){
     app.innerHTML=shell('/deposit',`<div class="pg"><div class="pg-head"><h1>Deposit</h1>
-      <span class="badge pend">STEP ${step} / 3</span></div>
+      <span class="badge pend">${phase==='done'?'COMPLETE':'STEP '+step+' / 2'}</span></div>
       <div class="dep-grid">${depBody()}</div></div>`);
     wireShell();wire();
   }
-  const STAGES_CRYPTO=['Awaiting payment','Seen on network','1 / 3 confirmations','2 / 3 confirmations','Credited to REAL wallet'];
-  const STAGES_CARD=['Contacting gateway','3-D Secure check','Approving payment','Crediting REAL wallet'];
-  function setStages(names,idx){
-    $('#stages').innerHTML=names.map((n,i)=>`<div class="stg ${i<idx?'done':i===idx?'run':''}">
-      ${icon(i<idx?'check':'clock',14)}<span>${n}</span>${i===idx?'<i class="spin"></i>':''}</div>`).join('');
-  }
-  async function runStages(names,gap){for(let i=0;i<names.length;i++){setStages(names,i);await sleep(gap)}}
-  const creditAndDone=d=>{dep=d;Auth.bump('real',d.total);
-    toast('ok',`Deposited ${money(d.total)}`,'Credited to your REAL wallet.');
-    phase='done';draw();};
   function wire(){
     if(step===1){
       $$('.mrow',app).forEach(b=>b.onclick=()=>{method=b.dataset.m;draw()});
@@ -2789,54 +2762,33 @@ function Deposit(app){
         }catch(e){toast('warn','Could not create deposit',e.message);go.classList.remove('busy')}
       };
     }else if(step===2&&method==='mpesa'){
-      $('#mp-cancel').onclick=()=>{step=1;dep=null;draw()};
-      const stages=['Request sent to Safaricom','Waiting for M-Pesa PIN','Crediting REAL wallet'];
+      $('#mp-cancel').onclick=()=>{step=1;dep=null;phase='form';draw()};
+      const linkMode=!!(dep.instructions&&dep.instructions.payLink&&!dep.checkoutId);
+      const stages=linkMode
+        ?['Deposit created','Waiting for your M-Pesa payment','Crediting REAL wallet']
+        :['Request sent to Safaricom','Waiting for M-Pesa PIN','Crediting REAL wallet'];
       const setS=i=>{const el=$('#stages');if(!el)return;el.innerHTML=stages.map((n,j)=>
         `<div class="stg ${j<i?'done':j===i?'run':''}">${icon(j<i?'check':'clock',14)}<span>${n}</span>${j===i?'<i class="spin"></i>':''}</div>`).join('')};
       (async()=>{setS(1);
-        for(let i=0;i<40;i++){
+        for(let i=0;i<60;i++){
           await sleep(3000);
-          if(!$('#stages'))return;
+          if(!$('#stages')||phase==='done')return;
           let d;try{d=await API.getDeposit(dep.id)}catch{continue}
           if(d.status==='confirmed'){setS(3);await sleep(500);creditAndDone(d);return}
           if(d.status==='failed'&&$('#stages')){$('#stages').innerHTML=
             `<div class="stg" style="color:var(--red)">${icon('warn',14)}<span>Payment cancelled or failed.</span></div>`;return}
         }
-        if($('#stages'))$('#stages').innerHTML=
+        if($('#stages')&&phase!=='done')$('#stages').innerHTML=
           `<div class="stg" style="color:var(--red)">${icon('warn',14)}<span>Timed out — no payment received.</span></div>`;
       })();
-      $('#mp-sim').onclick=async()=>{
-        const b=$('#mp-sim');b.classList.add('busy');
-        try{const d=await API.completeDeposit(dep.id);creditAndDone(d)}
-        catch(e){toast('warn',e.message);b.classList.remove('busy')}
-      };
-    }else if(step===2&&method!=='card'){
-      const cv=$('#qr');
-      try{if(cv&&window.QRCode)QRCode.toCanvas(cv,dep.instructions.address,{width:160,margin:1,color:{dark:'#141610',light:'#ffffff'}},()=>{})}catch{}
-      $('#cp-addr').onclick=async()=>{try{await navigator.clipboard.writeText(dep.instructions.address);
-        toast('ok','Address copied')}catch{}};
-      $('#sent').onclick=async()=>{
-        step=3;draw();
-        await runStages(STAGES_CRYPTO,1300);
-        try{const d=await API.completeDeposit(dep.id);creditAndDone(d)}
-        catch(e){toast('warn',e.message);step=2;draw()}
-      };
-    }else if(step===2){
-      const num=$('#c-num'),exp2=$('#c-exp'),cvv=$('#c-cvv');
-      num.oninput=()=>{num.value=num.value.replace(/\D/g,'').slice(0,16).replace(/(\d{4})(?=\d)/g,'$1 ')};
-      exp2.oninput=()=>{let v=exp2.value.replace(/\D/g,'').slice(0,4);exp2.value=v.length>2?v.slice(0,2)+'/'+v.slice(2):v};
-      cvv.oninput=()=>{cvv.value=cvv.value.replace(/\D/g,'').slice(0,4)};
-      $('#c-pay').onclick=async()=>{
-        const d=num.value.replace(/\s/g,'');
-        if(!(d.length===16&&luhn(d)))return toast('warn','Check the card number');
-        if(!/^(0[1-9]|1[0-2])\/\d{2}$/.test(exp2.value))return toast('warn','Expiry','Use MM/YY');
-        if(cvv.value.length<3)return toast('warn','CVV','3–4 digits');
-        if($('#c-name').value.trim().length<2)return toast('warn','Cardholder name required');
-        const b=$('#c-pay');b.classList.add('busy');
-        step=3;draw();
-        await runStages(STAGES_CARD,1400);
-        try{const d2=await API.completeDeposit(dep.id);creditAndDone(d2)}
-        catch(e){toast('warn',e.message);step=2;draw()}
+      $('#mp-check').onclick=async()=>{
+        const b=$('#mp-check');b.classList.add('busy');
+        try{const d=await API.getDeposit(dep.id);
+          if(d.status==='confirmed'){creditAndDone(d);return}
+          if(d.status==='failed'){toast('warn','Payment failed','This deposit was marked failed — please start again.');return}
+          toast('info','Not detected yet','Give it a few seconds after paying, then check again.');
+        }catch(e){toast('warn',e.message)}
+        b.classList.remove('busy');
       };
     }
   }
