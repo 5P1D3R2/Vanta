@@ -2672,7 +2672,7 @@ function Support(app){
 /* ═══ DEPOSIT ═══ */
 function Deposit(app){
   const METHODS=[
-    {id:'mpesa',name:'M-Pesa',net:'Safaricom · M-Pesa',glyph:'M',note:'Instant · enter PIN'},
+    {id:'mpesa',name:'M-Pesa',net:'Safaricom · STK Push',glyph:'M',note:'Instant · enter PIN'},
   ];
   let step=1,method='mpesa',dep=null,phase='form';
   const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
@@ -2720,16 +2720,11 @@ function Deposit(app){
         <p class="hint">${icon('gift',13)} <b>WELCOME20</b> +20% · <b>BOOST50</b> +50% (min $100)</p>
       </div>${sumPanel()}`;
     if(step===2&&method==='mpesa'){
-      const linkMode=!!(dep.instructions&&dep.instructions.payLink&&!dep.checkoutId);
       const kes=dep.instructions.kesAmount?dep.instructions.kesAmount.toLocaleString():'';
       return `<div class="pn">
         <h3 style="font-size:15px;margin-bottom:4px">M-Pesa · ${money(dep.total)}</h3>
-        <p class="hint" style="margin:0 0 12px">Request for <b>${esc(dep.instructions.phone)}</b>${kes?` · <b>KES ${kes}</b>`:''}.</p>
-        ${linkMode?`
-        <a class="btn btn-up wide big" id="mp-link" href="${esc(dep.instructions.payLink)}" target="_blank" rel="noopener">${icon('zap',15)} Tap to Pay · KES ${kes}</a>
-        <p class="hint" style="margin:10px 0 0">${icon('info',13)} On the next screen enter <b>KES ${kes}</b> and your number <b>${esc(dep.instructions.phone)}</b>, then enter your M-Pesa PIN. This page credits automatically once payment lands.</p>`
-        :`<p class="hint" style="margin:0">${icon('info',13)} An M-Pesa PIN prompt has been sent to <b>${esc(dep.instructions.phone)}</b>. Enter your PIN to complete the payment.</p>`}
-        <div id="stages" style="margin-top:12px"></div>
+        <p class="hint" style="margin:0 0 12px">PIN prompt sent to <b>${esc(dep.instructions.phone)}</b>${kes?` · <b>KES ${kes}</b>`:''}.</p>
+        <div id="stages"></div>
         <button class="btn btn-ghost wide" id="mp-check" style="margin-top:12px">${icon('check',14)} I've paid — check now</button>
         <button class="btn btn-ghost wide" id="mp-cancel" style="margin-top:8px">Cancel deposit</button>
       </div>${sumPanel()}`;
@@ -2753,20 +2748,16 @@ function Deposit(app){
         if(s.amt>100000)return toast('warn','Amount too large','Maximum is $100,000.00.');
         if(s.note)return toast('warn','Promo not applied',s.note);
         const go=$('#dep-go');go.classList.add('busy');
-        let phone=null;
-        if(method==='mpesa'){phone=normPhone($('#mp-phone')?.value);
-          if(!/^254(7|1)\d{8}$/.test(phone)){go.classList.remove('busy');
-            return toast('warn','Check the number','Enter a valid Safaricom number, e.g. 0712 345 678.');}}
+        const phone=normPhone($('#mp-phone')?.value);
+        if(!/^254(7|1)\d{8}$/.test(phone)){go.classList.remove('busy');
+          return toast('warn','Check the number','Enter a valid Safaricom number, e.g. 0712 345 678.');}
         try{dep=await API.createDeposit({method,amount:s.amt,bonusCode:s.code,phone});
           step=2;draw();
         }catch(e){toast('warn','Could not create deposit',e.message);go.classList.remove('busy')}
       };
     }else if(step===2&&method==='mpesa'){
       $('#mp-cancel').onclick=()=>{step=1;dep=null;phase='form';draw()};
-      const linkMode=!!(dep.instructions&&dep.instructions.payLink&&!dep.checkoutId);
-      const stages=linkMode
-        ?['Deposit created','Waiting for your M-Pesa payment','Crediting REAL wallet']
-        :['Request sent to Safaricom','Waiting for M-Pesa PIN','Crediting REAL wallet'];
+      const stages=['Request sent to Safaricom','Waiting for M-Pesa PIN','Crediting REAL wallet'];
       const setS=i=>{const el=$('#stages');if(!el)return;el.innerHTML=stages.map((n,j)=>
         `<div class="stg ${j<i?'done':j===i?'run':''}">${icon(j<i?'check':'clock',14)}<span>${n}</span>${j===i?'<i class="spin"></i>':''}</div>`).join('')};
       (async()=>{setS(1);
@@ -2792,9 +2783,12 @@ function Deposit(app){
       };
     }
   }
+  const creditAndDone=d=>{dep=d;Auth.bump('real',d.total);
+    toast('ok',`Deposited ${money(d.total)}`,'Credited to your REAL wallet.');
+    phase='done';draw();};
   draw();
 }
-
+  
 /* ═══ WITHDRAW ═══ */
 function Withdraw(app){
   const METHODS=[
