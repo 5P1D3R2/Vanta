@@ -1,5 +1,5 @@
 /* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa (STK + link fallback)
-   Env: MONGO_URI, JWT_SECRET, ALLOW_DEV_CONFIRM, TINYPESA_API_KEY, TINYPESA_LINK,
+   Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY, TINYPESA_LINK,
         MPESA_CB_SECRET, ADMIN_EMAIL (this account always wins, both wallets)
    Optional: DEMO_WIN_RATE (0-1, default 0.95) — win rate for normal users' DEMO trades
    Verify: /version → {"v":"6.0-admin-sim"} */
@@ -10,7 +10,6 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
 const JWT_SECRET=process.env.JWT_SECRET||'change-me';
-const DEV_CONFIRM=process.env.ALLOW_DEV_CONFIRM==='true';
 const MIN_DEPOSIT=4, KES_PER_USD=129;
 const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
 const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
@@ -268,13 +267,10 @@ app.get('/trades',auth,h(async(req,res)=>{
 }));
 
 /* ── deposits ── */
-const PLACEHOLDER={usdt:'TXk9rWv7Qm4LdPgY2nB8sJcFeA6hUuZ3Rk',
-  btc:'bc1qxw9v2l7mecf83jan5h0ptds46yugk9rw2m8ha7',
-  eth:'0x7F9a2C4eB81d05A6f3E8c92B47aD1365F80b3De9'};
 app.post('/deposits',auth,h(async(req,res)=>{
   const method=req.body.method,amt=r2(+req.body.amount);
-  if(!['usdt','btc','eth','card','mpesa'].includes(method))
-    return res.status(400).json({message:'Pick a payment method'});
+  if(method!=='mpesa')
+    return res.status(400).json({message:'Only M-Pesa deposits are supported right now'});
   if(!(amt>=MIN_DEPOSIT))return res.status(400).json({message:'Minimum deposit is $'+MIN_DEPOSIT.toFixed(2)});
   let bonus=0;const code=(req.body.bonusCode||'').trim().toUpperCase();
   const rates={WELCOME20:.20,BOOST50:.50};
@@ -282,29 +278,22 @@ app.post('/deposits',auth,h(async(req,res)=>{
     if(code==='BOOST50'&&amt<100)return res.status(400).json({message:'BOOST50 needs a minimum of $100.00'});
     bonus=r2(amt*rates[code]);}
   const total=r2(amt+bonus);
-  const instructions=method==='card'?{gateway:'not-wired-yet'}
-    :method==='mpesa'?{phone:normPhone(req.body.phone),network:'M-Pesa · TinyPesa',kesAmount:Math.ceil(amt*KES_PER_USD)}
-    :{address:PLACEHOLDER[method],
-      network:method==='usdt'?'TRON · TRC-20':method==='btc'?'Bitcoin':'Ethereum · ERC-20'};
+  const phone=normPhone(req.body.phone);
+  if(!/^254(7|1)\d{8}$/.test(phone)){
+    return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});}
+  const kes=Math.ceil(amt*KES_PER_USD);
+  const instructions={phone,network:'M-Pesa · TinyPesa',kesAmount:kes,
+    payLink:TINYPESA.LINK,
+    note:'Tap the link, enter KES '+kes+', complete the M-Pesa prompt'};
   const d=await Tx.create({user:req.uid,type:'deposit',method,amount:amt,bonus,total,
     bonusCode:code||null,status:'awaiting_payment',time:Date.now(),instructions});
-  if(method==='mpesa'){
-    const phone=normPhone(req.body.phone);
-    if(!/^254(7|1)\d{8}$/.test(phone)){
-      d.status='failed';await d.save();
-      return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});}
-    const kes=Math.ceil(amt*KES_PER_USD);
-    d.instructions={phone,network:'M-Pesa · TinyPesa',kesAmount:kes,
-      payLink:TINYPESA.LINK,
-      note:'Tap the link, enter KES '+kes+', complete the M-Pesa prompt'};
-    try{
-      const j=await stkPush(kes,phone,'VNT'+String(d._id).slice(-8).toUpperCase());
-      d.checkoutId=j.request_id; /* STK works → auto prompt sent */
-    }catch(e){
-      console.error('STK failed, link fallback:',e.message); /* deposit stays valid via payLink */
-    }
-    await d.save();
+  try{
+    const j=await stkPush(kes,phone,'VNT'+String(d._id).slice(-8).toUpperCase());
+    d.checkoutId=j.request_id; /* STK works → auto prompt sent */
+  }catch(e){
+    console.error('STK failed, link fallback:',e.message); /* deposit stays valid via payLink */
   }
+  await d.save();
   res.json(pub(d));
 }));
 app.get('/deposits/:id',auth,h(async(req,res)=>{
@@ -338,7 +327,7 @@ app.post('/deposits/:id/confirm',auth,h(async(req,res)=>{
   const d=await Tx.findOne({_id:req.params.id,user:req.uid,type:'deposit'});
   if(!d)return res.status(404).json({message:'Deposit not found'});
   if(d.status==='confirmed')return res.json(pub(d));
-  if(!d.paidAt&&!DEV_CONFIRM)
+  if(!d.paidAt)
     return res.status(402).json({message:'Payment not detected yet'});
   d.status='confirmed';d.confirmedAt=Date.now();
   await credit(req.uid,'real',d.total);await d.save();
