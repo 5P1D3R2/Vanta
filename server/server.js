@@ -17,41 +17,58 @@ const VERSION='6.0-admin-sim';
 const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
-/* ── Daraja config ── */
-const MPESA={
-  BASE:(process.env.DARAJA_ENV||'sandbox')==='production'
-    ?'https://api.safaricom.co.ke':'https://sandbox.safaricom.co.ke',
-  KEY:(process.env.DARAJA_KEY||'').trim(),
-  SECRET:(process.env.DARAJA_SECRET||'').trim(),
-  SHORTCODE:'174379',
-  PASSKEY:(process.env.DARAJA_PASSKEY||'').trim()
-    ||'bfb279f9aa9bdbcf158e97dd71a467cd2e0c893059b10f78e6b72ada1ed2c919',
+/* ── TinyPesa config ── */
+const TINYPESA={
+  BASE:'https://tinypesa.com/api/v1',
+  KEY:(process.env.TINYPESA_API_KEY||'').trim(),
   CB:process.env.MPESA_CB_SECRET
-    ?'https://vanta-1-7q8l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET.trim()
+    ?'https://vanta-1-7q888l.onrender.com/mpesa/callback/'+process.env.MPESA_CB_SECRET.trim()
     :'',
 };
-let mpTok=null;
+
 async function readJson(r,label){
   const txt=await r.text();
   try{return JSON.parse(txt)}
   catch{throw new Error(label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,120))}
 }
-async function safToken(){
-  if(!MPESA.KEY||!MPESA.SECRET)throw new Error('Daraja keys not configured (check Render env)');
-  if(mpTok&&mpTok.exp>Date.now())return mpTok.tok;
-  const r=await fetch(MPESA.BASE+'/oauth/v1/generate?grant_type=client_credentials',
-    {headers:{Authorization:'Basic '+Buffer.from(MPESA.KEY+':'+MPESA.SECRET).toString('base64')}});
-  const j=await readJson(r,'Daraja auth');
-  if(!j.access_token)throw new Error('Daraja auth rejected: '+(j.errorMessage||JSON.stringify(j).slice(0,150)));
-  mpTok={tok:j.access_token,exp:Date.now()+3500e3};return mpTok.tok;
-}
-function stkPassword(){
-  const ts=new Date(Date.now()+3*3600e3).toISOString().replace(/\D/g,'').slice(0,14);
-  return{ts,pass:Buffer.from(MPESA.SHORTCODE+MPESA.PASSKEY+ts).toString('base64')};}
+
 const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
   if(d.startsWith('0'))d='254'+d.slice(1);
   if(d.length===9&&/^[17]/.test(d))d='254'+d;
   return d};
+
+async function stkPush(amount,phone,ref='Payment'){
+  if(!TINYPESA.KEY)throw new Error('TINYPESA_API_KEY not configured (check Render env)');
+  const msisdn=normPhone(phone);
+  if(!/^254[17]\d{8}$/.test(msisdn))throw new Error('Invalid Kenyan number: '+msisdn);
+  const r=await fetch(TINYPESA.BASE+'/express/initiate',{
+    method:'POST',
+    headers:{'Content-Type':'application/json',ApiKey:TINYPESA.KEY},
+    body:JSON.stringify({amount:Math.max(1,Math.round(amount)),msisdn,account_no:String(ref).slice(0,20)}),
+  });
+  const j=await readJson(r,'TinyPesa initiate');
+  if(j.status===false||!j.request_id)
+    throw new Error('TinyPesa rejected: '+(j.message||JSON.stringify(j).slice(0,150)));
+  return j;
+}
+
+function parseCallback(req){
+  const b=req.body||{};
+  let cb=b;
+  if(b.BodyCopy){try{cb=JSON.parse(b.BodyCopy).stkCallback||JSON.parse(b.BodyCopy)}
+    catch{cb={ResultCode:b.Code,ResultDesc:String(b.BodyCopy)}}}
+  else if(b.stkCallback)cb=b.stkCallback;
+  const items=(cb.CallbackMetadata&&cb.CallbackMetadata.Item)||[];
+  const meta=Object.fromEntries(items.map(i=>[i.Name,i.Value]));
+  return{
+    ok:String(cb.ResultCode??b.Code??1)==='0',
+    checkoutId:cb.CheckoutRequestID||'',
+    receipt:meta.MpesaReceiptNumber||'',
+    amount:meta.Amount||0,
+    phone:meta.PhoneNumber||'',
+    raw:cb,
+  };
+}
 
 /* ── assets + price engine ── */
 const ASSETS=[
