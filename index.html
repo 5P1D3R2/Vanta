@@ -2574,49 +2574,249 @@ async function Positions(app){
   onCleanup(off);
 }
 
-/* ═══ AI SCANNER ═══ */
+/* ═══ AI SCANNER — honest build: descriptive stats + signal backtests ═══ */
 function Scanner(app){
-  let rows=[];
-  function analyze(){
-    const out=[];
-    for(const a of Market.A){
-      const t=a.ticks;if(t.length<60)continue;
-      const cut=t[t.length-61];
-      const mom=(a.price-cut.p)/a.vol;
-      let ups=0;for(let i=t.length-30;i<t.length;i++)if(t[i].p>t[i-1].p)ups++;
-      const upRatio=ups/30;
-      const digs=t.slice(-20).map(k=>digitOfPrice(k.p,a.dec));
-      const even=digs.filter(d=>d%2===0).length/20;
-      let sig='n',why='Balanced tape — no strong edge right now.';
-      if(mom>=1.4){sig='up';why=`Strong upward momentum: ${mom.toFixed(1)}σ over 60s, ${Math.round(upRatio*100)}% of last 30 ticks rising.`;}
-      else if(mom<=-1.4){sig='down';why=`Strong downward momentum: ${mom.toFixed(1)}σ over 60s, only ${Math.round(upRatio*100)}% of last 30 ticks rising.`;}
-      else if(even>=.7){sig='dg';why=`Digit bias: ${Math.round(even*100)}% of last 20 digits were EVEN — parity one-sided.`;}
-      else if(even<=.3){sig='dg';why=`Digit bias: ${Math.round((1-even)*100)}% of last 20 digits were ODD — parity one-sided.`;}
-      const score=Math.round(clamp(Math.abs(mom)*22+Math.abs(even-.5)*80,4,97));
-      out.push({a,sig,why,score,
-        play:sig==='up'?'UP':sig==='down'?'DOWN':sig==='dg'?(even>=.7?'EVEN':'ODD'):'—'});
+  /* ---------- self-contained styles (injected once) ---------- */
+  if(!document.getElementById('msc-style')){
+    const st=document.createElement('style');st.id='msc-style';st.textContent=`
+.msc-wrap{max-width:760px;margin:0 auto}
+.msc-head h1{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:600;margin:0 0 4px;color:#E9EEF4}
+.msc-sub{font-size:11.5px;color:#8A96A8;margin:0 0 12px;line-height:1.5}
+.msc-tools{display:flex;gap:8px;margin-bottom:14px}
+.msc-btn{font:600 11px/1 'Space Grotesk',sans-serif;letter-spacing:.4px;color:#E9EEF4;background:#0F1319;border:1px solid #27303C;border-radius:8px;padding:9px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+.msc-btn:hover{border-color:#F2B33D;color:#F2B33D}
+.msc-btn.ghost{color:#8A96A8}
+.msc-scan{padding:38px 0;display:flex;flex-direction:column;align-items:center;gap:13px}
+.msc-radar{width:60px;height:60px;border-radius:50%;border:1px solid #27303C;position:relative;overflow:hidden}
+.msc-radar::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(242,179,61,.5),transparent 60deg);animation:msc-sweep 1.1s linear infinite}
+@keyframes msc-sweep{to{transform:rotate(360deg)}}
+.msc-scanlbl{font-size:10.5px;letter-spacing:2px;color:#8A96A8;text-transform:uppercase}
+.msc-abar{width:230px;height:4px;background:#1D242E;border-radius:2px;overflow:hidden}
+.msc-abar i{display:block;height:100%;width:0;background:#F2B33D;transition:width .12s}
+.msc-card{border:1px solid #1D242E;border-radius:10px;background:#0F1319;padding:11px 12px;margin-bottom:8px;animation:msc-in .3s both}
+@keyframes msc-in{from{opacity:0;transform:translateY(4px)}}
+.msc-top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) auto;gap:10px;align-items:center}
+.msc-id b{display:block;font-size:12.5px;color:#E9EEF4}
+.msc-id small{display:block;font-size:9.5px;color:#5C6779;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.msc-sig{display:flex;align-items:center;gap:8px;min-width:0}
+.msc-badge{font-size:8.5px;font-weight:700;letter-spacing:1px;border-radius:4px;padding:3px 7px;white-space:nowrap}
+.msc-badge.b{background:rgba(38,166,154,.15);color:#26A69A}
+.msc-badge.r{background:rgba(239,83,80,.15);color:#EF5350}
+.msc-badge.n{background:rgba(138,150,168,.15);color:#8A96A8}
+.msc-meter{flex:1;min-width:30px;height:4px;background:#1D242E;border-radius:2px;overflow:hidden}
+.msc-meter i{display:block;height:100%;border-radius:2px}
+.msc-open{font:600 11px/1 'IBM Plex Mono',monospace;color:#E9EEF4;background:none;border:1px solid #27303C;border-radius:7px;padding:8px 11px;cursor:pointer}
+.msc-open:hover,.msc-open.on{border-color:#F2B33D;color:#F2B33D}
+.msc-stats{font:400 10px/1.6 'IBM Plex Mono',monospace;color:#5C6779;margin-top:8px}
+.msc-detail{border-top:1px dashed #1D242E;margin-top:10px;padding-top:10px}
+.msc-dtitle{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#5C6779;display:block;margin-bottom:8px}
+.msc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.msc-chip{font:600 11px/1 'Space Grotesk',sans-serif;color:#8A96A8;border:1px solid #27303C;border-radius:7px;padding:7px 11px;cursor:pointer;background:none}
+.msc-chip.on{color:#F2B33D;border-color:rgba(242,179,61,.5)}
+.msc-bt{font:400 11px/1.8 'IBM Plex Mono',monospace;color:#8A96A8;display:flex;gap:14px;flex-wrap:wrap}
+.msc-bt b{color:#E9EEF4;font-weight:600}
+.msc-bt .up{color:#26A69A}.msc-bt .down{color:#EF5350}
+.msc-verdict{font-size:11px;line-height:1.65;color:#8A96A8;border-left:2px solid #F2B33D;padding-left:9px;margin-top:9px}
+.msc-note{font-size:10.5px;color:#5C6779;line-height:1.7;border-top:1px solid #1D242E;margin-top:14px;padding-top:11px}
+.msc-note b{color:#F2B33D}
+@media(max-width:540px){
+  .msc-top{grid-template-columns:minmax(0,1fr) auto}
+  .msc-id{grid-column:1}.msc-sig{grid-column:1}
+  .msc-open{grid-column:2;grid-row:1/3;align-self:center}
+}`;
+    document.head.appendChild(st);
+  }
+
+  /* ---------- helpers ---------- */
+  const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+  const sgn=v=>(v>=0?'+':'')+v.toFixed(2);
+  // ONE LINE to adapt to your data model — mark which assets are digit markets:
+  const IS_DIGIT=a=>a.digit===true||a.isDigit===true||/digit|synth|vol(10|25|50|75|100)/i.test((a.cat||'')+' '+(a.id||a.sym||''));
+  const lastDigit=(p,dec)=>{
+    if(typeof digitOfPrice==='function')return ((digitOfPrice(p,dec)%10)+10)%10;
+    const s=dec>0?p.toFixed(dec):String(Math.round(p));
+    return +s[s.length-1];
+  };
+  const PAY=a=>typeof a.payout==='number'?a.payout:0.85;
+  const PAYD=a=>typeof a.payoutEO==='number'?a.payoutEO:PAY(a);
+
+  /* ---------- statistics ---------- */
+  function priceStats(a){
+    const t=a.ticks,n=t.length;if(n<80)return null;
+    const W=Math.min(120,n-1),S=Math.min(60,n-1);
+    let sum=0,sum2=0,c=0;
+    for(let i=n-W+1;i<n;i++){const r=t[i].p/t[i-1].p-1;sum+=r;sum2+=r*r;c++;}
+    const mean=sum/c,sd=Math.sqrt(Math.max(sum2/c-mean*mean,1e-12));
+    const mom=(t[n-1].p/t[n-1-S].p-1)*100;
+    const z=(t[n-1].p/t[n-1-S].p-1)/(sd*Math.sqrt(S));
+    const volx=(typeof a.vol==='number'&&a.vol>0)?sd/a.vol:1;
+    let streak=0,sign=0;
+    for(let i=n-1;i>0;i--){const d=t[i].p-t[i-1].p;if(!d)break;const s=d>0?1:-1;
+      if(!sign){sign=s;streak=1;}else if(s===sign)streak++;else break;}
+    return{mom,z,volx,streak,line:`Mom ${sgn(mom)}% · Vol ${volx.toFixed(1)}× · Streak ${streak}`};
+  }
+  function digitStats(a){
+    const t=a.ticks,n=t.length;if(n<40)return null;
+    const m=Math.min(100,n);let ev=0,hi=0;
+    for(let i=n-m;i<n;i++){const d=lastDigit(t[i].p,a.dec);if(d%2===0)ev++;if(d>=5)hi++;}
+    let run=0,side=null;
+    for(let i=n-1;i>=n-m;i--){const s=lastDigit(t[i].p,a.dec)%2===0?'E':'O';
+      if(side===null){side=s;run=1;}else if(s===side)run++;else break;}
+    return{ev:ev/m*100,hi:hi/m*100,run,side,
+      line:`Even ${(ev/m*100).toFixed(0)}% · Hi(5-9) ${(hi/m*100).toFixed(0)}% · Streak ${side}${run}`};
+  }
+  function leanOf(a){
+    const ps=priceStats(a),ds=digitStats(a);
+    if(ps&&Math.abs(ps.z)>0.5){
+      const bull=ps.z>0;
+      return{label:bull?'BULLISH':'BEARISH',cls:bull?'b':'r',
+        str:cl(Math.round(50+Math.abs(ps.z)*16),50,95),stats:ps.line};
     }
-    out.sort((x,y)=>y.score-x.score);
-    rows=out;
+    if(ds){
+      if(ds.ev>=54)return{label:'EVEN LEAN',cls:'b',str:cl(Math.round(50+Math.abs(ds.ev-50)*2.4),50,95),stats:ds.line};
+      if(ds.ev<=46)return{label:'ODD LEAN',cls:'r',str:cl(Math.round(50+Math.abs(ds.ev-50)*2.4),50,95),stats:ds.line};
+    }
+    return{label:'NEUTRAL',cls:'n',str:50,stats:ps?ps.line:(ds?ds.line:'Warming up…')};
   }
-  function drawList(){
-    $('#sc-list').innerHTML=rows.map(r=>`
-      <div class="scan-it">
-        <div class="scan-top"><b>${r.a.name} <i class="pos-acc">${r.a.cat}</i></b>
-          <span class="scan-sig ${r.sig}">${r.play==='—'?'NO EDGE':r.play+' · '+r.score+'%'}</span></div>
-        <div class="scan-bar"><i style="width:${r.score}%"></i></div>
-        <div class="scan-why">${r.why}</div>
-      </div>`).join('');
+
+  /* ---------- backtests (show the actual edge — there isn't one) ---------- */
+  function btPrice(a,strat){
+    const t=a.ticks,N=Math.min(200,t.length-25),H=20,pay=PAY(a);
+    let T=0,W=0,pnl=0;const start=Math.max(N+1,t.length-1500);
+    for(let i=start;i<t.length-H;i+=H){
+      let sum=0,sum2=0,c=0;
+      for(let j=i-N+1;j<=i;j++){const r=t[j].p/t[j-1].p-1;sum+=r;sum2+=r*r;c++;}
+      const mean=sum/c,sd=Math.sqrt(Math.max(sum2/c-mean*mean,1e-12));
+      const z=(t[i].p/t[i-N].p-1)/(sd*Math.sqrt(N));
+      const dir=strat==='trend'?(z>0?'call':'put'):strat==='revert'?(z>0?'put':'call'):(Math.random()<.5?'call':'put');
+      const e=t[i].p,x=t[i+H].p;if(e===x)continue;
+      T++;if((dir==='call')===(x>e)){W++;pnl+=pay;}else pnl-=1;
+    }
+    return{T,W,pnl,pay};
   }
-  app.innerHTML=shell('/scanner',`<div class="pg">
-    <div class="pg-head"><h1>${icon('spark',19)} AI Scanner</h1><span class="badge open">● SCANNING</span></div>
-    <div class="pn">
-      <p class="hint" style="margin:0 0 12px">${icon('info',13)} Live statistical sweep — momentum, tick direction ratio, digit parity bias — ranked strongest first. <b>Probabilities, not guarantees.</b></p>
-      <div id="sc-list"></div>
-    </div></div>`);
+  function btDigit(a,strat){
+    const t=a.ticks,n=t.length,m=Math.min(500,n),D=[];
+    for(let i=n-m;i<n;i++)D.push(lastDigit(t[i].p,a.dec));
+    const pay=PAYD(a);let T=0,W=0,pnl=0;const pre=60;
+    for(let i=pre;i<D.length;i++){
+      let dir=null;
+      if(strat==='parity'){let ev=0;for(let j=i-pre;j<i;j++)if(D[j]%2===0)ev++;
+        const p=ev/pre*100;if(p>=54)dir='even';else if(p<=46)dir='odd';}
+      else if(strat==='streak2'){let run=1;
+        for(let j=i-1;j>0;j--){if((D[j]%2===0)===(D[j-1]%2===0))run++;else break;}
+        if(run>=2)dir=(D[i-1]%2===0)?'even':'odd';}
+      else dir=Math.random()<.5?'even':'odd';
+      if(!dir)continue;
+      T++;if((dir==='even')===(D[i]%2===0)){W++;pnl+=pay;}else pnl-=1;
+    }
+    return{T,W,pnl,pay};
+  }
+  function stratsFor(a){return IS_DIGIT(a)
+    ?[['parity','Parity lean'],['streak2','Streak follow'],['drandom','Random']]
+    :[['trend','Trend'],['revert','Mean revert'],['random','Random']];}
+  const btFor=(a,s)=>IS_DIGIT(a)?btDigit(a,s):btPrice(a,s);
+
+  /* ---------- state & rendering ---------- */
+  let rows=[],open=-1,openStrat=null,autoOn=true,animating=false,iv=null;
+
+  function analyze(){rows=Market.A.map(a=>({a,L:leanOf(a)}));}
+
+  function renderList(){
+    const list=$('#msc-list');if(!list)return;
+    list.innerHTML=rows.map((r,i)=>{
+      let detail='';
+      if(open===i){
+        detail=`<div class="msc-detail"><span class="msc-dtitle">Signal backtest — recent history, $1 stakes</span>
+          <div class="msc-chips">${stratsFor(r.a).map(s=>`<button class="msc-chip${s[0]===openStrat?' on':''}" data-bt="${i}|${s[0]}">${s[1]}</button>`).join('')}</div>
+          <div id="msc-bt-${i}"></div></div>`;
+      }
+      return `<div class="msc-card" id="msc-card-${i}" style="animation-delay:${i*35}ms">
+        <div class="msc-top">
+          <div class="msc-id"><b>${r.a.name}</b><small>${r.a.cat||''}${r.a.cat?' · ':''}${r.a.name}</small></div>
+          <div class="msc-sig"><span class="msc-badge ${r.L.cls}">${r.L.label}</span>
+            <div class="msc-meter"><i style="width:${r.L.str}%"></i></div></div>
+          <button class="msc-open${open===i?' on':''}" data-open="${i}">${open===i?'Close':'Backtest'}</button>
+        </div>
+        <div class="msc-stats" data-i="${i}">${r.L.stats}</div>
+        ${detail}</div>`;
+    }).join('');
+    if(open>=0)runBT(open,openStrat||stratsFor(rows[open].a)[0][0]);
+  }
+  function refreshStats(){
+    if(animating)return;
+    rows.forEach((r,i)=>{
+      r.L=leanOf(r.a);
+      const card=$('#msc-card-'+i);if(!card)return;
+      const b=card.querySelector('.msc-badge');
+      b.textContent=r.L.label;b.className='msc-badge '+r.L.cls;
+      card.querySelector('.msc-meter i').style.width=r.L.str+'%';
+      card.querySelector('.msc-stats').textContent=r.L.stats;
+    });
+  }
+  function runBT(i,strat){
+    openStrat=strat;
+    const r=btFor(rows[i].a,strat),out=$('#msc-bt-'+i);if(!out)return;
+    const wr=r.T?r.W/r.T*100:0,ev=r.T?r.pnl/r.T:0,be=(1/(1+r.pay)*100).toFixed(1);
+    const verdict=ev>0.05
+      ?'A positive run on this sample — that is luck, not edge. Re-run on fresh data and it regresses toward the payout drag.'
+      :ev<-0.20
+      ?'Clearly negative, exactly as the payout math predicts: each trade costs the gap between win rate and breakeven.'
+      :'Roughly breakeven minus the payout drag — no predictive edge, consistent with a random walk. This is what "no signal" looks like.';
+    out.innerHTML=`<div class="msc-bt">
+        <span>Trades <b>${r.T}</b></span><span>Win rate <b>${wr.toFixed(1)}%</b></span>
+        <span>P&amp;L / $1 <b class="${r.pnl>0?'up':'down'}">${sgn(r.pnl)}</b></span>
+        <span>Edge/trade <b>${sgn(ev*100)}%</b></span><span>Breakeven <b>${be}%</b></span></div>
+      <p class="msc-verdict">${verdict}</p>`;
+    const box=$(`#msc-card-${i}`);if(box)box.querySelectorAll('.msc-chip').forEach(c=>c.classList.toggle('on',c.dataset.bt.split('|')[1]===strat));
+  }
+
+  /* ---------- scan animation ---------- */
+  function runScan(){
+    if(animating)return;animating=true;open=-1;openStrat=null;
+    const list=$('#msc-list'),scan=$('#msc-scan'),bar=$('#msc-bar');
+    if(!scan){animating=false;return;}
+    list.innerHTML='';scan.style.display='flex';bar.style.width='0%';
+    let p=0;const iv2=setInterval(()=>{
+      p+=Math.random()*18+8;bar.style.width=Math.min(100,p)+'%';
+      if(p>=100){clearInterval(iv2);
+        setTimeout(()=>{analyze();scan.style.display='none';renderList();animating=false;},180);}
+    },90);
+  }
+
+  /* ---------- page ---------- */
+  app.innerHTML=shell('/scanner',`<div class="pg"><div class="msc-wrap">
+    <div class="msc-head">
+      <h1>${icon('spark',19)} AI market scanner</h1>
+      <p class="msc-sub">Live statistics computed from the market feed — refreshed automatically. Describes conditions, not the future.</p>
+    </div>
+    <div class="msc-tools">
+      <button id="msc-rescan" class="msc-btn">⟳ Re-scan</button>
+      <button id="msc-auto" class="msc-btn ghost">Auto: ON</button>
+    </div>
+    <div id="msc-scan" class="msc-scan">
+      <div class="msc-radar"></div>
+      <span class="msc-scanlbl">Analyzing feed…</span>
+      <div class="msc-abar"><i id="msc-bar"></i></div>
+    </div>
+    <div id="msc-list"></div>
+    <p class="msc-note"><b>Honest read-out:</b> this scanner computes real statistics — momentum z-scores, realized volatility, streaks, digit frequencies — and runs <b>signal backtests</b> on recent history so you can see the actual edge. In a random walk there is none; the results below show it. Use it as a lens on conditions, not an oracle.</p>
+  </div></div>`);
   wireShell();
-  analyze();drawList();
-  const iv=setInterval(()=>{analyze();if($('#sc-list'))drawList()},4000);
+
+  /* ---------- wiring ---------- */
+  const list=$('#msc-list');
+  list.addEventListener('click',e=>{
+    const bt=e.target.closest('[data-bt]');
+    if(bt){const[i,s]=bt.dataset.bt.split('|');runBT(+i,s);return;}
+    const op=e.target.closest('[data-open]');
+    if(op){const i=+op.dataset.open;open=(open===i)?-1:i;openStrat=null;renderList();}
+  });
+  const rb=$('#msc-rescan');if(rb)rb.onclick=runScan;
+  const ab=$('#msc-auto');
+  if(ab)ab.onclick=()=>{autoOn=!autoOn;ab.textContent='Auto: '+(autoOn?'ON':'OFF');ab.classList.toggle('ghost',!autoOn);};
+
+  runScan();
+  iv=setInterval(refreshStats,6000);
   onCleanup(()=>clearInterval(iv));
 }
 
