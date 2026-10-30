@@ -4456,26 +4456,225 @@ async function Profile(app) {
 }
 
 
-/* ── router ── */
-const routes={'/':DigitTerminal,'/markets':MarketsPage,'/classic':ClassicTerminal,'/acca':Acca,
-  '/scanner':Scanner,'/support':Support,'/deposit':Deposit,'/withdraw':Withdraw,
-  '/positions':Positions,'/history':Positions,'/profile':Profile};
-const guarded=['/deposit','/withdraw','/positions','/history','/profile','/acca'];
-function render(){
-  cleanups.forEach(f=>{try{f()}catch{}});cleanups=[];
-  const path=(location.hash||'#/').slice(1).split('?')[0];
-  if(guarded.includes(path)&&!Auth.u){
-    openAuth('register');location.hash='#/';return;
-  }
-  window.scrollTo(0,0);
-  const app=$('#app');app.innerHTML='';
-  (routes[path]||DigitTerminal)(app);
+
+/* ═══════════════════════════════════════
+   VANTA — ADVANCED APPLICATION ROUTER
+═══════════════════════════════════════ */
+
+const routes = {
+  '/': DigitTerminal,
+  '/markets': MarketsPage,
+  '/classic': ClassicTerminal,
+  '/acca': Acca,
+  '/scanner': Scanner,
+  '/support': Support,
+  '/deposit': Deposit,
+  '/withdraw': Withdraw,
+  '/positions': Positions,
+  '/history': Positions,
+  '/profile': Profile,
+  '/referrals': Referrals
+};
+
+/* ROUTE ACCESS CONTROL */
+const guarded = [
+  '/deposit',
+  '/withdraw',
+  '/positions',
+  '/history',
+  '/profile',
+  '/acca',
+  '/referrals'
+];
+
+/* ROUTE ALIASES */
+const aliases = {
+  '/home': '/',
+  '/trade': '/',
+  '/refer': '/referrals',
+  '/invite': '/referrals'
+};
+
+let routeVersion = 0;
+let appReady = false;
+
+/* CLEANUP */
+function cleanupRoute() {
+  cleanups.forEach(fn => {
+    try {
+      if (typeof fn === 'function') fn();
+    } catch (e) {
+      console.warn('Cleanup error:', e);
+    }
+  });
+
+  cleanups = [];
 }
-window.addEventListener('hashchange',render);
-(async function boot(){
-  try{await Auth.boot();render();}
-  catch(e){document.body.innerHTML='<pre style="color:#FF5A6E;padding:20px;font-family:monospace;white-space:pre-wrap">Startup error:\n'+e+'</pre>';}
+
+/* ROUTE RESOLUTION */
+function getCurrentRoute() {
+  const hash = location.hash || '#/';
+  let path = hash.slice(1).split('?')[0];
+
+  if (!path.startsWith('/')) path = '/' + path;
+
+  path = aliases[path] || path;
+
+  return path;
+}
+
+/* LOADING SCREEN */
+function showRouteLoading(app) {
+  app.innerHTML = `
+    <div style="
+      min-height:55vh;
+      display:grid;
+      place-items:center;
+      color:var(--mut);
+      text-align:center;
+    ">
+      <div>
+        <div style="
+          width:32px;
+          height:32px;
+          border:3px solid rgba(46,229,138,.15);
+          border-top-color:#2EE58A;
+          border-radius:50%;
+          animation:vantaSpin .8s linear infinite;
+          margin:0 auto 14px;
+        "></div>
+        <div style="font-size:12px">
+          Loading VANTA...
+        </div>
+      </div>
+    </div>
+
+    <style>
+      @keyframes vantaSpin {
+        to { transform:rotate(360deg); }
+      }
+    </style>
+  `;
+}
+
+/* MAIN RENDERER */
+async function render() {
+
+  const version = ++routeVersion;
+
+  cleanupRoute();
+
+  const path = getCurrentRoute();
+  const app = $('#app');
+
+  if (!app) return;
+
+  /* AUTHENTICATION CHECK */
+  if (guarded.includes(path) && !Auth.u) {
+    openAuth('register');
+    location.hash = '#/';
+    return;
+  }
+
+  /* PAGE LOADING */
+  window.scrollTo({
+    top: 0,
+    behavior: 'instant'
+  });
+
+  showRouteLoading(app);
+
+  try {
+
+    const page = routes[path] || DigitTerminal;
+
+    await Promise.resolve(page(app));
+
+    /* Ignore outdated route results */
+    if (version !== routeVersion) return;
+
+    appReady = true;
+
+  } catch (error) {
+
+    if (version !== routeVersion) return;
+
+    console.error('VANTA page error:', error);
+
+    app.innerHTML = `
+      <div class="pg">
+        <div class="pn" style="
+          padding:25px;
+          text-align:center;
+          border:1px solid rgba(255,90,110,.2);
+        ">
+          <div style="
+            font-size:30px;
+            color:#FF5A6E;
+            margin-bottom:12px;
+          ">!</div>
+
+          <h3>Unable to load page</h3>
+
+          <p class="hint">
+            Something went wrong while opening this section.
+          </p>
+
+          <button class="btn btn-up" id="v-retry">
+            Try again
+          </button>
+
+          <a class="btn btn-ghost" href="#/">
+            Return home
+          </a>
+        </div>
+      </div>
+    `;
+
+    const retry = $('#v-retry');
+    if (retry) retry.onclick = render;
+  }
+}
+
+/* NAVIGATION LISTENER */
+window.addEventListener('hashchange', render);
+
+/* INITIAL APPLICATION STARTUP */
+(async function boot() {
+
+  try {
+
+    await Auth.boot();
+
+    await render();
+
+    console.log('VANTA initialized successfully');
+
+  } catch (error) {
+
+    console.error('VANTA startup error:', error);
+
+    const app = $('#app');
+
+    if (app) {
+      app.innerHTML = `
+        <div style="
+          padding:25px;
+          color:#FF5A6E;
+          font-family:monospace;
+        ">
+          <h3>VANTA Startup Error</h3>
+          <p>Unable to initialize your application.</p>
+          <button onclick="location.reload()">
+            Reload application
+          </button>
+        </div>
+      `;
+    }
+  }
+
 })();
+
 </script>
 </body>
 </html>
