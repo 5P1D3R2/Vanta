@@ -3777,40 +3777,684 @@ function Acca(app){
   draw();
 }
 
-/* ═══ PROFILE ═══ */
-async function Profile(app){
-  app.innerHTML=shell('/profile',`<div class="pg"><div class="pg-head"><h1>Profile</h1></div>
-    <div class="pn">
-      <div style="display:flex;gap:13px;align-items:center;margin-bottom:14px">
-        <div class="abadge d" style="width:50px;height:50px;font-size:19px">${esc(Auth.u.name.trim().slice(0,1).toUpperCase())}</div>
-        <div><b style="font-size:15px">${esc(Auth.u.name)}</b><br><span style="font-size:12px;color:var(--mut)">${esc(Auth.u.email)}</span></div>
+
+/* ═══ VANTA PREMIUM PROFILE ═══ */
+async function Profile(app) {
+  const user = Auth.u;
+
+  const initials = user.name.trim()
+    .split(/\s+/)
+    .map(x => x[0])
+    .join('')
+    .slice(0, 2)
+    .toUpperCase();
+
+  const memberDate = new Date(user.createdAt)
+    .toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric'
+    });
+
+  app.innerHTML = shell('/profile', `
+    <div class="pg v-profile">
+
+      <div class="pg-head">
+        <div>
+          <h1>My Profile</h1>
+          <span class="hint">Manage your VANTA account</span>
+        </div>
+        <div class="vp-status">
+          <span class="vp-dot"></span> ACTIVE
+        </div>
       </div>
-      <div class="sum-r"><span>Member since</span><b>${new Date(Auth.u.createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})}</b></div>
-      <div class="sum-r"><span>DEMO practice balance</span><b>${money(Auth.u.wallets.demo)}</b></div>
-      <div class="sum-r"><span>REAL deposited funds</span><b>${money(Auth.u.wallets.real)}</b></div>
-      <div style="display:flex;gap:9px;margin-top:14px;flex-wrap:wrap">
-        <a class="btn btn-up" href="#/deposit">${icon('plus',14)} Deposit</a>
-        <a class="btn btn-ghost" href="#/withdraw">${icon('send',14)} Withdraw</a>
-        <button class="btn btn-ghost" id="p-out">${icon('logout',14)} Log out</button>
+
+      <!-- PROFILE HERO -->
+      <div class="pn vp-hero">
+        <div class="vp-cover"></div>
+
+        <div class="vp-identity">
+          <div class="vp-avatar">${esc(initials)}</div>
+
+          <div class="vp-user">
+            <div class="vp-name">
+              ${esc(user.name)}
+              <span class="vp-verified"
+                title="VANTA account badge"
+                aria-label="VANTA account badge">
+                <svg viewBox="0 0 24 24" width="15" height="15"
+                  fill="none" stroke="currentColor"
+                  stroke-width="3" stroke-linecap="round"
+                  stroke-linejoin="round">
+                  <path d="m5 12 4 4L19 6"/>
+                </svg>
+              </span>
+            </div>
+
+            <div class="vp-email">${esc(user.email)}</div>
+
+            <div class="vp-member">
+              <span>VANTA MEMBER</span>
+              <span>•</span>
+              <span>Since ${memberDate}</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="vp-id">
+          <span>ACCOUNT ID</span>
+          <b>${esc(String(user.id || 'VANTA-MEMBER').slice(0, 24))}</b>
+        </div>
+
+        <div class="vp-actions">
+          <a class="btn btn-up" href="#/deposit">
+            ${icon('plus', 14)} Deposit
+          </a>
+
+          <a class="btn btn-ghost" href="#/withdraw">
+            ${icon('send', 14)} Withdraw
+          </a>
+
+          <a class="btn btn-ghost" href="#/trade">
+            ${icon('chart-no-axes-combined', 14)} Trade
+          </a>
+        </div>
       </div>
+
+      <!-- WALLET OVERVIEW -->
+      <div class="vp-section-head">
+        <div>
+          <h3>Wallet overview</h3>
+          <span class="hint">Your account balances</span>
+        </div>
+      </div>
+
+      <div class="vp-wallets">
+        <div class="pn vp-wallet demo">
+          <div class="vp-wallet-top">
+            <span>DEMO BALANCE</span>
+            <span class="vp-wallet-icon">◈</span>
+          </div>
+          <b>${money(user.wallets.demo)}</b>
+          <small>Practice account</small>
+        </div>
+
+        <div class="pn vp-wallet real">
+          <div class="vp-wallet-top">
+            <span>REAL BALANCE</span>
+            <span class="vp-wallet-icon">◆</span>
+          </div>
+          <b>${money(user.wallets.real)}</b>
+          <small>Real account funds</small>
+        </div>
+      </div>
+
+      <!-- TRADING PERFORMANCE -->
+      <div class="vp-section-head">
+        <div>
+          <h3>Trading performance</h3>
+          <span class="hint">Your all-time trading statistics</span>
+        </div>
+      </div>
+
+      <div class="pn vp-performance">
+        <div class="vp-stats">
+
+          <div class="vp-stat">
+            <span>Closed trades</span>
+            <b id="ps-n">—</b>
+            <small>Total completed</small>
+          </div>
+
+          <div class="vp-stat">
+            <span>Win rate</span>
+            <b id="ps-w">—</b>
+            <small>Winning trades</small>
+          </div>
+
+          <div class="vp-stat">
+            <span>Net P/L</span>
+            <b id="ps-p">—</b>
+            <small>Overall performance</small>
+          </div>
+
+          <div class="vp-stat">
+            <span>Volume</span>
+            <b id="ps-v">—</b>
+            <small>Total traded amount</small>
+          </div>
+
+        </div>
+      </div>
+
+      <!-- ACCOUNT INFORMATION -->
+      <div class="vp-section-head">
+        <div>
+          <h3>Account information</h3>
+          <span class="hint">Your personal account details</span>
+        </div>
+      </div>
+
+      <div class="pn vp-info">
+
+        <div class="vp-info-row">
+          <span>${icon('user', 15)} Full name</span>
+          <b>${esc(user.name)}</b>
+        </div>
+
+        <div class="vp-info-row">
+          <span>${icon('mail', 15)} Email address</span>
+          <b>${esc(user.email)}</b>
+        </div>
+
+        <div class="vp-info-row">
+          <span>${icon('calendar', 15)} Member since</span>
+          <b>${memberDate}</b>
+        </div>
+
+        <div class="vp-info-row">
+          <span>${icon('shield-check', 15)} Account status</span>
+          <b class="vp-active">Active</b>
+        </div>
+
+      </div>
+
+      <!-- SECURITY -->
+      <div class="vp-section-head">
+        <div>
+          <h3>Security & account</h3>
+          <span class="hint">Manage your account access</span>
+        </div>
+      </div>
+
+      <div class="pn vp-security">
+
+        <div class="vp-security-row">
+          <div class="vp-security-icon">
+            ${icon('shield-check', 19)}
+          </div>
+          <div class="vp-security-text">
+            <b>Account protection</b>
+            <small>Keep your login details private.</small>
+          </div>
+          <span class="vp-security-label">SECURE</span>
+        </div>
+
+        <div class="vp-security-row">
+          <div class="vp-security-icon">
+            ${icon('lock', 19)}
+          </div>
+          <div class="vp-security-text">
+            <b>Password & login</b>
+            <small>Protect your account credentials.</small>
+          </div>
+        </div>
+
+        <button class="vp-logout" id="p-out">
+          ${icon('log-out', 16)} Log out of VANTA
+        </button>
+
+      </div>
+
+      <!-- RISK NOTICE -->
+      <div class="vp-warning">
+        ${icon('alert-triangle', 15)}
+        <div>
+          <b>Trading risk notice</b>
+          <p>
+            Binary options trading involves substantial risk.
+            Past performance does not guarantee future results.
+            Only deposit money you can afford to lose.
+          </p>
+        </div>
+      </div>
+
+      <div class="vp-footer">
+        VANTA TRADING TERMINAL · YOUR ACCOUNT
+      </div>
+
     </div>
-    <div class="pn"><label class="hint" style="font-weight:700;color:var(--mut);text-transform:uppercase;font-size:10px;letter-spacing:.08em">All-time stats</label><div class="stat-grid">
-      <div class="stat"><span>Closed trades</span><b id="ps-n">…</b></div>
-      <div class="stat"><span>Win rate</span><b id="ps-w">…</b></div>
-      <div class="stat"><span>Net P/L</span><b id="ps-p">…</b></div>
-      <div class="stat"><span>Volume</span><b id="ps-v">…</b></div></div></div>
-    <p class="hint" style="text-align:center">${icon('warn',12)} <b>Risk warning:</b> binary options trading carries a high level of risk. Only deposit what you can afford to lose.</p>
-    </div>`);
+
+    <style>
+      .v-profile {
+        padding-bottom: 35px;
+      }
+
+      .v-profile .pg-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+
+      .vp-status {
+        font-size: 10px;
+        letter-spacing: 1px;
+        font-weight: 800;
+        color: #2ee58a;
+        background: rgba(46,229,138,.09);
+        border: 1px solid rgba(46,229,138,.2);
+        border-radius: 30px;
+        padding: 7px 11px;
+      }
+
+      .vp-dot {
+        display: inline-block;
+        width: 7px;
+        height: 7px;
+        background: #2ee58a;
+        border-radius: 50%;
+        margin-right: 5px;
+      }
+
+      .vp-hero {
+        position: relative;
+        overflow: hidden;
+        padding: 0 16px 17px;
+        border: 1px solid rgba(46,229,138,.16);
+      }
+
+      .vp-cover {
+        height: 75px;
+        margin: 0 -16px;
+        background:
+          radial-gradient(ellipse at 80% 20%,
+            rgba(46,229,138,.25), transparent 55%),
+          linear-gradient(115deg,
+            #10231e, #101a19 55%, #102c25);
+        border-bottom: 1px solid rgba(46,229,138,.12);
+      }
+
+      .vp-identity {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin-top: -27px;
+        position: relative;
+      }
+
+      .vp-avatar {
+        width: 59px;
+        height: 59px;
+        min-width: 59px;
+        display: grid;
+        place-items: center;
+        border-radius: 18px;
+        background: linear-gradient(140deg,#2ee58a,#137b55);
+        color: #07130e;
+        font-size: 21px;
+        font-weight: 900;
+        border: 3px solid #101614;
+        box-shadow: 0 5px 20px rgba(46,229,138,.15);
+      }
+
+      .vp-user {
+        min-width: 0;
+      }
+
+      .vp-name {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+        font-size: 17px;
+        font-weight: 850;
+        color: var(--txt);
+      }
+
+      .vp-verified {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 19px;
+        height: 19px;
+        border-radius: 50%;
+        color: white;
+        background: #258be8;
+      }
+
+      .vp-email {
+        color: var(--mut);
+        font-size: 12px;
+        margin-top: 3px;
+        overflow-wrap: anywhere;
+      }
+
+      .vp-member {
+        display: flex;
+        gap: 6px;
+        align-items: center;
+        color: var(--mut);
+        font-size: 9px;
+        margin-top: 7px;
+        letter-spacing: .5px;
+      }
+
+      .vp-member span:first-child {
+        color: #2ee58a;
+        font-weight: 800;
+      }
+
+      .vp-id {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-top: 1px solid var(--line);
+        border-bottom: 1px solid var(--line);
+        padding: 11px 0;
+        margin-top: 15px;
+      }
+
+      .vp-id span {
+        color: var(--mut);
+        font-size: 10px;
+        letter-spacing: 1px;
+      }
+
+      .vp-id b {
+        font-size: 11px;
+        font-family: monospace;
+      }
+
+      .vp-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 14px;
+      }
+
+      .vp-actions .btn {
+        flex: 1;
+        min-width: 95px;
+        justify-content: center;
+      }
+
+      .vp-section-head {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin: 22px 0 10px;
+      }
+
+      .vp-section-head h3 {
+        margin: 0;
+        font-size: 14px;
+        font-weight: 800;
+      }
+
+      .vp-section-head .hint {
+        font-size: 11px;
+        display: block;
+        margin-top: 4px;
+      }
+
+      .vp-wallets {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+      }
+
+      .vp-wallet {
+        min-width: 0;
+        padding: 14px;
+        overflow: hidden;
+      }
+
+      .vp-wallet.demo {
+        border: 1px solid rgba(47,224,208,.18);
+      }
+
+      .vp-wallet.real {
+        border: 1px solid rgba(46,229,138,.2);
+      }
+
+      .vp-wallet-top {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 9px;
+        letter-spacing: .7px;
+        color: var(--mut);
+        font-weight: 800;
+      }
+
+      .vp-wallet-icon {
+        color: #2ee58a;
+        font-size: 19px;
+      }
+
+      .vp-wallet b {
+        display: block;
+        font-size: clamp(16px,4vw,22px);
+        margin: 13px 0 5px;
+        overflow-wrap: anywhere;
+      }
+
+      .vp-wallet small {
+        color: var(--mut);
+        font-size: 10px;
+      }
+
+      .vp-stats {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 0;
+      }
+
+      .vp-stat {
+        padding: 15px 12px;
+        border-bottom: 1px solid var(--line);
+        min-width: 0;
+      }
+
+      .vp-stat:nth-child(odd) {
+        border-right: 1px solid var(--line);
+      }
+
+      .vp-stat:nth-child(n+3) {
+        border-bottom: 0;
+      }
+
+      .vp-stat span {
+        display: block;
+        color: var(--mut);
+        font-size: 11px;
+      }
+
+      .vp-stat b {
+        display: block;
+        font-size: 20px;
+        margin: 8px 0 4px;
+        overflow-wrap: anywhere;
+      }
+
+      .vp-stat small {
+        font-size: 10px;
+        color: var(--mut);
+      }
+
+      .vp-info {
+        padding: 4px 14px;
+      }
+
+      .vp-info-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .vp-info-row:last-child {
+        border: 0;
+      }
+
+      .vp-info-row span {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        color: var(--mut);
+        font-size: 11px;
+      }
+
+      .vp-info-row b {
+        font-size: 11px;
+        text-align: right;
+        overflow-wrap: anywhere;
+      }
+
+      .vp-active {
+        color: #2ee58a;
+      }
+
+      .vp-security {
+        padding: 5px 14px 13px;
+      }
+
+      .vp-security-row {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        padding: 13px 0;
+        border-bottom: 1px solid var(--line);
+      }
+
+      .vp-security-icon {
+        width: 35px;
+        height: 35px;
+        display: grid;
+        place-items: center;
+        color: #2ee58a;
+        background: rgba(46,229,138,.09);
+        border-radius: 10px;
+      }
+
+      .vp-security-text {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .vp-security-text b {
+        font-size: 12px;
+        display: block;
+      }
+
+      .vp-security-text small {
+        color: var(--mut);
+        font-size: 10px;
+        display: block;
+        margin-top: 3px;
+      }
+
+      .vp-security-label {
+        font-size: 9px;
+        font-weight: 800;
+        color: #2ee58a;
+      }
+
+      .vp-logout {
+        width: 100%;
+        margin-top: 13px;
+        border: 1px solid rgba(255,90,110,.2);
+        background: rgba(255,90,110,.06);
+        color: #ff5a6e;
+        padding: 12px;
+        border-radius: 10px;
+        font-weight: 800;
+        font-size: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        cursor: pointer;
+      }
+
+      .vp-warning {
+        display: flex;
+        gap: 10px;
+        padding: 13px;
+        margin-top: 18px;
+        border: 1px solid rgba(240,185,11,.2);
+        background: rgba(240,185,11,.045);
+        border-radius: 12px;
+        color: #e8c65e;
+        font-size: 12px;
+      }
+
+      .vp-warning p {
+        margin: 5px 0 0;
+        line-height: 1.6;
+        color: var(--mut);
+        font-size: 11px;
+      }
+
+      .vp-footer {
+        text-align: center;
+        font-size: 9px;
+        letter-spacing: 1.5px;
+        color: var(--mut);
+        margin-top: 22px;
+      }
+
+      @media(max-width:380px) {
+        .vp-actions .btn {
+          min-width: 80px;
+          font-size: 11px;
+        }
+
+        .vp-identity {
+          gap: 9px;
+        }
+
+        .vp-name {
+          font-size: 14px;
+        }
+      }
+    </style>
+  `);
+
   wireShell();
-  $('#p-out').onclick=()=>Auth.logout();
-  const trades=await API.listTrades().then(t=>t.filter(x=>x.status==='closed'));
-  const w=trades.filter(t=>t.result==='win').length;
-  const pl=trades.reduce((s,t)=>s+t.profit,0),vol=trades.reduce((s,t)=>s+t.amount,0);
-  $('#ps-n').textContent=trades.length;
-  $('#ps-w').textContent=(trades.length?Math.round(w/trades.length*100):0)+'%';
-  const pe=$('#ps-p');pe.textContent=(pl>=0?'+':'−')+money(Math.abs(pl)).slice(1);pe.className=pl>=0?'u-c':'d-c';
-  $('#ps-v').textContent=money(vol);
+
+  $('#p-out').onclick = () => Auth.logout();
+
+  try {
+    const trades = await API.listTrades()
+      .then(t => t.filter(x => x.status === 'closed'));
+
+    const w = trades.filter(t => t.result === 'win').length;
+
+    const pl = trades.reduce(
+      (s, t) => s + Number(t.profit || 0), 0
+    );
+
+    const vol = trades.reduce(
+      (s, t) => s + Number(t.amount || 0), 0
+    );
+
+    $('#ps-n').textContent = trades.length;
+
+    $('#ps-w').textContent =
+      (trades.length ? Math.round(w / trades.length * 100) : 0) + '%';
+
+    const pe = $('#ps-p');
+
+    pe.textContent =
+      (pl >= 0 ? '+' : '−') +
+      money(Math.abs(pl)).slice(1);
+
+    pe.className = pl >= 0 ? 'u-c' : 'd-c';
+
+    $('#ps-v').textContent = money(vol);
+
+  } catch (err) {
+    console.error('Profile statistics error:', err);
+    $('#ps-n').textContent = '—';
+    $('#ps-w').textContent = '—';
+    $('#ps-p').textContent = '—';
+    $('#ps-v').textContent = '—';
+  }
 }
+
 
 /* ── router ── */
 const routes={'/':DigitTerminal,'/markets':MarketsPage,'/classic':ClassicTerminal,'/acca':Acca,
