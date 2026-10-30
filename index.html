@@ -4455,6 +4455,464 @@ async function Profile(app) {
   }
 }
 
+/* ═══════════════════════════════════════
+   VANTA — REFERRAL DASHBOARD
+═══════════════════════════════════════ */
+
+function Referrals(app) {
+
+  const user = Auth.u;
+
+  const code =
+    user.referralCode ||
+    user.referral_code ||
+    '';
+
+  const referralLink = code
+    ? location.origin + location.pathname +
+      '?ref=' + encodeURIComponent(code) + '#/'
+    : '';
+
+  app.innerHTML = shell('/referrals', `
+
+    <div class="pg vp-referrals">
+
+      <div class="pg-head">
+        <div>
+          <h1>Referrals</h1>
+          <span class="hint">
+            Invite friends to VANTA
+          </span>
+        </div>
+
+        <div style="
+          color:#2EE58A;
+          font-size:11px;
+          font-weight:800;
+        ">
+          ${icon('users',15)} INVITE & EARN
+        </div>
+      </div>
+
+      <!-- REFERRAL HERO -->
+      <div class="pn vr-hero">
+
+        <div class="vr-icon">
+          ${icon('gift',30)}
+        </div>
+
+        <div class="vr-title">
+          Grow with VANTA
+        </div>
+
+        <p>
+          Share your referral link with friends.
+          Track your invitations and any eligible
+          rewards through your account.
+        </p>
+
+        <div class="vr-graphic">
+          <div>${icon('user',20)}</div>
+          <span>────────────</span>
+          <div>${icon('users',22)}</div>
+          <span>────────────</span>
+          <div>${icon('gift',22)}</div>
+        </div>
+
+      </div>
+
+      <!-- REFERRAL LINK -->
+      <div class="vp-section-head">
+        <div>
+          <h3>Your referral link</h3>
+          <span class="hint">
+            Share your personal invitation
+          </span>
+        </div>
+      </div>
+
+      <div class="pn vr-link-card">
+
+        ${
+          code
+          ? `
+            <div class="vr-code-label">
+              YOUR REFERRAL CODE
+            </div>
+
+            <div class="vr-code">
+              ${esc(code)}
+            </div>
+
+            <div class="vr-link-label">
+              INVITATION LINK
+            </div>
+
+            <div class="vr-link-box">
+              <span id="vr-link-text">
+                ${esc(referralLink)}
+              </span>
+            </div>
+
+            <div class="vr-buttons">
+
+              <button class="btn btn-up" id="vr-copy">
+                ${icon('copy',15)} Copy link
+              </button>
+
+              <button class="btn btn-ghost" id="vr-share">
+                ${icon('share-2',15)} Share
+              </button>
+
+            </div>
+          `
+          : `
+            <div class="vr-unavailable">
+              ${icon('info',22)}
+              <b>Referral code not configured</b>
+              <p>
+                Your account needs a referral code
+                from the VANTA referral system.
+              </p>
+            </div>
+          `
+        }
+
+      </div>
+
+      <!-- REFERRAL STATISTICS -->
+      <div class="vp-section-head">
+        <div>
+          <h3>Referral statistics</h3>
+          <span class="hint">
+            Your invitation performance
+          </span>
+        </div>
+      </div>
+
+      <div class="vr-stats">
+
+        <div class="pn vr-stat">
+          <span>Total referrals</span>
+          <b id="vr-total">—</b>
+          <small>Registered invitations</small>
+        </div>
+
+        <div class="pn vr-stat">
+          <span>Active referrals</span>
+          <b id="vr-active">—</b>
+          <small>Eligible active users</small>
+        </div>
+
+        <div class="pn vr-stat">
+          <span>Pending rewards</span>
+          <b id="vr-pending">—</b>
+          <small>Awaiting approval</small>
+        </div>
+
+        <div class="pn vr-stat">
+          <span>Total earned</span>
+          <b id="vr-earned">—</b>
+          <small>Approved rewards</small>
+        </div>
+
+      </div>
+
+      <!-- HOW IT WORKS -->
+      <div class="vp-section-head">
+        <div>
+          <h3>How referrals work</h3>
+          <span class="hint">
+            Simple steps to invite friends
+          </span>
+        </div>
+      </div>
+
+      <div class="pn vr-steps">
+
+        <div class="vr-step">
+          <div>01</div>
+          <section>
+            <b>Share your link</b>
+            <p>Send your personal referral link to friends.</p>
+          </section>
+        </div>
+
+        <div class="vr-step">
+          <div>02</div>
+          <section>
+            <b>Friend registers</b>
+            <p>Your friend creates an account using your invitation.</p>
+          </section>
+        </div>
+
+        <div class="vr-step">
+          <div>03</div>
+          <section>
+            <b>Referral gets tracked</b>
+            <p>The referral system records eligible registrations.</p>
+          </section>
+        </div>
+
+        <div class="vr-step">
+          <div>04</div>
+          <section>
+            <b>Receive eligible rewards</b>
+            <p>Approved rewards appear in your referral dashboard.</p>
+          </section>
+        </div>
+
+      </div>
+
+      <div class="vp-footer">
+        VANTA · REFERRAL PROGRAM
+      </div>
+
+    </div>
+
+    <style>
+
+      .vr-hero {
+        padding:23px 17px;
+        text-align:center;
+        overflow:hidden;
+        border:1px solid rgba(46,229,138,.2);
+        background:
+          radial-gradient(
+            ellipse at top,
+            rgba(46,229,138,.12),
+            transparent 70%
+          );
+      }
+
+      .vr-icon {
+        width:58px;
+        height:58px;
+        display:grid;
+        place-items:center;
+        margin:auto;
+        border-radius:18px;
+        color:#2EE58A;
+        background:rgba(46,229,138,.1);
+      }
+
+      .vr-title {
+        font-size:21px;
+        font-weight:900;
+        margin-top:14px;
+      }
+
+      .vr-hero p {
+        color:var(--mut);
+        font-size:12px;
+        line-height:1.7;
+        max-width:330px;
+        margin:9px auto;
+      }
+
+      .vr-graphic {
+        display:flex;
+        justify-content:center;
+        align-items:center;
+        gap:7px;
+        color:#2EE58A;
+        margin-top:20px;
+      }
+
+      .vr-graphic div {
+        width:40px;
+        height:40px;
+        border-radius:50%;
+        background:rgba(46,229,138,.1);
+        display:grid;
+        place-items:center;
+      }
+
+      .vr-graphic span {
+        color:var(--mut);
+        font-size:9px;
+        letter-spacing:-2px;
+      }
+
+      .vr-link-card {
+        padding:16px;
+      }
+
+      .vr-code-label,
+      .vr-link-label {
+        color:var(--mut);
+        font-size:10px;
+        font-weight:800;
+        letter-spacing:1px;
+      }
+
+      .vr-code {
+        font-size:23px;
+        font-weight:900;
+        color:#2EE58A;
+        margin:9px 0 20px;
+        letter-spacing:2px;
+        overflow-wrap:anywhere;
+      }
+
+      .vr-link-box {
+        background:rgba(255,255,255,.035);
+        border:1px solid var(--line);
+        padding:12px;
+        border-radius:9px;
+        margin-top:9px;
+        overflow-wrap:anywhere;
+        font-size:11px;
+        color:var(--mut);
+      }
+
+      .vr-buttons {
+        display:flex;
+        gap:9px;
+        margin-top:13px;
+      }
+
+      .vr-buttons button {
+        flex:1;
+        justify-content:center;
+      }
+
+      .vr-stats {
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+      }
+
+      .vr-stat {
+        padding:15px;
+      }
+
+      .vr-stat span {
+        display:block;
+        font-size:11px;
+        color:var(--mut);
+      }
+
+      .vr-stat b {
+        display:block;
+        font-size:22px;
+        margin:9px 0 4px;
+      }
+
+      .vr-stat small {
+        color:var(--mut);
+        font-size:10px;
+      }
+
+      .vr-steps {
+        padding:5px 15px;
+      }
+
+      .vr-step {
+        display:flex;
+        gap:13px;
+        padding:14px 0;
+        border-bottom:1px solid var(--line);
+      }
+
+      .vr-step:last-child {
+        border-bottom:0;
+      }
+
+      .vr-step > div {
+        width:35px;
+        height:35px;
+        flex-shrink:0;
+        display:grid;
+        place-items:center;
+        border-radius:11px;
+        background:rgba(46,229,138,.1);
+        color:#2EE58A;
+        font-weight:900;
+        font-size:11px;
+      }
+
+      .vr-step section b {
+        font-size:12px;
+      }
+
+      .vr-step section p {
+        font-size:11px;
+        color:var(--mut);
+        margin:5px 0 0;
+        line-height:1.5;
+      }
+
+      .vr-unavailable {
+        text-align:center;
+        padding:20px 10px;
+        color:var(--mut);
+      }
+
+      .vr-unavailable svg {
+        color:#F0B90B;
+      }
+
+      .vr-unavailable b {
+        display:block;
+        color:var(--txt);
+        margin-top:10px;
+      }
+
+      .vr-unavailable p {
+        font-size:11px;
+        line-height:1.6;
+      }
+
+    </style>
+  `);
+
+  wireShell();
+
+  if (!code) return;
+
+  const copyBtn = app.querySelector('#vr-copy');
+  const shareBtn = app.querySelector('#vr-share');
+
+  if (copyBtn) {
+    copyBtn.onclick = async () => {
+      try {
+        await navigator.clipboard.writeText(referralLink);
+        copyBtn.textContent = 'Copied!';
+      } catch (e) {
+        window.prompt('Copy your referral link:', referralLink);
+      }
+    };
+  }
+
+  if (shareBtn) {
+    shareBtn.onclick = async () => {
+      const data = {
+        title: 'Join VANTA',
+        text: 'Join me on VANTA using my invitation link:',
+        url: referralLink
+      };
+
+      if (navigator.share) {
+        try {
+          await navigator.share(data);
+        } catch (e) {
+          if (e.name !== 'AbortError') {
+            console.error(e);
+          }
+        }
+      } else {
+        try {
+          await navigator.clipboard.writeText(referralLink);
+          shareBtn.textContent = 'Link copied!';
+        } catch (e) {
+          window.prompt('Copy your referral link:', referralLink);
+        }
+      }
+    };
+  }
+}
+
 
 
 /* ═══════════════════════════════════════
