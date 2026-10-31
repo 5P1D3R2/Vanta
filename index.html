@@ -2574,7 +2574,26 @@ async function Positions(app){
   onCleanup(off);
 }
 
+/* ═══ AI SCANNER — honest build: descriptive stats + signal backtests ═══ /
+function Scanner(app){
+/ ---------- self-contained styles (injected once) ---------- */
+if(!document.getElementById('msc-style')){
+const st=document.createElement('style');st.id='msc-style';st.textContent=   .msc-wrap{max-width:760px;margin:0 auto}   .msc-head h1{display:flex;align-items:center;gap:8px;font-size:19px;font-weight:600;margin:0 0 4px;color:#E9EEF4}   .msc-sub{font-size:11.5px;color:#8A96A8;margin:0 0 12px;line-height:1.5}   .msc-tools{display:flex;gap:8px;margin-bottom:14px}   .msc-btn{font:600 11px/1 'Space Grotesk',sans-serif;letter-spacing:.4px;color:#E9EEF4;background:#0F1319;border:1px solid #27303C;border-radius:8px;padding:9px 13px;cursor:pointer;display:inline-flex;align-items:center;gap:7px}   .msc-btn:hover{border-color:#F2B33D;color:#F2B33D}   .msc-btn.ghost{color:#8A96A8}   .msc-scan{padding:38px 0;display:flex;flex-direction:column;align-items:center;gap:13px}   .msc-radar{width:60px;height:60px;border-radius:50%;border:1px solid #27303C;position:relative;overflow:hidden}   .msc-radar::before{content:'';position:absolute;inset:0;border-radius:50%;background:conic-gradient(from 0deg,rgba(242,179,61,.5),transparent 60deg);animation:msc-sweep 1.1s linear infinite}   @keyframes msc-sweep{to{transform:rotate(360deg)}}   .msc-scanlbl{font-size:10.5px;letter-spacing:2px;color:#8A96A8;text-transform:uppercase}   .msc-abar{width:230px;height:4px;background:#1D242E;border-radius:2px;overflow:hidden}   .msc-abar i{display:block;height:100%;width:0;background:#F2B33D;transition:width .12s}   .msc-card{border:1px solid #1D242E;border-radius:10px;background:#0F1319;padding:11px 12px;margin-bottom:8px;animation:msc-in .3s both}   @keyframes msc-in{from{opacity:0;transform:translateY(4px)}}   .msc-top{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.3fr) auto;gap:10px;align-items:center}   .msc-id b{display:block;font-size:12.5px;color:#E9EEF4}   .msc-id small{display:block;font-size:9.5px;color:#5C6779;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}   .msc-sig{display:flex;align-items:center;gap:8px;min-width:0}   .msc-badge{font-size:8.5px;font-weight:700;letter-spacing:1px;border-radius:4px;padding:3px 7px;white-space:nowrap}   .msc-badge.b{background:rgba(38,166,154,.15);color:#26A69A}   .msc-badge.r{background:rgba(239,83,80,.15);color:#EF5350}   .msc-badge.n{background:rgba(138,150,168,.15);color:#8A96A8}   .msc-meter{flex:1;min-width:30px;height:4px;background:#1D242E;border-radius:2px;overflow:hidden}   .msc-meter i{display:block;height:100%;border-radius:2px}   .msc-open{font:600 11px/1 'IBM Plex Mono',monospace;color:#E9EEF4;background:none;border:1px solid #27303C;border-radius:7px;padding:8px 11px;cursor:pointer}   .msc-open:hover,.msc-open.on{border-color:#F2B33D;color:#F2B33D}   .msc-stats{font:400 10px/1.6 'IBM Plex Mono',monospace;color:#5C6779;margin-top:8px}   .msc-detail{border-top:1px dashed #1D242E;margin-top:10px;padding-top:10px}   .msc-dtitle{font-size:10px;letter-spacing:1.2px;text-transform:uppercase;color:#5C6779;display:block;margin-bottom:8px}   .msc-chips{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}   .msc-chip{font:600 11px/1 'Space Grotesk',sans-serif;color:#8A96A8;border:1px solid #27303C;border-radius:7px;padding:7px 11px;cursor:pointer;background:none}   .msc-chip.on{color:#F2B33D;border-color:rgba(242,179,61,.5)}   .msc-bt{font:400 11px/1.8 'IBM Plex Mono',monospace;color:#8A96A8;display:flex;gap:14px;flex-wrap:wrap}   .msc-bt b{color:#E9EEF4;font-weight:600}   .msc-bt .up{color:#26A69A}.msc-bt .down{color:#EF5350}   .msc-verdict{font-size:11px;line-height:1.65;color:#8A96A8;border-left:2px solid #F2B33D;padding-left:9px;margin-top:9px}   .msc-note{font-size:10.5px;color:#5C6779;line-height:1.7;border-top:1px solid #1D242E;margin-top:14px;padding-top:11px}   .msc-note b{color:#F2B33D}   @media(max-width:540px){   .msc-top{grid-template-columns:minmax(0,1fr) auto}   .msc-id{grid-column:1}.msc-sig{grid-column:1}   .msc-open{grid-column:2;grid-row:1/3;align-self:center}   };
+document.head.appendChild(st);
+}
 
+/* ---------- helpers ---------- */
+const cl=(v,a,b)=>Math.max(a,Math.min(b,v));
+const sgn=v=>(v>=0?'+':'')+v.toFixed(2);
+// ONE LINE to adapt to your data model — mark which assets are digit markets:
+const IS_DIGIT=a=>a.digit===true||a.isDigit===true||/digit|synth|vol(10|25|50|75|100)/i.test((a.cat||'')+' '+(a.id||a.sym||''));
+const lastDigit=(p,dec)=>{
+if(typeof digitOfPrice==='function')return ((digitOfPrice(p,dec)%10)+10)%10;
+const s=dec>0?p.toFixed(dec):String(Math.round(p));
+return +s[s.length-1];
+};
+const PAY=a=>typeof a.payout==='number'?a.payout:0.85;
+const PAYD=a=>typeof a.payoutEO==='number'?a.payoutEO:PAY(a);
 /* ═══ SUPPORT ═══ */
 function Support(app){
   const KEY='vanta_support_v1';
