@@ -1,4 +1,4 @@
-/* VANTA backend v6.2 · TinyPesa STK Push (auto-credit) · referrals · min stake 0.35
+/* VANTA backend v6.3 · TinyPesa STK Push (auto-credit) · USDT TRC20 · referrals · admins · min stake 0.35
    ENVIRONMENT:
    MONGO_URI
    JWT_SECRET
@@ -7,6 +7,7 @@
    ADMIN_EMAIL
 
    OPTIONAL:
+   ADMIN_EMAILS (comma-separated list of emails that can approve USDT deposits)
    TINYPESA_LINK_SLUG (default vantabinary2)
    DEMO_WIN_RATE (default 0.95)
    REFERRAL_BONUS (USD paid to the referrer when a friend makes a first
@@ -38,6 +39,8 @@ app.use(express.urlencoded({ extended: true }));
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me';
 const MIN_DEPOSIT = 4;
 const MIN_STAKE = 0.35;
+const MPESA_MAX = 1900;
+const USDT_ADDRESS = 'TVQ2apPfjAL1BUFkvg2Ep8vEzs5KgtyGSP';
 const REFERRAL_BONUS = Math.max(0, parseFloat(process.env.REFERRAL_BONUS || '0') || 0);
 const KES_PER_USD = 129;
 
@@ -47,14 +50,30 @@ const DEMO_WIN_RATE = Math.min(
 );
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const VERSION = '6.2-tinypesa-auto-referrals-minstake035';
+const VERSION = '6.3-tinypesa-usdt-admins-minstake035';
 
 const isSimUser = u =>
   !!(ADMIN_EMAIL && u &&
   String(u.email || '').trim().toLowerCase() === ADMIN_EMAIL);
 
+/* admins (can approve USDT deposits): ADMIN_EMAILS list + ADMIN_EMAIL */
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
+  .split(/[\s,;]+/)
+  .map(e => e.trim().toLowerCase())
+  .filter(Boolean);
+
+if (ADMIN_EMAIL && !ADMIN_EMAILS.includes(ADMIN_EMAIL)) {
+  ADMIN_EMAILS.push(ADMIN_EMAIL);
+}
+
+const isAdminUser = u =>
+  !!(u && ADMIN_EMAILS.includes(
+    String(u.email || '').trim().toLowerCase()
+  ));
+
 const withSim = (j, u) => {
   j.sim = isSimUser(u);
+  j.admin = isAdminUser(u);
   return j;
 };
 
@@ -1476,15 +1495,74 @@ app.post('/deposits', auth, h(async (req, res) => {
   const method = req.body.method;
   const amount = r2(+req.body.amount);
 
+  /* USDT (TRC20): user sends to our address, then submits the TXID.
+     An admin approves it after checking the transfer on-chain. */
+  if (method === 'usdt') {
+    if (!(amount >= MIN_DEPOSIT)) {
+      return res.status(400).json({
+        message: 'Minimum deposit is $' + MIN_DEPOSIT.toFixed(2)
+      });
+    }
+
+    const txid = String(req.body.txid || '').trim().toLowerCase();
+
+    if (!/^[a-f0-9]{64}$/.test(txid)) {
+      return res.status(400).json({
+        message: 'Enter the 64-character transaction ID (TXID)'
+      });
+    }
+
+    const ref = 'USDT-' + txid;
+
+    if (await Tx.findOne({ externalReference: ref })) {
+      return res.status(400).json({
+        message: 'This transaction ID was already submitted'
+      });
+    }
+
+    try {
+      const usdt = await Tx.create({
+        user: req.uid,
+        type: 'deposit',
+        method: 'usdt',
+        amount,
+        bonus: 0,
+        total: amount,
+        status: 'pending_review',
+        time: Date.now(),
+        address: USDT_ADDRESS,
+        externalReference: ref,
+
+        instructions: {
+          txid,
+          network: 'USDT · TRON (TRC20)',
+          address: USDT_ADDRESS
+        }
+      });
+
+      return res.json(pub(usdt));
+    } catch (error) {
+      return res.status(400).json({
+        message: 'This transaction ID was already submitted'
+      });
+    }
+  }
+
   if (method !== 'mpesa') {
     return res.status(400).json({
-      message: 'Only M-Pesa deposits are supported right now'
+      message: 'Pick M-Pesa or USDT to deposit'
     });
   }
 
   if (!(amount >= MIN_DEPOSIT)) {
     return res.status(400).json({
       message: 'Minimum deposit is $' + MIN_DEPOSIT.toFixed(2)
+    });
+  }
+
+  if (amount > MPESA_MAX) {
+    return res.status(400).json({
+      message: 'Maximum M-Pesa deposit is $' + MPESA_MAX
     });
   }
 
@@ -1690,6 +1768,115 @@ app.post('/mpesa/callback/:secret', async (req, res) => {
     );
   }
 });
+
+/* ── ADMIN: APPROVE USDT DEPOSITS ── */
+
+const adminAuth = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.uid);
+
+    if (!isAdminUser(user)) {
+      return res.status(403).json({ message: 'Admins only' });
+    }
+
+    next();
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
+};
+
+app.get('/admin/deposits', auth, adminAuth, h(async (req, res) => {
+  const list = await Tx.find({
+    type: 'deposit',
+    method: 'usdt',
+    status: 'pending_review'
+  }).sort({ time: 1 }).limit(100);
+
+  const ids = [...new Set(list.map(d => String(d.user)))];
+  const users = await User.find({ _id: { $in: ids } }, { email: 1 });
+  const emails = Object.fromEntries(
+    users.map(u => [String(u._id), u.email])
+  );
+
+  res.json(list.map(d => ({
+    ...pub(d),
+    userEmail: emails[String(d.user)] || ''
+  })));
+}));
+
+app.post('/admin/deposits/:id/approve', auth, adminAuth, h(async (req, res) => {
+  const session = await mongoose.startSession();
+  let owner = null;
+
+  try {
+    await session.withTransaction(async () => {
+      const dep = await Tx.findOneAndUpdate(
+        {
+          _id: req.params.id,
+          type: 'deposit',
+          method: 'usdt',
+          status: 'pending_review'
+        },
+        {
+          $set: {
+            status: 'confirmed',
+            paidAt: Date.now(),
+            confirmedAt: Date.now()
+          }
+        },
+        { new: true, session }
+      );
+
+      if (!dep) return;
+
+      const result = await User.updateOne(
+        { _id: dep.user },
+        { $inc: { 'wallets.real': Number(dep.total) } },
+        { session }
+      );
+
+      if (!result.matchedCount) {
+        throw new Error('Deposit owner account was not found');
+      }
+
+      owner = dep.user;
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  if (!owner) {
+    return res.status(404).json({
+      message: 'Deposit not found or already processed'
+    });
+  }
+
+  rewardReferrer(owner).catch(error =>
+    console.error('Referral reward:', error.message)
+  );
+
+  res.json({ ok: true });
+}));
+
+app.post('/admin/deposits/:id/reject', auth, adminAuth, h(async (req, res) => {
+  const dep = await Tx.findOneAndUpdate(
+    {
+      _id: req.params.id,
+      type: 'deposit',
+      method: 'usdt',
+      status: 'pending_review'
+    },
+    { $set: { status: 'rejected', confirmedAt: Date.now() } }
+  );
+
+  if (!dep) {
+    return res.status(404).json({
+      message: 'Deposit not found or already processed'
+    });
+  }
+
+  res.json({ ok: true });
+}));
 
 /* ── WITHDRAWALS ── */
 
