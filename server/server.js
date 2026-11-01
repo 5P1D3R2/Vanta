@@ -21,7 +21,7 @@ const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
    Endpoint (per their current docs): POST https://api.tinypesa.com/api/v1/express/initialize/?username=<link-slug>
    Headers: Apikey = Link API key (dashboard → link settings)
    Webhook (TinyPesa dashboard → link settings → Primary Webhook):
-   https://vanta-1-7q8l.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
+   https://vanta-19jf.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
 const TINYPESA={
   BASE:(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
   KEY:(process.env.TINYPESA_API_KEY||'').trim(),
