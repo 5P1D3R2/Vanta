@@ -21,12 +21,15 @@ const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
    Endpoint (per their current docs): POST https://api.tinypesa.com/api/v1/express/initialize/?username=<link-slug>
    Headers: Apikey = Link API key (dashboard → link settings)
    Webhook (TinyPesa dashboard → link settings → Primary Webhook):
-   https://vanta-i9jf.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
+   https://vanta-i9jf.onrender.com/mpesa/callback/<MPESA_CB_SECRET>
+   NOTE: the API key lives ONLY in the Render environment (TINYPESA_API_KEY). Never put it in this file. */
+const cleanEnv=v=>String(v||'').trim().replace(/^["']+|["']+$/g,'').trim();
 const TINYPESA={
-  BASE:(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
-  KEY:(process.env.TINYPESA_API_KEY||'XkqS7ZpLbBLJuYAnwYrkb6gb3Ah17LduwlDtkpbC').trim(),
-  SLUG:(process.env.TINYPESA_LINK_SLUG||'vantabinary2').trim(),
+  BASE:cleanEnv(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
+  KEY:cleanEnv(process.env.TINYPESA_API_KEY),
+  SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'vantabinary2'),
 };
+console.log('TinyPesa config → user:',TINYPESA.SLUG,'· key length:',TINYPESA.KEY.length);
 async function readJson(r,label){
   const txt=await r.text();
   try{return JSON.parse(txt)}
