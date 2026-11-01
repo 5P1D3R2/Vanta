@@ -7,7 +7,7 @@
    ADMIN_EMAIL
 
    OPTIONAL:
-   ADMIN_EMAILS (comma-separated list of emails that can approve USDT deposits)
+   ADMIN_EMAILS (comma-separated admin emails; can use /admin/tinypesa-check)
    TINYPESA_LINK_SLUG (default vantabinary2)
    DEMO_WIN_RATE (default 0.95)
    REFERRAL_BONUS (USD paid to the referrer when a friend makes a first
@@ -56,7 +56,7 @@ const isSimUser = u =>
   !!(ADMIN_EMAIL && u &&
   String(u.email || '').trim().toLowerCase() === ADMIN_EMAIL);
 
-/* admins (can approve USDT deposits): ADMIN_EMAILS list + ADMIN_EMAIL */
+/* admins: ADMIN_EMAILS list + ADMIN_EMAIL */
 const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || '')
   .split(/[\s,;]+/)
   .map(e => e.trim().toLowerCase())
@@ -82,8 +82,12 @@ const withSim = (j, u) => {
 const TINYPESA = {
   BASE: (process.env.TINYPESA_BASE ||
     'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
-  KEY: (process.env.TINYPESA_API_KEY || '').trim(),
-  SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2').trim()
+  KEY: (process.env.TINYPESA_API_KEY || '')
+    .trim().replace(/^["']+|["']+$/g, '').trim(),
+  SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
+    .trim().replace(/^["']+|["']+$/g, '')
+    .replace(/^https?:\/\/(www\.)?tinypesa\.com\//i, '')
+    .replace(/\/+$/, '').trim()
 };
 
 async function readJson(response, label) {
@@ -1496,7 +1500,7 @@ app.post('/deposits', auth, h(async (req, res) => {
   const amount = r2(+req.body.amount);
 
   /* USDT (TRC20): user sends to our address, then submits the TXID.
-     An admin approves it after checking the transfer on-chain. */
+     The deposit is recorded as 'pending_review'. */
   if (method === 'usdt') {
     if (!(amount >= MIN_DEPOSIT)) {
       return res.status(400).json({
@@ -1661,8 +1665,13 @@ app.post('/deposits', auth, h(async (req, res) => {
     deposit.status = 'failed';
     await deposit.save();
 
+    const credentialProblem =
+      /unauthor|apikey|username|api key/i.test(error.message);
+
     return res.status(502).json({
-      message: 'M-Pesa error: ' + error.message
+      message: credentialProblem
+        ? 'M-Pesa is temporarily unavailable. Please try again shortly or use USDT.'
+        : 'M-Pesa error: ' + error.message
     });
   }
 
@@ -1769,7 +1778,41 @@ app.post('/mpesa/callback/:secret', async (req, res) => {
   }
 });
 
-/* ── ADMIN: APPROVE USDT DEPOSITS ── */
+/* ── ADMIN: CHECK TINYPESA CREDENTIALS (sends no money request) ── */
+
+app.get('/admin/tinypesa-check', auth, adminAuth, h(async (req, res) => {
+  const out = {
+    slugInUse: TINYPESA.SLUG,
+    apiKeyLength: TINYPESA.KEY.length,
+    callbackSecretSet: !!(process.env.MPESA_CB_SECRET || '').trim()
+  };
+
+  if (!TINYPESA.KEY) {
+    out.verdict = 'TINYPESA_API_KEY is missing on Render';
+    return res.json(out);
+  }
+
+  try {
+    const response = await fetch(
+      TINYPESA.BASE + '/express/get_status/VNTCHECK/?username=' +
+        encodeURIComponent(TINYPESA.SLUG),
+      { headers: { Accept: 'application/json', Apikey: TINYPESA.KEY } }
+    );
+
+    out.httpStatus = response.status;
+    out.reply = (await response.text()).slice(0, 160);
+
+    out.verdict = response.status === 401 || response.status === 403
+      ? 'TinyPesa rejected the API key or username. Re-copy the API key from your TinyPesa dashboard and check TINYPESA_LINK_SLUG is your TinyPesa username.'
+      : 'Credentials accepted by TinyPesa.';
+  } catch (error) {
+    out.verdict = 'Could not reach TinyPesa: ' + error.message;
+  }
+
+  res.json(out);
+}));
+
+/* ── ADMIN HELPER ── */
 
 const adminAuth = async (req, res, next) => {
   try {
@@ -1784,99 +1827,6 @@ const adminAuth = async (req, res, next) => {
     res.status(500).json({ message: error.message });
   }
 };
-
-app.get('/admin/deposits', auth, adminAuth, h(async (req, res) => {
-  const list = await Tx.find({
-    type: 'deposit',
-    method: 'usdt',
-    status: 'pending_review'
-  }).sort({ time: 1 }).limit(100);
-
-  const ids = [...new Set(list.map(d => String(d.user)))];
-  const users = await User.find({ _id: { $in: ids } }, { email: 1 });
-  const emails = Object.fromEntries(
-    users.map(u => [String(u._id), u.email])
-  );
-
-  res.json(list.map(d => ({
-    ...pub(d),
-    userEmail: emails[String(d.user)] || ''
-  })));
-}));
-
-app.post('/admin/deposits/:id/approve', auth, adminAuth, h(async (req, res) => {
-  const session = await mongoose.startSession();
-  let owner = null;
-
-  try {
-    await session.withTransaction(async () => {
-      const dep = await Tx.findOneAndUpdate(
-        {
-          _id: req.params.id,
-          type: 'deposit',
-          method: 'usdt',
-          status: 'pending_review'
-        },
-        {
-          $set: {
-            status: 'confirmed',
-            paidAt: Date.now(),
-            confirmedAt: Date.now()
-          }
-        },
-        { new: true, session }
-      );
-
-      if (!dep) return;
-
-      const result = await User.updateOne(
-        { _id: dep.user },
-        { $inc: { 'wallets.real': Number(dep.total) } },
-        { session }
-      );
-
-      if (!result.matchedCount) {
-        throw new Error('Deposit owner account was not found');
-      }
-
-      owner = dep.user;
-    });
-  } finally {
-    await session.endSession();
-  }
-
-  if (!owner) {
-    return res.status(404).json({
-      message: 'Deposit not found or already processed'
-    });
-  }
-
-  rewardReferrer(owner).catch(error =>
-    console.error('Referral reward:', error.message)
-  );
-
-  res.json({ ok: true });
-}));
-
-app.post('/admin/deposits/:id/reject', auth, adminAuth, h(async (req, res) => {
-  const dep = await Tx.findOneAndUpdate(
-    {
-      _id: req.params.id,
-      type: 'deposit',
-      method: 'usdt',
-      status: 'pending_review'
-    },
-    { $set: { status: 'rejected', confirmedAt: Date.now() } }
-  );
-
-  if (!dep) {
-    return res.status(404).json({
-      message: 'Deposit not found or already processed'
-    });
-  }
-
-  res.json({ ok: true });
-}));
 
 /* ── WITHDRAWALS ── */
 
@@ -2043,6 +1993,11 @@ mongoose.connect(process.env.MONGO_URI)
 
     if (!TINYPESA.KEY) {
       console.warn('WARNING: TINYPESA_API_KEY missing - deposits disabled');
+    } else {
+      console.log(
+        'TinyPesa: username "' + TINYPESA.SLUG + '", key length ' +
+        TINYPESA.KEY.length
+      );
     }
 
     if (!(process.env.MPESA_CB_SECRET || '').trim()) {
