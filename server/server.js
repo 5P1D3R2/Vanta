@@ -24,7 +24,7 @@ const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
    https://vanta-19jf.onrender.com/mpesa/callback/<MPESA_CB_SECRET> */
 const TINYPESA={
   BASE:(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
-  KEY:(process.env.TINYPESA_API_KEY||'').trim(),
+  KEY:(process.env.TINYPESA_API_KEY||'C9y8ZqP7psFMf9sdGLQkT8eaUoOxDYbF-dqe4p-R').trim(),
   SLUG:(process.env.TINYPESA_LINK_SLUG||'vantabinary2').trim(),
 };
 async function readJson(r,label){
