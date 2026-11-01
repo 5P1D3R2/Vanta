@@ -27,7 +27,7 @@ const cleanEnv=v=>String(v||'').trim().replace(/^["']+|["']+$/g,'').trim();
 const TINYPESA={
   BASE:cleanEnv(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
   KEY:cleanEnv(process.env.TINYPESA_API_KEY),
-  SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'vantabinary2'),
+  SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'Amspider'),
 };
 console.log('TinyPesa config → user:',TINYPESA.SLUG,'· key length:',TINYPESA.KEY.length);
 async function readJson(r,label){
