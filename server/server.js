@@ -82,7 +82,7 @@ const withSim = (j, u) => {
 const TINYPESA = {
   BASE: (process.env.TINYPESA_BASE ||
     'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
-  KEY: (process.env.TINYPESA_API_KEY || '06v0uNTX11FZCF3U32GGygyoEuZb5E-9YiAMvMt3yk6FefoUEg')
+  KEY: (process.env.TINYPESA_API_KEY || 'NJlywSJiOVIEM6NMgM-fmZoaHk4bk7pneHI6zzDngrcHm44snG')
     .trim().replace(/^["']+|["']+$/g, '').trim(),
   SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
     .trim().replace(/^["']+|["']+$/g, '')
