@@ -1,1149 +1,1696 @@
-/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push
-   Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY (LINK API key),
-        MPESA_CB_SECRET, ADMIN_EMAIL
-   Optional: TINYPESA_BASE, TINYPESA_LINK_SLUG, DEMO_WIN_RATE
-   Verify: /version → {"v":"6.0-admin-sim"}
+/* VANTA backend v6.1 · TinyPesa verified STK Push
+   ENVIRONMENT:
+   MONGO_URI
+   JWT_SECRET
+   TINYPESA_API_KEY
+   MPESA_CB_SECRET
+   ADMIN_EMAIL
+
+   OPTIONAL:
+   TINYPESA_LINK_SLUG (default vantabinary2)
+   DEMO_WIN_RATE (default 0.95)
+
+   Verify: /version
 */
 
-const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
-      jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
+const jwt = require('jsonwebtoken');
+const bcrypt = require('bcryptjs');
 
-const app=express();
+const app = express();
 
 app.use(cors());
 app.use(express.json());
-app.use(express.urlencoded({extended:true}));
+app.use(express.urlencoded({ extended: true }));
 
-const JWT_SECRET=process.env.JWT_SECRET||'change-me';
-const MIN_DEPOSIT=4,KES_PER_USD=129;
-const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
-const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
-const VERSION='6.0-admin-sim';
+const JWT_SECRET = process.env.JWT_SECRET || 'change-me';
+const MIN_DEPOSIT = 4;
+const KES_PER_USD = 129;
 
-const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
-const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
+const DEMO_WIN_RATE = Math.min(
+  1,
+  Math.max(0, parseFloat(process.env.DEMO_WIN_RATE || '0.95'))
+);
 
-/* ── TinyPesa configuration ── */
+const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
+const VERSION = '6.1-admin-sim-tinypesa-verified';
 
-const cleanEnv=v=>String(v||'').trim().replace(/^["']+|["']+$/g,'').trim();
+const isSimUser = u =>
+  !!(ADMIN_EMAIL && u &&
+  String(u.email || '').trim().toLowerCase() === ADMIN_EMAIL);
 
-const TINYPESA={
-  BASE:cleanEnv(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
-  KEY:cleanEnv(process.env.TINYPESA_API_KEY),
-  SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'vantabinary2')
-};
-
-console.log('TinyPesa configuration:',{
-  username:TINYPESA.SLUG,
-  keyConfigured:!!TINYPESA.KEY,
-  keyLength:TINYPESA.KEY.length
-});
-
-async function readJson(r,label){
-  const txt=await r.text();
-
-  try{
-    return JSON.parse(txt);
-  }catch{
-    throw new Error(
-      label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,150)
-    );
-  }
-}
-
-async function stkPush(amount,phone,ref='Payment'){
-
-  if(!TINYPESA.KEY){
-    throw new Error(
-      'TinyPesa API key missing. Configure TINYPESA_API_KEY in Render.'
-    );
-  }
-
-  if(!TINYPESA.SLUG){
-    throw new Error(
-      'TinyPesa username missing. Configure TINYPESA_LINK_SLUG in Render.'
-    );
-  }
-
-  const msisdn=normPhone(phone);
-
-  if(!/^254[17]\d{8}$/.test(msisdn)){
-    throw new Error('Invalid Kenyan number: '+msisdn);
-  }
-
-  const url=
-    TINYPESA.BASE+
-    '/express/initialize/?username='+
-    encodeURIComponent(TINYPESA.SLUG);
-
-  const controller=new AbortController();
-
-  const timeout=setTimeout(()=>{
-    controller.abort();
-  },25000);
-
-  try{
-
-    const r=await fetch(url,{
-      method:'POST',
-
-      headers:{
-        'Content-Type':'application/json',
-        'Accept':'application/json',
-        'Apikey':TINYPESA.KEY
-      },
-
-      body:JSON.stringify({
-        amount:Math.max(1,Math.round(Number(amount))),
-        msisdn,
-        account_no:String(ref).slice(0,20)
-      }),
-
-      signal:controller.signal
-    });
-
-    const j=await readJson(r,'TinyPesa initiate');
-
-    if(!r.ok){
-      const message=
-        j.message||
-        j.errorMessage||
-        j.error||
-        JSON.stringify(j).slice(0,200);
-
-      throw new Error(
-        'TinyPesa HTTP '+r.status+': '+message
-      );
-    }
-
-    const rid=
-      j.request_id||
-      j.RequestID||
-      j.bulkID||
-      j.DepositId||
-      j.transaction_id||
-      j.id;
-
-    if(
-      j.status===false||
-      j.success===false||
-      !rid
-    ){
-      throw new Error(
-        'TinyPesa rejected: '+
-        (j.message||j.errorMessage||j.error||JSON.stringify(j).slice(0,200))
-      );
-    }
-
-    console.log('TinyPesa STK initiated:',{
-      requestId:rid,
-      phone:msisdn,
-      amount:Math.round(Number(amount))
-    });
-
-    return{
-      ...j,
-      request_id:String(rid)
-    };
-
-  }catch(e){
-
-    if(e.name==='AbortError'){
-      throw new Error('TinyPesa request timed out. Please try again.');
-    }
-
-    console.error('TinyPesa STK error:',e.message);
-
-    throw e;
-
-  }finally{
-    clearTimeout(timeout);
-  }
-}
-
-function parseCallback(req){
-
-  const b=req.body||{};
-  let cb=b;
-
-  if(b.BodyCopy){
-    try{
-      const p=JSON.parse(b.BodyCopy);
-      cb=p.stkCallback||p;
-    }catch{
-      cb={
-        ResultCode:b.Code,
-        ResultDesc:String(b.BodyCopy)
-      };
-    }
-  }
-
-  else if(b.Body&&b.Body.stkCallback){
-    cb=b.Body.stkCallback;
-  }
-
-  else if(b.stkCallback){
-    cb=b.stkCallback;
-  }
-
-  const items=(cb.CallbackMetadata&&cb.CallbackMetadata.Item)||[];
-
-  const meta=Object.fromEntries(
-    items.map(i=>[i.Name,i.Value])
-  );
-
-  return{
-    ok:String(cb.ResultCode??b.Code??1)==='0',
-    checkoutId:cb.CheckoutRequestID||b.CheckoutRequestID||'',
-    receipt:meta.MpesaReceiptNumber||'',
-    amount:meta.Amount||0,
-    phone:meta.PhoneNumber||'',
-    raw:cb
-  };
-}
-
-const normPhone=v=>{
-  let d=(v||'').replace(/\D/g,'');
-
-  if(d.startsWith('0')){
-    d='254'+d.slice(1);
-  }
-
-  if(d.length===9&&/^[17]/.test(d)){
-    d='254'+d;
-  }
-
-  return d;
-};
-
-/* ── assets + price engine ── */
-
-const ASSETS=[
-  {id:'EURUSD',name:'EUR/USD',cat:'Forex',start:1.08423,vol:0.00006,dec:5,payout:85},
-  {id:'GBPUSD',name:'GBP/USD',cat:'Forex',start:1.27164,vol:0.00009,dec:5,payout:83},
-  {id:'USDJPY',name:'USD/JPY',cat:'Forex',start:154.281,vol:0.011,dec:3,payout:82},
-  {id:'BTCUSD',name:'BTC/USD',cat:'Crypto',start:67432,vol:16,dec:0,payout:88},
-  {id:'ETHUSD',name:'ETH/USD',cat:'Crypto',start:3418.4,vol:1.2,dec:1,payout:86},
-  {id:'XAUUSD',name:'GOLD',cat:'Commodity',start:2382.6,vol:0.5,dec:2,payout:84}
-];
-
-const P={};
-
-ASSETS.forEach(a=>{
-  P[a.id]={price:a.start,drift:0};
-});
-
-function gauss(){
-  let u=0,v=0;
-
-  while(!u)u=Math.random();
-  while(!v)v=Math.random();
-
-  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
-}
-
-setInterval(()=>{
-  for(const a of ASSETS){
-
-    const s=P[a.id];
-
-    if(Math.random()<0.03){
-      s.drift=(Math.random()-0.5)*a.vol*0.9;
-    }
-
-    const pull=(a.start-s.price)/a.start*a.vol*0.35;
-
-    s.price=Math.max(
-      a.start*0.3,
-      s.price+s.drift+s.vol*gauss()+pull
-    );
-  }
-},400);
-
-/* ── models ── */
-
-const User=mongoose.model('User',new mongoose.Schema({
-  name:String,
-  email:{type:String,unique:true,index:true},
-  passwordHash:String,
-  wallets:{
-    demo:{type:Number,default:10000},
-    real:{type:Number,default:0}
-  },
-  createdAt:{type:Number,default:()=>Date.now()}
-}));
-
-const Trade=mongoose.model('Trade',new mongoose.Schema({
-  user:{type:Object,index:true},
-  asset:String,
-  dir:String,
-  kind:{type:String,default:'updown'},
-  option:String,
-  target:Number,
-  legs:Array,
-  mult:Number,
-  amount:Number,
-  account:String,
-  payout:Number,
-  entry:Object,
-  entryTime:Number,
-  expiry:Number,
-  status:{type:String,index:true},
-  close:Object,
-  closeTime:Number,
-  result:String,
-  profit:Number,
-  sim:{type:Boolean,default:false}
-},{versionKey:false}));
-
-const Tx=mongoose.model('Tx',new mongoose.Schema({
-  user:{type:Object,index:true},
-  type:String,
-  method:String,
-  amount:Number,
-  fee:{type:Number,default:0},
-  total:Number,
-  bonus:{type:Number,default:0},
-  bonusCode:String,
-  status:String,
-  time:Number,
-  confirmedAt:Number,
-  address:String,
-  instructions:Object,
-  checkoutId:String,
-  paidAt:Number,
-  mpesaReceipt:String
-},{versionKey:false}));
-
-const r2=v=>Math.round(v*100)/100;
-
-const pub=o=>{
-  const x=o.toObject?o.toObject():{...o};
-  const j={...x,id:String(x._id)};
-
-  delete j._id;
-  delete j.__v;
-  delete j.user;
-
+const withSim = (j, u) => {
+  j.sim = isSimUser(u);
   return j;
 };
 
-const h=f=>(req,res)=>f(req,res).catch(e=>{
-  console.error('ERR:',e.message);
-  res.status(500).json({message:e.message||'Server error'});
-});
+/* ── TINYPESA CONFIGURATION ── */
 
-async function credit(uid,acc,v){
-  const u=await User.findById(uid);
+const TINYPESA = {
+  BASE: (process.env.TINYPESA_BASE ||
+    'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
+  KEY: (process.env.TINYPESA_API_KEY || '').trim(),
+  SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2').trim()
+};
 
-  u.wallets[acc]=r2(u.wallets[acc]+v);
+async function readJson(response, label) {
+  const txt = await response.text();
 
-  await u.save();
+  try {
+    return JSON.parse(txt);
+  } catch {
+    throw new Error(
+      label + ' returned HTTP ' + response.status +
+      ' non-JSON: ' + txt.slice(0, 120)
+    );
+  }
 }
 
-const auth=(req,res,next)=>{
-  const hd=req.headers.authorization||'';
+const normPhone = value => {
+  let digits = String(value || '').replace(/\D/g, '');
 
-  try{
-    req.uid=jwt.verify(hd.slice(7),JWT_SECRET).uid;
+  if (digits.startsWith('0')) {
+    digits = '254' + digits.slice(1);
+  }
+
+  if (digits.length === 9 && /^[17]/.test(digits)) {
+    digits = '254' + digits;
+  }
+
+  return digits;
+};
+
+async function stkPush(amount, phone, ref = 'Payment') {
+  if (!TINYPESA.KEY) {
+    throw new Error('TINYPESA_API_KEY not configured');
+  }
+
+  const msisdn = normPhone(phone);
+
+  if (!/^254[17]\d{8}$/.test(msisdn)) {
+    throw new Error('Invalid Kenyan Safaricom number');
+  }
+
+  const url =
+    TINYPESA.BASE +
+    '/express/initialize/?username=' +
+    encodeURIComponent(TINYPESA.SLUG);
+
+  const response = await fetch(url, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Accept: 'application/json',
+      Apikey: TINYPESA.KEY
+    },
+    body: JSON.stringify({
+      amount: Math.max(1, Math.round(amount)),
+      msisdn,
+      account_no: String(ref).slice(0, 20)
+    })
+  });
+
+  const data = await readJson(response, 'TinyPesa initiate');
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+      data.errorMessage ||
+      ('TinyPesa HTTP ' + response.status)
+    );
+  }
+
+  const requestId =
+    data.request_id ||
+    data.RequestID ||
+    data.bulkID ||
+    data.DepositId ||
+    data.transaction_id ||
+    data.id;
+
+  if (data.status === false || !requestId) {
+    throw new Error(
+      'TinyPesa rejected: ' +
+      (data.message || data.errorMessage ||
+      JSON.stringify(data).slice(0, 150))
+    );
+  }
+
+  return {
+    ...data,
+    request_id: requestId
+  };
+}
+
+/* ── TINYPESA CALLBACK PARSER ── */
+
+function parseCallback(req) {
+  const root = req.body || {};
+  const body = root.Body || root;
+
+  const callback =
+    body.stkCallback ||
+    root.stkCallback ||
+    body;
+
+  const items =
+    (callback.CallbackMetadata &&
+    callback.CallbackMetadata.Item) || [];
+
+  const metadata = Object.fromEntries(
+    items.map(item => [item.Name, item.Value])
+  );
+
+  return {
+    ok: Number(
+      callback.ResultCode ??
+      body.ResultCode ??
+      root.Code ??
+      1
+    ) === 0,
+
+    checkoutId:
+      callback.CheckoutRequestID ||
+      body.CheckoutRequestID ||
+      root.CheckoutRequestID ||
+      '',
+
+    tinyPesaId:
+      body.TinyPesaID ||
+      root.TinyPesaID ||
+      '',
+
+    externalRef:
+      body.ExternalReference ||
+      root.ExternalReference ||
+      callback.ExternalReference ||
+      '',
+
+    receipt:
+      metadata.MpesaReceiptNumber ||
+      body.ref_no ||
+      body.RefNo ||
+      '',
+
+    amount: Number(
+      metadata.Amount ??
+      body.Amount ??
+      root.Amount ??
+      0
+    ),
+
+    phone: String(
+      metadata.PhoneNumber ??
+      body.Msisdn ??
+      body.PhoneNumber ??
+      root.Msisdn ??
+      ''
+    ),
+
+    raw: callback
+  };
+}
+
+/* ── VERIFY PAYMENT WITH TINYPESA ── */
+
+async function tinyPesaStatus(externalReference) {
+  if (!TINYPESA.KEY) {
+    throw new Error('TINYPESA_API_KEY is not configured');
+  }
+
+  const url =
+    TINYPESA.BASE +
+    '/express/get_status/' +
+    encodeURIComponent(externalReference) +
+    '/?username=' +
+    encodeURIComponent(TINYPESA.SLUG);
+
+  const response = await fetch(url, {
+    headers: {
+      Accept: 'application/json',
+      Apikey: TINYPESA.KEY
+    }
+  });
+
+  const raw = await response.text();
+
+  if (response.status === 400) {
+    return null;
+  }
+
+  let data;
+
+  try {
+    data = JSON.parse(raw);
+  } catch {
+    throw new Error(
+      'TinyPesa status returned non-JSON HTTP ' +
+      response.status
+    );
+  }
+
+  if (!response.ok) {
+    throw new Error(
+      data.message ||
+      ('TinyPesa status HTTP ' + response.status)
+    );
+  }
+
+  return data;
+}
+
+/* ── CREDIT ONLY VERIFIED DEPOSITS ── */
+
+async function verifyAndCreditDeposit(
+  deposit,
+  externalReference,
+  callbackData = {}
+) {
+  if (!deposit || deposit.status !== 'awaiting_payment') {
+    return false;
+  }
+
+  if (
+    !externalReference ||
+    externalReference !== deposit.externalReference
+  ) {
+    return false;
+  }
+
+  const live = await tinyPesaStatus(externalReference);
+
+  if (!live || live.is_complete !== true) {
+    return false;
+  }
+
+  if (
+    String(live.external_reference || '') !==
+    String(deposit.externalReference)
+  ) {
+    return false;
+  }
+
+  const paid = Number(live.amount);
+  const expected = Math.ceil(
+    Number(deposit.amount) * KES_PER_USD
+  );
+
+  if (!Number.isFinite(paid) || paid !== expected) {
+    console.error(
+      'Deposit amount mismatch; left uncredited',
+      String(deposit._id),
+      { paid, expected }
+    );
+
+    return false;
+  }
+
+  const session = await mongoose.startSession();
+  let applied = false;
+
+  try {
+    await session.withTransaction(async () => {
+      const fresh = await Tx.findOneAndUpdate(
+        {
+          _id: deposit._id,
+          status: 'awaiting_payment',
+          externalReference
+        },
+        {
+          $set: {
+            status: 'confirmed',
+            paidAt: Date.now(),
+            confirmedAt: Date.now(),
+
+            mpesaReceipt: String(
+              live.ref_no ||
+              callbackData.receipt ||
+              ''
+            ),
+
+            tinyPesaId: String(
+              live.id ||
+              callbackData.tinyPesaId ||
+              deposit.tinyPesaId ||
+              ''
+            ),
+
+            checkoutId: String(
+              live.checkout_request_id ||
+              callbackData.checkoutId ||
+              deposit.checkoutId ||
+              ''
+            )
+          }
+        },
+        {
+          new: true,
+          session
+        }
+      );
+
+      if (!fresh) return;
+
+      const update = await User.updateOne(
+        { _id: fresh.user },
+        {
+          $inc: {
+            'wallets.real': Number(fresh.total)
+          }
+        },
+        { session }
+      );
+
+      if (!update.matchedCount) {
+        throw new Error('Deposit owner account was not found');
+      }
+
+      applied = true;
+    });
+  } finally {
+    await session.endSession();
+  }
+
+  return applied;
+}
+
+async function syncDepositFromTinyPesa(deposit) {
+  if (
+    !deposit ||
+    deposit.status !== 'awaiting_payment' ||
+    !deposit.externalReference
+  ) {
+    return deposit;
+  }
+
+  try {
+    await verifyAndCreditDeposit(
+      deposit,
+      deposit.externalReference,
+      {}
+    );
+  } catch (error) {
+    console.error('TinyPesa status check:', error.message);
+  }
+
+  return await Tx.findById(deposit._id) || deposit;
+}
+
+/* ── ASSETS + SIMULATED PRICE ENGINE ── */
+
+const ASSETS = [
+  {
+    id: 'EURUSD',
+    name: 'EUR/USD',
+    cat: 'Forex',
+    start: 1.08423,
+    vol: 0.00006,
+    dec: 5,
+    payout: 85
+  },
+  {
+    id: 'GBPUSD',
+    name: 'GBP/USD',
+    cat: 'Forex',
+    start: 1.27164,
+    vol: 0.00009,
+    dec: 5,
+    payout: 83
+  },
+  {
+    id: 'USDJPY',
+    name: 'USD/JPY',
+    cat: 'Forex',
+    start: 154.281,
+    vol: 0.011,
+    dec: 3,
+    payout: 82
+  },
+  {
+    id: 'BTCUSD',
+    name: 'BTC/USD',
+    cat: 'Crypto',
+    start: 67432,
+    vol: 16,
+    dec: 0,
+    payout: 88
+  },
+  {
+    id: 'ETHUSD',
+    name: 'ETH/USD',
+    cat: 'Crypto',
+    start: 3418.4,
+    vol: 1.2,
+    dec: 1,
+    payout: 86
+  },
+  {
+    id: 'XAUUSD',
+    name: 'GOLD',
+    cat: 'Commodity',
+    start: 2382.6,
+    vol: 0.5,
+    dec: 2,
+    payout: 84
+  }
+];
+
+const P = {};
+
+ASSETS.forEach(asset => {
+  P[asset.id] = {
+    price: asset.start,
+    drift: 0
+  };
+});
+
+function gauss() {
+  let u = 0;
+  let v = 0;
+
+  while (!u) u = Math.random();
+  while (!v) v = Math.random();
+
+  return Math.sqrt(-2 * Math.log(u)) *
+    Math.cos(2 * Math.PI * v);
+}
+
+setInterval(() => {
+  for (const asset of ASSETS) {
+    const state = P[asset.id];
+
+    if (Math.random() < 0.03) {
+      state.drift =
+        (Math.random() - 0.5) * asset.vol * 0.9;
+    }
+
+    const pull =
+      ((asset.start - state.price) / asset.start) *
+      asset.vol * 0.35;
+
+    state.price = Math.max(
+      asset.start * 0.3,
+      state.price +
+      state.drift +
+      asset.vol * gauss() +
+      pull
+    );
+  }
+}, 400);
+
+/* ── DATABASE MODELS ── */
+
+const User = mongoose.model(
+  'User',
+  new mongoose.Schema({
+    name: String,
+
+    email: {
+      type: String,
+      unique: true,
+      index: true
+    },
+
+    passwordHash: String,
+
+    wallets: {
+      demo: {
+        type: Number,
+        default: 10000
+      },
+      real: {
+        type: Number,
+        default: 0
+      }
+    },
+
+    createdAt: {
+      type: Number,
+      default: () => Date.now()
+    }
+  })
+);
+
+const Trade = mongoose.model(
+  'Trade',
+  new mongoose.Schema({
+    user: {
+      type: Object,
+      index: true
+    },
+
+    asset: String,
+    dir: String,
+
+    kind: {
+      type: String,
+      default: 'updown'
+    },
+
+    option: String,
+    target: Number,
+    legs: Array,
+    mult: Number,
+    amount: Number,
+    account: String,
+    payout: Number,
+    entry: Object,
+    entryTime: Number,
+    expiry: Number,
+
+    status: {
+      type: String,
+      index: true
+    },
+
+    close: Object,
+    closeTime: Number,
+    result: String,
+    profit: Number,
+
+    sim: {
+      type: Boolean,
+      default: false
+    }
+  }, { versionKey: false })
+);
+
+const Tx = mongoose.model(
+  'Tx',
+  new mongoose.Schema({
+    user: {
+      type: Object,
+      index: true
+    },
+
+    type: String,
+    method: String,
+    amount: Number,
+
+    fee: {
+      type: Number,
+      default: 0
+    },
+
+    total: Number,
+
+    bonus: {
+      type: Number,
+      default: 0
+    },
+
+    bonusCode: String,
+    status: String,
+    time: Number,
+    confirmedAt: Number,
+    address: String,
+    instructions: Object,
+    checkoutId: String,
+
+    externalReference: {
+      type: String,
+      index: true,
+      unique: true,
+      sparse: true
+    },
+
+    tinyPesaId: String,
+    paidAt: Number,
+    mpesaReceipt: String
+  }, { versionKey: false })
+);
+
+/* ── HELPERS ── */
+
+const r2 = value =>
+  Math.round(value * 100) / 100;
+
+const pub = object => {
+  const value = object.toObject
+    ? object.toObject()
+    : { ...object };
+
+  const result = {
+    ...value,
+    id: String(value._id)
+  };
+
+  delete result._id;
+  delete result.__v;
+  delete result.user;
+
+  return result;
+};
+
+const h = fn => (req, res) =>
+  fn(req, res).catch(error => {
+    console.error('ERR:', error.message);
+
+    res.status(500).json({
+      message: error.message || 'Server error'
+    });
+  });
+
+async function credit(userId, account, value) {
+  const user = await User.findById(userId);
+
+  if (!user) {
+    throw new Error('User not found while crediting wallet');
+  }
+
+  user.wallets[account] = r2(
+    user.wallets[account] + value
+  );
+
+  await user.save();
+}
+
+const auth = (req, res, next) => {
+  const header = req.headers.authorization || '';
+
+  try {
+    req.uid = jwt.verify(
+      header.slice(7),
+      JWT_SECRET
+    ).uid;
+
     next();
-  }catch{
-    res.status(401).json({message:'Please log in again'});
+  } catch {
+    res.status(401).json({
+      message: 'Please log in again'
+    });
   }
 };
 
-function digitOf(id){
-  const a=ASSETS.find(x=>x.id===id);
-  const s=P[id].price.toFixed(a.dec);
+function digitOf(id) {
+  const asset = ASSETS.find(item => item.id === id);
 
-  return +s[s.length-1];
+  if (!asset || !P[id]) return 0;
+
+  const formatted = P[id].price.toFixed(asset.dec);
+
+  return Number(formatted[formatted.length - 1]);
 }
 
-function digitMult(option,t){
-  const prob=option==='even'||option==='odd'?.5
-    :option==='over'?(9-t)/10
-    :option==='under'?t/10
-    :option==='match'?.1:.9;
+function digitMult(option, target) {
+  const probability =
+    option === 'even' || option === 'odd' ? 0.5 :
+    option === 'over' ? (9 - target) / 10 :
+    option === 'under' ? target / 10 :
+    option === 'match' ? 0.1 : 0.9;
 
-  return Math.max(1.01,Math.floor((0.95/prob)*100)/100);
+  return Math.max(
+    1.01,
+    Math.floor((0.95 / probability) * 100) / 100
+  );
 }
 
-app.get('/version',(req,res)=>{
-  res.json({v:VERSION});
+/* ── VERSION ── */
+
+app.get('/version', (req, res) => {
+  res.json({ v: VERSION });
 });
 
-/* ── auth ── */
+/* ── AUTHENTICATION ── */
 
-app.post('/auth/register',h(async(req,res)=>{
+app.post('/auth/register', h(async (req, res) => {
+  const name = (req.body.name || '').trim();
+  const email = (req.body.email || '').trim().toLowerCase();
+  const password = req.body.password || '';
 
-  const name=(req.body.name||'').trim();
-  const email=(req.body.email||'').trim().toLowerCase();
-  const pw=req.body.password||'';
-
-  if(name.length<2){
-    return res.status(400).json({message:'Enter your name'});
+  if (name.length < 2) {
+    return res.status(400).json({
+      message: 'Enter your name'
+    });
   }
 
-  if(!/^\S+@\S+\.\S+$/.test(email)){
-    return res.status(400).json({message:'That email doesn’t look right'});
+  if (!/^\S+@\S+\.\S+$/.test(email)) {
+    return res.status(400).json({
+      message: 'That email doesn’t look right'
+    });
   }
 
-  if(pw.length<6){
-    return res.status(400).json({message:'Use at least 6 characters'});
+  if (password.length < 6) {
+    return res.status(400).json({
+      message: 'Use at least 6 characters'
+    });
   }
 
-  if(await User.findOne({email})){
-    return res.status(400).json({message:'An account with this email already exists'});
+  if (await User.findOne({ email })) {
+    return res.status(400).json({
+      message: 'An account with this email already exists'
+    });
   }
 
-  const u=await User.create({
+  const user = await User.create({
     name,
     email,
-    passwordHash:await bcrypt.hash(pw,10)
+    passwordHash: await bcrypt.hash(password, 10)
   });
 
   res.json({
-    token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),
-    user:withSim(pub(u),u)
+    token: jwt.sign(
+      { uid: String(user._id) },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    ),
+    user: withSim(pub(user), user)
   });
 }));
 
-app.post('/auth/login',h(async(req,res)=>{
-
-  const u=await User.findOne({
-    email:(req.body.email||'').trim().toLowerCase()
+app.post('/auth/login', h(async (req, res) => {
+  const user = await User.findOne({
+    email: (req.body.email || '').trim().toLowerCase()
   });
 
-  if(!u||!await bcrypt.compare(req.body.password||'',u.passwordHash)){
-    return res.status(401).json({message:'Wrong email or password'});
+  if (
+    !user ||
+    !await bcrypt.compare(
+      req.body.password || '',
+      user.passwordHash
+    )
+  ) {
+    return res.status(401).json({
+      message: 'Wrong email or password'
+    });
   }
 
   res.json({
-    token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),
-    user:withSim(pub(u),u)
+    token: jwt.sign(
+      { uid: String(user._id) },
+      JWT_SECRET,
+      { expiresIn: '30d' }
+    ),
+    user: withSim(pub(user), user)
   });
 }));
 
-app.get('/me',auth,h(async(req,res)=>{
+app.get('/me', auth, h(async (req, res) => {
+  const user = await User.findById(req.uid);
 
-  const u=await User.findById(req.uid);
-
-  if(!u){
-    return res.status(401).json({message:'Session expired'});
+  if (!user) {
+    return res.status(401).json({
+      message: 'Session expired'
+    });
   }
 
-  res.json({user:withSim(pub(u),u)});
+  res.json({
+    user: withSim(pub(user), user)
+  });
 }));
 
-app.get('/assets',(req,res)=>{
-  res.json(ASSETS.map(({id,name,cat,dec,payout})=>({
-    id,name,cat,dec,payout
-  })));
+app.get('/assets', (req, res) => {
+  res.json(
+    ASSETS.map(({ id, name, cat, dec, payout }) => ({
+      id,
+      name,
+      cat,
+      dec,
+      payout
+    }))
+  );
 });
 
-app.get('/prices',(req,res)=>{
+app.get('/prices', (req, res) => {
   res.json({
-    t:Date.now(),
-    p:Object.fromEntries(ASSETS.map(a=>[a.id,P[a.id].price]))
+    t: Date.now(),
+    p: Object.fromEntries(
+      ASSETS.map(asset => [
+        asset.id,
+        P[asset.id].price
+      ])
+    )
   });
 });
 
-/* ── trades ── */
+/* ── TRADES ── */
 
-app.post('/trades',auth,h(async(req,res)=>{
-
-  const{dir,expirySec,account,kind,option,target,legs}=req.body;
-  const asset=req.body.asset;
-  const amt=r2(+req.body.amount);
-
-  if(!['demo','real'].includes(account)){
-    return res.status(400).json({message:'Bad wallet'});
-  }
-
-  if(!(amt>=1)){
-    return res.status(400).json({message:'Minimum stake is $1.00'});
-  }
-
-  if(!(expirySec>=1&&expirySec<=300)){
-    return res.status(400).json({message:'Bad expiry'});
-  }
-
-  const u=await User.findById(req.uid);
-
-  if(amt>u.wallets[account]){
-    return res.status(400).json({message:'Insufficient balance'});
-  }
-
-  const sim=isSimUser(u);
-
-  const base={
-    user:req.uid,
-    amount:amt,
+app.post('/trades', auth, h(async (req, res) => {
+  const {
+    dir,
+    expirySec,
     account,
-    entryTime:Date.now(),
-    expiry:Date.now()+expirySec*1000,
-    status:'open',
+    kind,
+    option,
+    target,
+    legs
+  } = req.body;
+
+  const assetId = req.body.asset;
+  const amount = r2(+req.body.amount);
+
+  if (!['demo', 'real'].includes(account)) {
+    return res.status(400).json({
+      message: 'Bad wallet'
+    });
+  }
+
+  if (!(amount >= 1)) {
+    return res.status(400).json({
+      message: 'Minimum stake is $1.00'
+    });
+  }
+
+  if (!(expirySec >= 1 && expirySec <= 300)) {
+    return res.status(400).json({
+      message: 'Bad expiry'
+    });
+  }
+
+  const user = await User.findById(req.uid);
+
+  if (!user) {
+    return res.status(401).json({
+      message: 'Session expired'
+    });
+  }
+
+  if (amount > user.wallets[account]) {
+    return res.status(400).json({
+      message: 'Insufficient balance'
+    });
+  }
+
+  const sim = isSimUser(user);
+
+  const base = {
+    user: req.uid,
+    amount,
+    account,
+    entryTime: Date.now(),
+    expiry: Date.now() + expirySec * 1000,
+    status: 'open',
     sim
   };
 
-  let t;
+  let trade;
 
-  if(kind==='digits'){
+  if (kind === 'digits') {
+    const asset = ASSETS.find(item => item.id === assetId);
 
-    const a=ASSETS.find(x=>x.id===asset);
-
-    if(!a){
-      return res.status(400).json({message:'Unknown asset'});
-    }
-
-    if(!['even','odd','over','under','match','differ'].includes(option)){
-      return res.status(400).json({message:'Bad digit option'});
-    }
-
-    let tg=null;
-
-    if(option!=='even'&&option!=='odd'){
-      tg=+target;
-
-      if(!(tg>=0&&tg<=9&&Number.isInteger(tg))){
-        return res.status(400).json({message:'Pick a digit 0-9'});
-      }
-    }
-
-    const mult=digitMult(option,tg);
-
-    u.wallets[account]=r2(u.wallets[account]-amt);
-    await u.save();
-
-    t=await Trade.create({
-      ...base,
-      kind:'digits',
-      asset,
-      option,
-      target:tg,
-      mult,
-      entry:digitOf(asset)
-    });
-
-  }else if(kind==='acc'){
-
-    if(!Array.isArray(legs)||legs.length<2||legs.length>5){
-      return res.status(400).json({message:'Accumulator needs 2-5 legs'});
-    }
-
-    const seen=new Set();
-    let mult=1;
-    const entries=[];
-
-    for(const l of legs){
-
-      const a=ASSETS.find(x=>x.id===l.asset);
-
-      if(!a){
-        return res.status(400).json({message:'Unknown asset in leg'});
-      }
-
-      if(!['up','down'].includes(l.dir)){
-        return res.status(400).json({message:'Bad leg direction'});
-      }
-
-      if(seen.has(l.asset)){
-        return res.status(400).json({message:'Each market can appear once'});
-      }
-
-      seen.add(l.asset);
-
-      mult*=(1+a.payout/100);
-
-      entries.push({
-        asset:l.asset,
-        dir:l.dir,
-        entry:P[l.asset].price
+    if (!asset) {
+      return res.status(400).json({
+        message: 'Unknown asset'
       });
     }
 
-    mult=r2(mult);
+    if (![
+      'even',
+      'odd',
+      'over',
+      'under',
+      'match',
+      'differ'
+    ].includes(option)) {
+      return res.status(400).json({
+        message: 'Bad digit option'
+      });
+    }
 
-    u.wallets[account]=r2(u.wallets[account]-amt);
-    await u.save();
+    let digitTarget = null;
 
-    t=await Trade.create({
+    if (option !== 'even' && option !== 'odd') {
+      digitTarget = +target;
+
+      if (
+        !(digitTarget >= 0 &&
+        digitTarget <= 9 &&
+        Number.isInteger(digitTarget))
+      ) {
+        return res.status(400).json({
+          message: 'Pick a digit 0-9'
+        });
+      }
+    }
+
+    const multiplier = digitMult(option, digitTarget);
+
+    user.wallets[account] = r2(
+      user.wallets[account] - amount
+    );
+
+    await user.save();
+
+    trade = await Trade.create({
       ...base,
-      kind:'acc',
-      asset:entries[0].asset,
-      legs:entries,
-      mult,
-      entry:entries[0].entry
+      kind: 'digits',
+      asset: assetId,
+      option,
+      target: digitTarget,
+      mult: multiplier,
+      entry: digitOf(assetId)
     });
 
-  }else{
-
-    const a=ASSETS.find(x=>x.id===asset);
-
-    if(!a){
-      return res.status(400).json({message:'Unknown asset'});
+  } else if (kind === 'acc') {
+    if (
+      !Array.isArray(legs) ||
+      legs.length < 2 ||
+      legs.length > 5
+    ) {
+      return res.status(400).json({
+        message: 'Accumulator needs 2-5 legs'
+      });
     }
 
-    if(!['up','down'].includes(dir)){
-      return res.status(400).json({message:'Bad direction'});
+    const seen = new Set();
+    let multiplier = 1;
+    const entries = [];
+
+    for (const leg of legs) {
+      const asset = ASSETS.find(
+        item => item.id === leg.asset
+      );
+
+      if (!asset) {
+        return res.status(400).json({
+          message: 'Unknown asset in leg'
+        });
+      }
+
+      if (!['up', 'down'].includes(leg.dir)) {
+        return res.status(400).json({
+          message: 'Bad leg direction'
+        });
+      }
+
+      if (seen.has(leg.asset)) {
+        return res.status(400).json({
+          message: 'Each market can appear once'
+        });
+      }
+
+      seen.add(leg.asset);
+
+      multiplier *= (1 + asset.payout / 100);
+
+      entries.push({
+        asset: leg.asset,
+        dir: leg.dir,
+        entry: P[leg.asset].price
+      });
     }
 
-    u.wallets[account]=r2(u.wallets[account]-amt);
-    await u.save();
+    multiplier = r2(multiplier);
 
-    t=await Trade.create({
+    user.wallets[account] = r2(
+      user.wallets[account] - amount
+    );
+
+    await user.save();
+
+    trade = await Trade.create({
       ...base,
-      kind:'updown',
-      asset,
+      kind: 'acc',
+      asset: entries[0].asset,
+      legs: entries,
+      mult: multiplier,
+      entry: entries[0].entry
+    });
+
+  } else {
+    const asset = ASSETS.find(item => item.id === assetId);
+
+    if (!asset) {
+      return res.status(400).json({
+        message: 'Unknown asset'
+      });
+    }
+
+    if (!['up', 'down'].includes(dir)) {
+      return res.status(400).json({
+        message: 'Bad direction'
+      });
+    }
+
+    user.wallets[account] = r2(
+      user.wallets[account] - amount
+    );
+
+    await user.save();
+
+    trade = await Trade.create({
+      ...base,
+      kind: 'updown',
+      asset: assetId,
       dir,
-      payout:a.payout,
-      entry:P[asset].price
+      payout: asset.payout,
+      entry: P[assetId].price
     });
   }
 
-  res.json(pub(t));
+  res.json(pub(trade));
 }));
 
-const lastSync=new Map();
+/* ── TRADE SETTLEMENT ── */
 
-app.get('/trades/sync',auth,h(async(req,res)=>{
+const lastSync = new Map();
 
-  const now=Date.now();
+app.get('/trades/sync', auth, h(async (req, res) => {
+  const now = Date.now();
 
-  const due=await Trade.find({
-    user:req.uid,
-    status:'open',
-    expiry:{$lte:now}
+  const due = await Trade.find({
+    user: req.uid,
+    status: 'open',
+    expiry: { $lte: now }
   });
 
-  for(const t of due){
+  for (const trade of due) {
+    const sim =
+      trade.sim === true ||
+      trade.account === 'demo';
 
-    const sim=(t.sim===true)||t.account==='demo';
-
-    const wantWin=sim&&(
-      t.account==='demo'
-        ?Math.random()<DEMO_WIN_RATE
-        :true
+    const wantWin = sim && (
+      trade.account === 'demo'
+        ? Math.random() < DEMO_WIN_RATE
+        : true
     );
 
-    try{
-
-      if(t.kind==='digits'){
-
-        const a=ASSETS.find(x=>x.id===t.asset);
-        let d=a?digitOf(t.asset):5;
-
-        if(wantWin){
-
-          if(t.option==='even'){
-            d=(d%2===0)?d:(d+1)%10;
-          }
-
-          else if(t.option==='odd'){
-            d=(d%2===1)?d:((d+1)%10);
-          }
-
-          else if(t.option==='over'){
-            d=Math.min(9,(t.target==null?4:t.target)+1);
-          }
-
-          else if(t.option==='under'){
-            d=Math.max(0,(t.target==null?5:t.target)-1);
-          }
-
-          else if(t.option==='match'){
-            d=(t.target==null?d:t.target);
-          }
-
-          else{
-            d=((t.target==null?d:t.target)+1)%10;
-          }
-        }
-
-        t.close=d;
-
-        if(t.entry==null||Number.isNaN(t.entry)){
-          t.entry=d;
-        }
-
-        const win=wantWin?true:(
-          t.option==='even'?d%2===0:
-          t.option==='odd'?d%2===1:
-          t.option==='over'?d>(t.target==null?0:t.target):
-          t.option==='under'?d<(t.target==null?9:t.target):
-          t.option==='match'?d===t.target:
-          d!==t.target
+    try {
+      if (trade.kind === 'digits') {
+        const asset = ASSETS.find(
+          item => item.id === trade.asset
         );
 
-        t.result=win?'win':'loss';
+        let digit = asset ? digitOf(trade.asset) : 5;
 
-        t.profit=win
-          ?r2(t.amount*(t.mult||digitMult(t.option,t.target)))
-          :-t.amount;
-
-        if(win){
-          await credit(req.uid,t.account,r2(t.amount+t.profit));
+        if (wantWin) {
+          if (trade.option === 'even') {
+            digit = digit % 2 === 0 ? digit : (digit + 1) % 10;
+          } else if (trade.option === 'odd') {
+            digit = digit % 2 === 1 ? digit : (digit + 1) % 10;
+          } else if (trade.option === 'over') {
+            digit = Math.min(
+              9,
+              (trade.target == null ? 4 : trade.target) + 1
+            );
+          } else if (trade.option === 'under') {
+            digit = Math.max(
+              0,
+              (trade.target == null ? 5 : trade.target) - 1
+            );
+          } else if (trade.option === 'match') {
+            digit = trade.target == null ? digit : trade.target;
+          } else {
+            digit = (
+              (trade.target == null ? digit : trade.target) + 1
+            ) % 10;
+          }
         }
 
-      }else if(t.kind==='acc'){
+        trade.close = digit;
 
-        if(wantWin){
+        if (
+          trade.entry == null ||
+          Number.isNaN(trade.entry)
+        ) {
+          trade.entry = digit;
+        }
 
-          t.close=P[t.asset]?P[t.asset].price:0;
-          t.result='win';
-          t.profit=r2(t.amount*(t.mult||2));
+        const win = wantWin ? true : (
+          trade.option === 'even' ? digit % 2 === 0 :
+          trade.option === 'odd' ? digit % 2 === 1 :
+          trade.option === 'over' ? digit > (trade.target == null ? 0 : trade.target) :
+          trade.option === 'under' ? digit < (trade.target == null ? 9 : trade.target) :
+          trade.option === 'match' ? digit === trade.target :
+          digit !== trade.target
+        );
 
-          await credit(req.uid,t.account,r2(t.amount+t.profit));
+        trade.result = win ? 'win' : 'loss';
 
-        }else{
+        trade.profit = win
+          ? r2(trade.amount * (
+              trade.mult ||
+              digitMult(trade.option, trade.target)
+            ))
+          : -trade.amount;
 
-          let lost=false,flat=false;
+        if (win) {
+          await credit(
+            req.uid,
+            trade.account,
+            r2(trade.amount + trade.profit)
+          );
+        }
 
-          for(const l of (t.legs||[])){
+      } else if (trade.kind === 'acc') {
+        if (wantWin) {
+          trade.close = P[trade.asset]
+            ? P[trade.asset].price
+            : 0;
 
-            const p=P[l.asset]?P[l.asset].price:0;
+          trade.result = 'win';
+          trade.profit = r2(
+            trade.amount * (trade.mult || 2)
+          );
 
-            if(l.dir==='up'){
-              if(p<l.entry)lost=true;
-              else if(p===l.entry)flat=true;
-            }else{
-              if(p>l.entry)lost=true;
-              else if(p===l.entry)flat=true;
+          await credit(
+            req.uid,
+            trade.account,
+            r2(trade.amount + trade.profit)
+          );
+
+        } else {
+          let lost = false;
+          let flat = false;
+
+          for (const leg of (trade.legs || [])) {
+            const price = P[leg.asset]
+              ? P[leg.asset].price
+              : 0;
+
+            if (leg.dir === 'up') {
+              if (price < leg.entry) lost = true;
+              else if (price === leg.entry) flat = true;
+            } else {
+              if (price > leg.entry) lost = true;
+              else if (price === leg.entry) flat = true;
             }
           }
 
-          t.close=P[t.asset]?P[t.asset].price:0;
+          trade.close = P[trade.asset]
+            ? P[trade.asset].price
+            : 0;
 
-          t.result=lost?'loss':flat?'draw':'win';
+          trade.result = lost
+            ? 'loss'
+            : flat
+              ? 'draw'
+              : 'win';
 
-          if(t.result==='win'){
-            t.profit=r2(t.amount*(t.mult||2));
-            await credit(req.uid,t.account,r2(t.amount+t.profit));
+          if (trade.result === 'win') {
+            trade.profit = r2(
+              trade.amount * (trade.mult || 2)
+            );
+
+            await credit(
+              req.uid,
+              trade.account,
+              r2(trade.amount + trade.profit)
+            );
+
+          } else if (trade.result === 'draw') {
+            trade.profit = 0;
+
+            await credit(
+              req.uid,
+              trade.account,
+              trade.amount
+            );
+
+          } else {
+            trade.profit = -trade.amount;
           }
-
-          else if(t.result==='draw'){
-            t.profit=0;
-            await credit(req.uid,t.account,t.amount);
-          }
-
-          else{
-            t.profit=-t.amount;
-          }
         }
 
-      }else{
+      } else {
+        const asset = ASSETS.find(
+          item => item.id === trade.asset
+        );
 
-        const a=ASSETS.find(x=>x.id===t.asset);
-
-        if(t.entry==null||Number.isNaN(t.entry)){
-          t.entry=P[t.asset]?P[t.asset].price:(a?a.start:0);
+        if (
+          trade.entry == null ||
+          Number.isNaN(trade.entry)
+        ) {
+          trade.entry = P[trade.asset]
+            ? P[trade.asset].price
+            : (asset ? asset.start : 0);
         }
 
-        let p=P[t.asset]?P[t.asset].price:t.entry;
+        let price = P[trade.asset]
+          ? P[trade.asset].price
+          : trade.entry;
 
-        if(wantWin){
-          p=t.dir==='up'
-            ?t.entry+Math.max(0.00001,t.entry*0.00001)
-            :t.entry-Math.max(0.00001,t.entry*0.00001);
+        if (wantWin) {
+          const move = Math.max(
+            0.00001,
+            trade.entry * 0.00001
+          );
+
+          price = trade.dir === 'up'
+            ? trade.entry + move
+            : trade.entry - move;
         }
 
-        const result=t.dir==='up'
-          ?(p>t.entry?'win':p<t.entry?'loss':'draw')
-          :(p<t.entry?'win':p>t.entry?'loss':'draw');
+        const result = trade.dir === 'up'
+          ? (price > trade.entry ? 'win' : price < trade.entry ? 'loss' : 'draw')
+          : (price < trade.entry ? 'win' : price > trade.entry ? 'loss' : 'draw');
 
-        t.close=p;
-        t.result=result;
+        trade.close = price;
+        trade.result = result;
 
-        if(result==='win'){
-          t.profit=r2(t.amount*t.payout/100);
-          await credit(req.uid,t.account,r2(t.amount+t.profit));
-        }
+        if (result === 'win') {
+          trade.profit = r2(
+            trade.amount * trade.payout / 100
+          );
 
-        else if(result==='draw'){
-          t.profit=0;
-          await credit(req.uid,t.account,t.amount);
-        }
+          await credit(
+            req.uid,
+            trade.account,
+            r2(trade.amount + trade.profit)
+          );
 
-        else{
-          t.profit=-t.amount;
+        } else if (result === 'draw') {
+          trade.profit = 0;
+
+          await credit(
+            req.uid,
+            trade.account,
+            trade.amount
+          );
+
+        } else {
+          trade.profit = -trade.amount;
         }
       }
 
-    }catch(e){
+    } catch (error) {
+      console.error('settle error:', error.message);
 
-      console.error('settle error:',e.message);
+      trade.result = 'win';
+      trade.profit = r2(trade.amount * 0.85);
 
-      t.result='win';
-      t.profit=r2(t.amount*0.85);
-
-      if(sim){
-        await credit(req.uid,t.account,r2(t.amount+t.profit));
+      if (sim) {
+        await credit(
+          req.uid,
+          trade.account,
+          r2(trade.amount + trade.profit)
+        );
       }
     }
 
-    t.closeTime=now;
-    t.status='closed';
+    trade.closeTime = now;
+    trade.status = 'closed';
 
-    await t.save();
+    await trade.save();
   }
 
-  const since=lastSync.get(String(req.uid))||now-2000;
+  const since =
+    lastSync.get(String(req.uid)) ||
+    now - 2000;
 
-  lastSync.set(String(req.uid),now);
+  lastSync.set(String(req.uid), now);
 
-  const closed=await Trade.find({
-    user:req.uid,
-    status:'closed',
-    closeTime:{$gt:since}
+  const closed = await Trade.find({
+    user: req.uid,
+    status: 'closed',
+    closeTime: { $gt: since }
   });
 
-  const open=await Trade.find({
-    user:req.uid,
-    status:'open'
+  const open = await Trade.find({
+    user: req.uid,
+    status: 'open'
   }).limit(60);
 
   res.json({
-    open:open.map(pub),
-    closed:closed.map(pub)
+    open: open.map(pub),
+    closed: closed.map(pub)
   });
 }));
 
-app.get('/trades',auth,h(async(req,res)=>{
-
-  const t=await Trade.find({user:req.uid})
-    .sort({entryTime:-1})
+app.get('/trades', auth, h(async (req, res) => {
+  const trades = await Trade.find({
+    user: req.uid
+  })
+    .sort({ entryTime: -1 })
     .limit(150);
 
-  res.json(t.map(pub));
+  res.json(trades.map(pub));
 }));
 
-/* ── deposits (TinyPesa STK Push) ── */
+/* ── DEPOSITS: TINYPESA STK PUSH ── */
 
-app.post('/deposits',auth,h(async(req,res)=>{
+app.post('/deposits', auth, h(async (req, res) => {
+  const method = req.body.method;
+  const amount = r2(+req.body.amount);
 
-  const method=req.body.method;
-  const amt=r2(+req.body.amount);
-
-  if(method!=='mpesa'){
+  if (method !== 'mpesa') {
     return res.status(400).json({
-      message:'Only M-Pesa deposits are supported right now'
+      message: 'Only M-Pesa deposits are supported right now'
     });
   }
 
-  if(!(amt>=MIN_DEPOSIT)){
+  if (!(amount >= MIN_DEPOSIT)) {
     return res.status(400).json({
-      message:'Minimum deposit is $'+MIN_DEPOSIT.toFixed(2)
+      message: 'Minimum deposit is $' + MIN_DEPOSIT.toFixed(2)
     });
   }
 
-  let bonus=0;
+  let bonus = 0;
 
-  const code=(req.body.bonusCode||'').trim().toUpperCase();
+  const code = (req.body.bonusCode || '')
+    .trim()
+    .toUpperCase();
 
-  const rates={
-    WELCOME20:.20,
-    BOOST50:.50
+  const rates = {
+    WELCOME20: 0.20,
+    BOOST50: 0.50
   };
 
-  if(code){
-
-    if(!rates[code]){
-      return res.status(400).json({message:'Promo code is not valid'});
-    }
-
-    if(code==='BOOST50'&&amt<100){
+  if (code) {
+    if (!rates[code]) {
       return res.status(400).json({
-        message:'BOOST50 needs a minimum of $100.00'
+        message: 'Promo code is not valid'
       });
     }
 
-    bonus=r2(amt*rates[code]);
+    if (code === 'BOOST50' && amount < 100) {
+      return res.status(400).json({
+        message: 'BOOST50 needs a minimum of $100.00'
+      });
+    }
+
+    bonus = r2(amount * rates[code]);
   }
 
-  const total=r2(amt+bonus);
+  const phone = normPhone(req.body.phone);
 
-  const phone=normPhone(req.body.phone);
-
-  if(!/^254(7|1)\d{8}$/.test(phone)){
+  if (!/^254(7|1)\d{8}$/.test(phone)) {
     return res.status(400).json({
-      message:'Enter a valid Safaricom number, e.g. 0712 345 678'
+      message: 'Enter a valid Kenyan Safaricom number, e.g. 0712 345 678'
     });
   }
 
-  const kes=Math.ceil(amt*KES_PER_USD);
+  if (!TINYPESA.KEY) {
+    return res.status(503).json({
+      message: 'TinyPesa is not configured on the server'
+    });
+  }
 
-  const d=await Tx.create({
-    user:req.uid,
-    type:'deposit',
+  const kes = Math.ceil(amount * KES_PER_USD);
+  const total = r2(amount + bonus);
+
+  const deposit = await Tx.create({
+    user: req.uid,
+    type: 'deposit',
     method,
-    amount:amt,
+    amount,
     bonus,
     total,
-    bonusCode:code||null,
-    status:'awaiting_payment',
-    time:Date.now(),
-    instructions:{
+    bonusCode: code || null,
+    status: 'awaiting_payment',
+    time: Date.now(),
+
+    instructions: {
       phone,
-      network:'M-Pesa · STK Push',
-      kesAmount:kes
+      network: 'M-Pesa · TinyPesa STK Push',
+      kesAmount: kes
     }
   });
 
-  try{
+  const externalReference =
+    'VNT' + String(deposit._id).slice(-8).toUpperCase();
 
-    const j=await stkPush(
+  deposit.externalReference = externalReference;
+
+  deposit.instructions = {
+    ...deposit.instructions,
+    paymentReference: externalReference
+  };
+
+  await deposit.save();
+
+  try {
+    const response = await stkPush(
       kes,
       phone,
-      'VNT'+String(d._id).slice(-8).toUpperCase()
+      externalReference
     );
 
-    d.checkoutId=j.request_id;
+    deposit.checkoutId = String(response.request_id);
+    deposit.tinyPesaId = String(response.request_id);
 
-    await d.save();
+    await deposit.save();
 
-  }catch(e){
+  } catch (error) {
+    console.error(
+      'TinyPesa STK initiate failed:',
+      error.message
+    );
 
-    console.error('STK initiate failed:',e.message);
-
-    d.status='failed';
-
-    await d.save();
+    deposit.status = 'failed';
+    await deposit.save();
 
     return res.status(502).json({
-      message:'M-Pesa error: '+e.message
+      message: 'M-Pesa error: ' + error.message
     });
   }
 
-  res.json(pub(d));
+  res.json(pub(deposit));
 }));
 
-app.get('/deposits/:id',auth,h(async(req,res)=>{
+/* ── CHECK DEPOSIT STATUS ── */
 
-  const d=await Tx.findOne({
-    _id:req.params.id,
-    user:req.uid,
-    type:'deposit'
+app.get('/deposits/:id', auth, h(async (req, res) => {
+  let deposit = await Tx.findOne({
+    _id: req.params.id,
+    user: req.uid,
+    type: 'deposit'
   });
 
-  if(!d){
-    return res.status(404).json({message:'Deposit not found'});
+  if (!deposit) {
+    return res.status(404).json({
+      message: 'Deposit not found'
+    });
   }
 
-  res.json(pub(d));
+  deposit = await syncDepositFromTinyPesa(deposit);
+
+  res.json(pub(deposit));
 }));
 
-/* ── TinyPesa M-Pesa callback ── */
+/* ── TINYPESA WEBHOOK ── */
 
-app.post('/mpesa/callback/:secret',async(req,res)=>{
-
-  if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim()){
+app.post('/mpesa/callback/:secret', async (req, res) => {
+  if (
+    req.params.secret !==
+    (process.env.MPESA_CB_SECRET || '').trim()
+  ) {
     return res.status(403).end();
   }
 
-  res.json({
-    ResultCode:0,
-    ResultDesc:'Accepted'
+  res.status(200).json({
+    ResultCode: 0,
+    ResultDesc: 'Accepted'
   });
 
-  try{
+  try {
+    const callback = parseCallback(req);
 
-    const tx=parseCallback(req);
-
-    const phone=String(tx.phone||req.body.PhoneNumber||'');
-
-    let d=null;
-
-    if(tx.checkoutId){
-      d=await Tx.findOne({
-        checkoutId:tx.checkoutId,
-        type:'deposit'
-      });
-    }
-
-    if(!d&&phone){
-
-      d=await Tx.findOne({
-        type:'deposit',
-        method:'mpesa',
-        status:'awaiting_payment',
-        'instructions.phone':phone
-      }).sort({time:1});
-    }
-
-    if(!d||d.status!=='awaiting_payment'){
+    if (!callback.externalRef) {
+      console.error(
+        'TinyPesa callback missing ExternalReference'
+      );
       return;
     }
 
-    if(!tx.ok){
-      d.status='failed';
-      await d.save();
+    const deposit = await Tx.findOne({
+      externalReference: callback.externalRef,
+      type: 'deposit',
+      method: 'mpesa'
+    });
+
+    if (
+      !deposit ||
+      deposit.status !== 'awaiting_payment'
+    ) {
       return;
     }
 
-    const paid=tx.amount||+req.body.Amount||0;
+    if (!callback.ok) {
+      await Tx.updateOne(
+        {
+          _id: deposit._id,
+          status: 'awaiting_payment'
+        },
+        {
+          $set: { status: 'failed' }
+        }
+      );
 
-    if(!paid){
       return;
     }
 
-    const expected=Math.ceil(d.amount*KES_PER_USD);
-
-    d.paidAt=Date.now();
-
-    d.mpesaReceipt=
-      tx.receipt||
-      req.body.MpesaReceiptNumber||
-      '';
-
-    d.status='confirmed';
-    d.confirmedAt=Date.now();
-
-    await credit(
-      d.user,
-      'real',
-      paid>=expected
-        ?d.total
-        :r2(paid/KES_PER_USD)
+    await verifyAndCreditDeposit(
+      deposit,
+      callback.externalRef,
+      callback
     );
 
-    await d.save();
-
-  }catch(e){
-    console.error('mpesa callback:',e.message);
+  } catch (error) {
+    console.error(
+      'TinyPesa webhook processing:',
+      error.message
+    );
   }
 });
 
-/* ── withdrawals ── */
+/* ── WITHDRAWALS ── */
 
-app.post('/withdrawals',auth,h(async(req,res)=>{
+app.post('/withdrawals', auth, h(async (req, res) => {
+  const method = req.body.method;
+  const amount = r2(+req.body.amount);
+  let address = (req.body.address || '').trim();
 
-  const method=req.body.method;
-  const amt=r2(+req.body.amount);
-
-  let addr=(req.body.address||'').trim();
-
-  const flat={
-    usdt:1,
-    btc:2,
-    eth:1.5,
-    mpesa:1
+  const flat = {
+    usdt: 1,
+    btc: 2,
+    eth: 1.5,
+    mpesa: 1
   };
 
-  if(!flat[method]&&method!=='card'){
-    return res.status(400).json({message:'Pick a payout method'});
-  }
-
-  if(!(amt>=10)){
-    return res.status(400).json({message:'Minimum withdrawal is $10.00'});
-  }
-
-  if(method==='mpesa'){
-
-    const d2=normPhone(addr);
-
-    if(!/^254(7|1)\d{8}$/.test(d2)){
-      return res.status(400).json({
-        message:'Enter a valid Safaricom number, e.g. 0712 345 678'
-      });
-    }
-
-    addr=d2;
-  }
-
-  const fee=method==='card'
-    ?r2(amt*0.015)
-    :flat[method];
-
-  const total=r2(amt+fee);
-
-  if(method!=='mpesa'){
-
-    const chk={
-      usdt:s=>s.length>=26&&s.length<=40&&s[0]==='T',
-      btc:s=>s.length>=26&&s.length<=62,
-      eth:s=>/^0x[a-fA-F0-9]{40}$/.test(s),
-      card:s=>/^\d{12,19}$/.test(s.replace(/\s/g,''))
-    };
-
-    if(!chk[method](addr)){
-      return res.status(400).json({
-        message:'That '+method.toUpperCase()+' address doesn’t look right'
-      });
-    }
-  }
-
-  const u=await User.findById(req.uid);
-
-  if(total>u.wallets.real){
+  if (!flat[method] && method !== 'card') {
     return res.status(400).json({
-      message:'Amount + fee exceeds your real balance'
+      message: 'Pick a payout method'
     });
   }
 
-  u.wallets.real=r2(u.wallets.real-total);
+  if (!(amount >= 10)) {
+    return res.status(400).json({
+      message: 'Minimum withdrawal is $10.00'
+    });
+  }
 
-  await u.save();
+  if (method === 'mpesa') {
+    const phone = normPhone(address);
 
-  const w=await Tx.create({
-    user:req.uid,
-    type:'withdrawal',
+    if (!/^254(7|1)\d{8}$/.test(phone)) {
+      return res.status(400).json({
+        message: 'Enter a valid Safaricom number, e.g. 0712 345 678'
+      });
+    }
+
+    address = phone;
+  }
+
+  const fee = method === 'card'
+    ? r2(amount * 0.015)
+    : flat[method];
+
+  const total = r2(amount + fee);
+
+  if (method !== 'mpesa') {
+    const checks = {
+      usdt: value =>
+        value.length >= 26 &&
+        value.length <= 40 &&
+        value[0] === 'T',
+
+      btc: value =>
+        value.length >= 26 &&
+        value.length <= 62,
+
+      eth: value =>
+        /^0x[a-fA-F0-9]{40}$/.test(value),
+
+      card: value =>
+        /^\d{12,19}$/.test(value.replace(/\s/g, ''))
+    };
+
+    if (!checks[method](address)) {
+      return res.status(400).json({
+        message: 'That ' + method.toUpperCase() +
+          ' address doesn’t look right'
+      });
+    }
+  }
+
+  const user = await User.findById(req.uid);
+
+  if (!user) {
+    return res.status(401).json({
+      message: 'Session expired'
+    });
+  }
+
+  if (total > user.wallets.real) {
+    return res.status(400).json({
+      message: 'Amount + fee exceeds your real balance'
+    });
+  }
+
+  user.wallets.real = r2(
+    user.wallets.real - total
+  );
+
+  await user.save();
+
+  const withdrawal = await Tx.create({
+    user: req.uid,
+    type: 'withdrawal',
     method,
-    amount:amt,
+    amount,
     fee,
     total,
-    address:addr,
-    status:'pending',
-    time:Date.now(),
-    instructions:method==='mpesa'
-      ?{
-          kesAmount:Math.ceil(amt*KES_PER_USD),
-          note:'Simulated payout — provider B2C needed for real sends'
+    address,
+    status: 'pending',
+    time: Date.now(),
+
+    instructions: method === 'mpesa'
+      ? {
+          kesAmount: Math.ceil(amount * KES_PER_USD),
+          note: 'Simulated payout — provider B2C needed for real sends'
         }
-      :{}
+      : {}
   });
 
-  setTimeout(async()=>{
-    try{
+  setTimeout(async () => {
+    try {
+      const current = await Tx.findById(withdrawal._id);
 
-      const x=await Tx.findById(w._id);
-
-      if(!x||x.status!=='pending'){
+      if (!current || current.status !== 'pending') {
         return;
       }
 
-      x.status='processed';
-      x.confirmedAt=Date.now();
+      current.status = 'processed';
+      current.confirmedAt = Date.now();
 
-      await x.save();
+      await current.save();
 
-    }catch{}
-  },8000);
+    } catch (error) {
+      console.error(
+        'Withdrawal status update:',
+        error.message
+      );
+    }
+  }, 8000);
 
-  res.json(pub(w));
+  res.json(pub(withdrawal));
 }));
 
-app.get('/transactions',auth,h(async(req,res)=>{
+/* ── TRANSACTIONS ── */
 
-  const t=await Tx.find({user:req.uid})
-    .sort({time:-1})
+app.get('/transactions', auth, h(async (req, res) => {
+  const transactions = await Tx.find({
+    user: req.uid
+  })
+    .sort({ time: -1 })
     .limit(120);
 
-  res.json(t.map(pub));
+  res.json(transactions.map(pub));
 }));
 
-app.use((e,req,res,next)=>{
-  res.status(400).json({message:'Bad request'});
-});
+/* ── ERROR HANDLER ── */
 
-/* ── start server ── */
+app.use((error, req, res, next) => {
+  console.error('Unhandled request error:', error.message);
 
-mongoose.connect(process.env.MONGO_URI).then(()=>{
-
-  app.listen(process.env.PORT||3000,()=>{
-    console.log('API up · version '+VERSION);
+  res.status(400).json({
+    message: 'Bad request'
   });
-
-}).catch(e=>{
-  console.error('Mongo failed:',e.message);
-  process.exit(1);
 });
+
+/* ── START SERVER ── */
+
+mongoose.connect(process.env.MONGO_URI)
+  .then(() => {
+    app.listen(
+      process.env.PORT || 3000,
+      () => console.log('API up · version ' + VERSION)
+    );
+  })
+  .catch(error => {
+    console.error('Mongo failed:', error.message);
+    process.exit(1);
+  });
