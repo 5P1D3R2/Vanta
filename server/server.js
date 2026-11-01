@@ -1,4 +1,4 @@
-/* VANTA backend v6.1 · TinyPesa verified STK Push
+/* VANTA backend v6.2 · TinyPesa STK Push (auto-credit) · referrals · min stake 0.35
    ENVIRONMENT:
    MONGO_URI
    JWT_SECRET
@@ -9,10 +9,20 @@
    OPTIONAL:
    TINYPESA_LINK_SLUG (default vantabinary2)
    DEMO_WIN_RATE (default 0.95)
+   REFERRAL_BONUS (USD paid to the referrer when a friend makes a first
+                   confirmed deposit; default 0 = no payout, stats only)
+
+   TINYPESA SETUP (so deposits credit automatically):
+   1. Set TINYPESA_API_KEY and MPESA_CB_SECRET on Render.
+   2. In your TinyPesa dashboard set the callback URL to
+      https://<your-render-app>.onrender.com/mpesa/callback/<MPESA_CB_SECRET>
+   Even without the webhook, the site checks the payment status itself
+   every few seconds while the deposit screen is open.
 
    Verify: /version
 */
 
+const crypto = require('crypto');
 const express = require('express');
 const cors = require('cors');
 const mongoose = require('mongoose');
@@ -27,6 +37,8 @@ app.use(express.urlencoded({ extended: true }));
 
 const JWT_SECRET = process.env.JWT_SECRET || 'change-me';
 const MIN_DEPOSIT = 4;
+const MIN_STAKE = 0.35;
+const REFERRAL_BONUS = Math.max(0, parseFloat(process.env.REFERRAL_BONUS || '0') || 0);
 const KES_PER_USD = 129;
 
 const DEMO_WIN_RATE = Math.min(
@@ -35,7 +47,7 @@ const DEMO_WIN_RATE = Math.min(
 );
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const VERSION = '6.1-admin-sim-tinypesa-verified';
+const VERSION = '6.2-tinypesa-auto-referrals-minstake035';
 
 const isSimUser = u =>
   !!(ADMIN_EMAIL && u &&
@@ -373,6 +385,12 @@ async function verifyAndCreditDeposit(
     await session.endSession();
   }
 
+  if (applied) {
+    rewardReferrer(deposit.user).catch(error =>
+      console.error('Referral reward:', error.message)
+    );
+  }
+
   return applied;
 }
 
@@ -515,6 +533,29 @@ const User = mongoose.model(
 
     passwordHash: String,
 
+    referralCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      index: true
+    },
+
+    referredBy: {
+      type: String,
+      index: true,
+      default: null
+    },
+
+    referralRewarded: {
+      type: Boolean,
+      default: false
+    },
+
+    referralEarned: {
+      type: Number,
+      default: 0
+    },
+
     wallets: {
       demo: {
         type: Number,
@@ -640,6 +681,8 @@ const pub = object => {
   delete result._id;
   delete result.__v;
   delete result.user;
+  delete result.passwordHash;
+  delete result.referralRewarded;
 
   return result;
 };
@@ -665,6 +708,54 @@ async function credit(userId, account, value) {
   );
 
   await user.save();
+}
+
+/* ── REFERRALS ── */
+
+async function uniqueReferralCode() {
+  for (let i = 0; i < 10; i++) {
+    const code = crypto.randomBytes(4).toString('hex').toUpperCase();
+
+    if (!await User.exists({ referralCode: code })) {
+      return code;
+    }
+  }
+
+  return crypto.randomBytes(6).toString('hex').toUpperCase();
+}
+
+async function ensureReferralCode(user) {
+  if (user && !user.referralCode) {
+    user.referralCode = await uniqueReferralCode();
+    await user.save();
+  }
+
+  return user;
+}
+
+async function rewardReferrer(userId) {
+  if (!(REFERRAL_BONUS > 0)) return;
+
+  const friend = await User.findOneAndUpdate(
+    {
+      _id: userId,
+      referredBy: { $ne: null },
+      referralRewarded: { $ne: true }
+    },
+    { $set: { referralRewarded: true } }
+  );
+
+  if (!friend) return;
+
+  await User.updateOne(
+    { referralCode: friend.referredBy },
+    {
+      $inc: {
+        'wallets.real': REFERRAL_BONUS,
+        referralEarned: REFERRAL_BONUS
+      }
+    }
+  );
 }
 
 const auth = (req, res, next) => {
@@ -713,6 +804,10 @@ app.get('/version', (req, res) => {
   res.json({ v: VERSION });
 });
 
+app.get('/', (req, res) => {
+  res.json({ ok: true, v: VERSION });
+});
+
 /* ── AUTHENTICATION ── */
 
 app.post('/auth/register', h(async (req, res) => {
@@ -744,10 +839,25 @@ app.post('/auth/register', h(async (req, res) => {
     });
   }
 
+  const given = String(req.body.referralCode || '')
+    .trim()
+    .toUpperCase()
+    .slice(0, 32);
+
+  let referredBy = null;
+
+  if (given) {
+    const referrer = await User.findOne({ referralCode: given });
+
+    if (referrer) referredBy = referrer.referralCode;
+  }
+
   const user = await User.create({
     name,
     email,
-    passwordHash: await bcrypt.hash(password, 10)
+    passwordHash: await bcrypt.hash(password, 10),
+    referralCode: await uniqueReferralCode(),
+    referredBy
   });
 
   res.json({
@@ -777,6 +887,8 @@ app.post('/auth/login', h(async (req, res) => {
     });
   }
 
+  await ensureReferralCode(user);
+
   res.json({
     token: jwt.sign(
       { uid: String(user._id) },
@@ -796,8 +908,47 @@ app.get('/me', auth, h(async (req, res) => {
     });
   }
 
+  await ensureReferralCode(user);
+
   res.json({
     user: withSim(pub(user), user)
+  });
+}));
+
+/* ── REFERRAL STATS ── */
+
+app.get('/referrals', auth, h(async (req, res) => {
+  const user = await User.findById(req.uid);
+
+  if (!user) {
+    return res.status(401).json({
+      message: 'Session expired'
+    });
+  }
+
+  await ensureReferralCode(user);
+
+  const friends = await User.find(
+    { referredBy: user.referralCode },
+    { _id: 1 }
+  );
+
+  const ids = friends.map(f => String(f._id));
+
+  const active = ids.length
+    ? (await Tx.distinct('user', {
+        type: 'deposit',
+        status: 'confirmed',
+        user: { $in: ids }
+      })).length
+    : 0;
+
+  res.json({
+    code: user.referralCode,
+    total: ids.length,
+    active,
+    pending: 0,
+    earned: r2(user.referralEarned || 0)
   });
 }));
 
@@ -847,9 +998,9 @@ app.post('/trades', auth, h(async (req, res) => {
     });
   }
 
-  if (!(amount >= 1)) {
+  if (!(amount >= MIN_STAKE)) {
     return res.status(400).json({
-      message: 'Minimum stake is $1.00'
+      message: 'Minimum stake is $' + MIN_STAKE.toFixed(2)
     });
   }
 
@@ -1478,15 +1629,29 @@ app.post('/mpesa/callback/:secret', async (req, res) => {
   try {
     const callback = parseCallback(req);
 
-    if (!callback.externalRef) {
+    const lookups = [];
+
+    if (callback.externalRef) {
+      lookups.push({ externalReference: callback.externalRef });
+    }
+
+    if (callback.checkoutId) {
+      lookups.push({ checkoutId: callback.checkoutId });
+    }
+
+    if (callback.tinyPesaId) {
+      lookups.push({ tinyPesaId: String(callback.tinyPesaId) });
+    }
+
+    if (!lookups.length) {
       console.error(
-        'TinyPesa callback missing ExternalReference'
+        'TinyPesa callback has no reference to match'
       );
       return;
     }
 
     const deposit = await Tx.findOne({
-      externalReference: callback.externalRef,
+      $or: lookups,
       type: 'deposit',
       method: 'mpesa'
     });
@@ -1514,7 +1679,7 @@ app.post('/mpesa/callback/:secret', async (req, res) => {
 
     await verifyAndCreditDeposit(
       deposit,
-      callback.externalRef,
+      deposit.externalReference,
       callback
     );
 
@@ -1685,6 +1850,18 @@ app.use((error, req, res, next) => {
 
 mongoose.connect(process.env.MONGO_URI)
   .then(() => {
+    if (JWT_SECRET === 'change-me') {
+      console.warn('WARNING: set JWT_SECRET to a long random value');
+    }
+
+    if (!TINYPESA.KEY) {
+      console.warn('WARNING: TINYPESA_API_KEY missing - deposits disabled');
+    }
+
+    if (!(process.env.MPESA_CB_SECRET || '').trim()) {
+      console.warn('WARNING: MPESA_CB_SECRET missing - webhook disabled');
+    }
+
     app.listen(
       process.env.PORT || 3000,
       () => console.log('API up · version ' + VERSION)
