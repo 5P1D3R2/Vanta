@@ -2870,87 +2870,99 @@ function Support(app){
 }
 
 
+
 /* ═══════════════════════════════════════════
-   VANTA DEPOSIT — INTERNATIONAL M-PESA
+   VANTA DEPOSIT — FIXED INTERNATIONAL UI
    Kenya +254 | Tanzania +255 | Uganda +256
+   Backend: POST /deposits | GET /deposits/:id
 ═══════════════════════════════════════════ */
 
-function Deposit(app){
+function Deposit(app) {
 
-  const METHODS=[
-    {
-      id:'mpesa',
-      name:'M-Pesa',
-      net:'Mobile Money · STK Push',
-      glyph:'M',
-      note:'Fast payment'
-    }
+  const METHODS = [{
+    id: 'mpesa',
+    name: 'M-Pesa',
+    net: 'Mobile Money · STK Push',
+    glyph: 'M',
+    note: 'Fast payment'
+  }];
+
+  const COUNTRIES = [
+    { id:'KE', name:'Kenya', code:'+254', digits:9, prefix:/^[17]/ },
+    { id:'TZ', name:'Tanzania', code:'+255', digits:9, prefix:/^[67]/ },
+    { id:'UG', name:'Uganda', code:'+256', digits:9, prefix:/^7/ }
   ];
 
-  const COUNTRIES=[
-    {id:'KE',name:'Kenya',code:'+254',digits:9,prefix:/^[17]/},
-    {id:'TZ',name:'Tanzania',code:'+255',digits:9,prefix:/^[67]/},
-    {id:'UG',name:'Uganda',code:'+256',digits:9,prefix:/^7/}
-  ];
+  let step = 1;
+  let method = 'mpesa';
+  let country = 'KE';
+  let dep = null;
+  let phase = 'form';
+  let pollStopped = false;
+  let creating = false;
 
-  let step=1;
-  let method='mpesa';
-  let country='KE';
-  let dep=null;
-  let phase='form';
+  const getCountry = () =>
+    COUNTRIES.find(c => c.id === country);
 
-  const getCountry=()=>COUNTRIES.find(c=>c.id===country);
+  const normPhone = v =>
+    (v || '').replace(/\D/g, '');
 
-  const normPhone=v=>(v||'').replace(/\D/g,'');
+  const getLocalPhone = () =>
+    normPhone($('#mp-phone')?.value);
 
-  const getPhone=()=>{
-    const c=getCountry();
-    const local=normPhone($('#mp-phone')?.value);
-    return c.code.slice(1)+local;
+  const getPhone = () =>
+    getCountry().code.slice(1) + getLocalPhone();
+
+  const validPhone = () => {
+    const c = getCountry();
+    const local = getLocalPhone();
+
+    return local.length === c.digits &&
+           c.prefix.test(local);
   };
 
-  const validPhone=()=>{
-    const c=getCountry();
-    const local=normPhone($('#mp-phone')?.value);
-    return local.length===c.digits&&c.prefix.test(local);
-  };
+  const supportedCountry = () => country === 'KE';
 
-  const summary=()=>{
-    const amt=parseFloat($('#dep-amt')?.value)||dep?.amount||0;
+  function summary() {
 
-    const code=(($('#promo')?.value)||dep?.bonusCode||'')
-      .trim().toUpperCase();
+    const amt = parseFloat($('#dep-amt')?.value) || 0;
 
-    let bonus=0,note='';
+    const code = (
+      ($('#promo')?.value || '')
+    ).trim().toUpperCase();
 
-    if(code==='WELCOME20'){
-      bonus=+(amt*.2).toFixed(2);
+    let bonus = 0;
+    let note = '';
+
+    if (code === 'WELCOME20') {
+      bonus = +(amt * .20).toFixed(2);
     }
 
-    if(code==='BOOST50'){
-      bonus=amt>=100?+(amt*.5).toFixed(2):0;
-      if(amt<100)note='BOOST50 needs $100+';
+    if (code === 'BOOST50') {
+      bonus = amt >= 100 ? +(amt * .50).toFixed(2) : 0;
+
+      if (amt < 100) {
+        note = 'BOOST50 needs $100+';
+      }
     }
 
-    return{
+    return {
       amt,
       code,
       bonus,
       note,
-      total:+(amt+bonus).toFixed(2)
+      total: +(amt + bonus).toFixed(2)
     };
-  };
+  }
 
-  function sumPanel(){
+  function sumPanel() {
 
-    const s=dep
-      ?{
-        amt:dep.amount,
-        bonus:dep.bonus,
-        total:dep.total,
-        code:dep.bonusCode
-      }
-      :summary();
+    const s = dep ? {
+      amt: dep.amount,
+      bonus: dep.bonus || 0,
+      total: dep.total,
+      code: dep.bonusCode
+    } : summary();
 
     return `
       <div class="pn" id="dep-summary">
@@ -2966,24 +2978,27 @@ function Deposit(app){
 
         <div class="sum-r">
           <span>Deposit amount</span>
-          <b>${money(s.amt)}</b>
+          <b id="sum-amount">${money(s.amt)}</b>
         </div>
 
-        ${!dep&&method==='mpesa'&&s.total?`
+        ${!dep && method === 'mpesa' && s.amt ? `
           <div class="sum-r">
             <span>Estimated M-Pesa amount</span>
-            <b>
-              KES ${Math.ceil(s.total*KES_PER_USD).toLocaleString()}
+            <b id="sum-kes">
+              KES ${Math.ceil(s.amt * KES_PER_USD).toLocaleString()}
             </b>
           </div>
-        `:''}
+        ` : ''}
 
-        ${s.bonus?`
-          <div class="sum-r">
-            <span>Bonus · ${esc(s.code||'')}</span>
-            <b class="u-c">+${money(s.bonus)}</b>
-          </div>
-        `:''}
+        <div class="sum-r" id="sum-bonus-row"
+          style="${s.bonus ? '' : 'display:none'}">
+          <span id="sum-bonus-label">
+            Bonus · ${esc(s.code || '')}
+          </span>
+          <b class="u-c" id="sum-bonus">
+            +${money(s.bonus)}
+          </b>
+        </div>
 
         <div class="sum-r">
           <span>Platform fee</span>
@@ -2992,29 +3007,64 @@ function Deposit(app){
 
         <div class="sum-r tot">
           <span>You receive</span>
-          <b>${money(s.total)}</b>
+          <b id="sum-total">${money(s.total)}</b>
         </div>
 
-        ${step===1?`
+        ${step === 1 ? `
           <button class="btn btn-up wide"
             id="dep-go"
             style="margin-top:16px">
             Continue ${icon('arrow-right',15)}
           </button>
-        `:''}
+        ` : ''}
 
       </div>
     `;
   }
 
-  function depBody(){
+  function refreshSummary() {
 
-    if(phase==='done'){
+    if (step !== 1 || dep) return;
+
+    const s = summary();
+
+    const amount = $('#sum-amount');
+    const kes = $('#sum-kes');
+    const bonusRow = $('#sum-bonus-row');
+    const bonusLabel = $('#sum-bonus-label');
+    const bonus = $('#sum-bonus');
+    const total = $('#sum-total');
+
+    if (amount) amount.textContent = money(s.amt);
+
+    if (kes) {
+      kes.textContent =
+        'KES ' + Math.ceil(s.amt * KES_PER_USD).toLocaleString();
+    }
+
+    if (bonusRow) {
+      bonusRow.style.display = s.bonus ? '' : 'none';
+    }
+
+    if (bonusLabel) {
+      bonusLabel.textContent = 'Bonus · ' + (s.code || '');
+    }
+
+    if (bonus) {
+      bonus.textContent = '+' + money(s.bonus);
+    }
+
+    if (total) {
+      total.textContent = money(s.total);
+    }
+  }
+
+  function depBody() {
+
+    if (phase === 'done') {
 
       return `
-        <div class="pn" style="
-          text-align:center;
-          padding:36px 16px">
+        <div class="pn" style="text-align:center;padding:36px 16px">
 
           <div class="big-check">
             ${icon('check',26)}
@@ -3025,9 +3075,7 @@ function Deposit(app){
           </h3>
 
           <p class="hint" style="margin:0 0 18px">
-            ${dep.bonus
-              ?`Includes ${money(dep.bonus)} bonus.`
-              :''}
+            ${dep.bonus ? `Includes ${money(dep.bonus)} bonus.` : ''}
             Your REAL wallet has been updated.
           </p>
 
@@ -3039,23 +3087,18 @@ function Deposit(app){
       `;
     }
 
-    if(step===1){
+    if (step === 1) {
 
-      const c=getCountry();
+      const c = getCountry();
 
       return `
         <div class="pn">
 
-          <div style="
-            display:flex;
-            align-items:center;
-            justify-content:space-between;
-            margin-bottom:15px">
+          <div style="display:flex;align-items:center;
+            justify-content:space-between;margin-bottom:15px">
 
             <div>
-              <h3 style="font-size:16px;margin:0">
-                Add funds
-              </h3>
+              <h3 style="font-size:16px;margin:0">Add funds</h3>
               <p class="hint" style="margin:4px 0 0">
                 Choose your payment details
               </p>
@@ -3064,16 +3107,13 @@ function Deposit(app){
             <span class="badge pend">SECURE</span>
           </div>
 
-          <label class="hint" style="
-            font-weight:700;
-            font-size:10px;
-            letter-spacing:.08em;
-            text-transform:uppercase">
+          <label class="hint" style="font-weight:700;font-size:10px;
+            letter-spacing:.08em;text-transform:uppercase">
             Payment method
           </label>
 
-          ${METHODS.map(m=>`
-            <button class="mrow ${m.id===method?'on':''}"
+          ${METHODS.map(m => `
+            <button class="mrow ${m.id === method ? 'on' : ''}"
               data-m="${m.id}">
 
               <span class="mg">${m.glyph}</span>
@@ -3084,28 +3124,22 @@ function Deposit(app){
               </span>
 
               <span class="mnote">${m.note}</span>
-
             </button>
           `).join('')}
 
           <div style="margin-top:18px">
 
-            <label class="hint" style="
-              font-weight:700;
-              font-size:11px;
-              text-transform:uppercase">
+            <label class="hint" style="font-weight:700;
+              font-size:11px;text-transform:uppercase">
               Deposit amount (USD)
             </label>
 
-            <input
-              id="dep-amt"
+            <input id="dep-amt"
               inputmode="decimal"
-              placeholder="Enter amount e.g. 10.00"
-              value="${dep?dep.amount:''}"
-            >
+              placeholder="Enter amount e.g. 10.00">
 
             <div class="qchips">
-              ${[MIN_DEPOSIT,10,25,50,100].map(v=>`
+              ${[MIN_DEPOSIT,10,25,50,100].map(v => `
                 <button data-q="${v}">$${v}</button>
               `).join('')}
             </div>
@@ -3114,28 +3148,21 @@ function Deposit(app){
 
           <div style="margin-top:17px">
 
-            <label class="hint" style="
-              font-weight:700;
-              font-size:11px;
-              text-transform:uppercase">
+            <label class="hint" style="font-weight:700;
+              font-size:11px;text-transform:uppercase">
               Select country
             </label>
 
             <select id="dep-country"
-              style="
-                width:100%;
-                padding:13px;
-                border-radius:10px;
-                background:var(--card);
-                color:var(--txt);
-                border:1px solid var(--line);
-                margin-top:6px;
-                font-size:14px">
+              style="width:100%;padding:13px;border-radius:10px;
+              background:var(--card);color:var(--txt);
+              border:1px solid var(--line);margin-top:6px;
+              font-size:14px">
 
-              ${COUNTRIES.map(x=>`
+              ${COUNTRIES.map(x => `
                 <option value="${x.id}"
-                  ${country===x.id?'selected':''}>
-                  ${x.id==='KE'?'🇰🇪':x.id==='TZ'?'🇹🇿':'🇺🇬'}
+                  ${country === x.id ? 'selected' : ''}>
+                  ${x.id === 'KE' ? '🇰🇪' : x.id === 'TZ' ? '🇹🇿' : '🇺🇬'}
                   ${x.name} (${x.code})
                 </option>
               `).join('')}
@@ -3146,40 +3173,29 @@ function Deposit(app){
 
           <div style="margin-top:14px">
 
-            <label class="hint" style="
-              font-weight:700;
-              font-size:11px;
-              text-transform:uppercase">
+            <label class="hint" style="font-weight:700;
+              font-size:11px;text-transform:uppercase">
               M-Pesa phone number
             </label>
 
-            <div style="
-              display:flex;
-              align-items:center;
-              gap:9px;
-              margin-top:6px">
+            <div style="display:flex;align-items:center;
+              gap:9px;margin-top:6px">
 
               <div id="dep-code"
-                style="
-                  min-width:76px;
-                  padding:13px 10px;
-                  border-radius:10px;
-                  background:var(--card);
-                  border:1px solid var(--line);
-                  font-weight:800;
-                  text-align:center">
+                style="min-width:76px;padding:13px 10px;
+                border-radius:10px;background:var(--card);
+                border:1px solid var(--line);
+                font-weight:800;text-align:center">
                 ${c.code}
               </div>
 
-              <input
-                id="mp-phone"
+              <input id="mp-phone"
                 type="tel"
                 inputmode="numeric"
                 maxlength="9"
-                placeholder="7XXXXXXXX"
+                placeholder="${country === 'KE' ? '7XXXXXXXX' : country === 'TZ' ? '6XXXXXXXX' : '7XXXXXXXX'}"
                 autocomplete="tel-national"
-                style="flex:1;min-width:0"
-              >
+                style="flex:1;min-width:0">
 
             </div>
 
@@ -3187,23 +3203,25 @@ function Deposit(app){
               Enter your local mobile number without 0 or country code.
             </p>
 
+            <p id="country-warning"
+              class="hint"
+              style="margin-top:8px;color:var(--red);
+              ${supportedCountry() ? 'display:none' : ''}">
+              M-Pesa deposits are currently enabled for Kenya only.
+            </p>
+
           </div>
 
           <div style="margin-top:17px">
 
-            <label class="hint" style="
-              font-weight:700;
-              font-size:11px;
-              text-transform:uppercase">
+            <label class="hint" style="font-weight:700;
+              font-size:11px;text-transform:uppercase">
               Promo code (optional)
             </label>
 
-            <input
-              id="promo"
+            <input id="promo"
               placeholder="Enter promo code"
-              value="${dep?esc(dep.bonusCode||''):''}"
-              style="text-transform:uppercase"
-            >
+              style="text-transform:uppercase">
 
             <p class="hint" style="margin-top:8px">
               ${icon('gift',13)}
@@ -3219,11 +3237,11 @@ function Deposit(app){
       `;
     }
 
-    if(step===2&&method==='mpesa'){
+    if (step === 2 && method === 'mpesa') {
 
-      const kes=dep.instructions.kesAmount
-        ?dep.instructions.kesAmount.toLocaleString()
-        :'';
+      const kes = dep.instructions?.kesAmount
+        ? dep.instructions.kesAmount.toLocaleString()
+        : '';
 
       return `
         <div class="pn">
@@ -3249,27 +3267,25 @@ function Deposit(app){
 
           <div class="sum-r">
             <span>Phone</span>
-            <b>${esc(dep.instructions.phone)}</b>
+            <b>${esc(dep.instructions?.phone || '')}</b>
           </div>
 
-          ${kes?`
+          ${kes ? `
             <div class="sum-r">
               <span>Payment in KES</span>
               <b>KES ${kes}</b>
             </div>
-          `:''}
+          ` : ''}
 
           <div id="stages" style="margin-top:18px"></div>
 
           <button class="btn btn-up wide"
-            id="mp-check"
-            style="margin-top:15px">
+            id="mp-check" style="margin-top:15px">
             ${icon('check',14)} I've paid — check status
           </button>
 
           <button class="btn btn-ghost wide"
-            id="mp-cancel"
-            style="margin-top:8px">
+            id="mp-cancel" style="margin-top:8px">
             Cancel deposit
           </button>
 
@@ -3288,15 +3304,16 @@ function Deposit(app){
     `;
   }
 
-  function draw(){
+  function draw() {
 
-    app.innerHTML=shell('/deposit',`
+    app.innerHTML = shell('/deposit', `
       <div class="pg">
 
         <div class="pg-head">
           <h1>Deposit</h1>
+
           <span class="badge pend">
-            ${phase==='done'?'COMPLETE':'STEP '+step+' / 2'}
+            ${phase === 'done' ? 'COMPLETE' : 'STEP ' + step + ' / 2'}
           </span>
         </div>
 
@@ -3311,226 +3328,227 @@ function Deposit(app){
     wire();
   }
 
-  function refreshSummary(){
+  function wire() {
 
-    const old=$('#dep-summary');
-    if(!old)return;
+    if (step === 1) {
 
-    const s=summary();
-
-    old.querySelector('.sum-r b')?.replaceChildren(
-      document.createTextNode(money(s.amt))
-    );
-
-    old.outerHTML=sumPanel();
-  }
-
-  function wire(){
-
-    if(step===1){
-
-      $$('.mrow',app).forEach(b=>{
-        b.onclick=()=>{
-          method=b.dataset.m;
+      $$('.mrow', app).forEach(b => {
+        b.onclick = () => {
+          method = b.dataset.m;
           draw();
         };
       });
 
-      $$('.qchips button[data-q]',app).forEach(b=>{
-        b.onclick=()=>{
-          $('#dep-amt').value=b.dataset.q;
+      $$('.qchips button[data-q]', app).forEach(b => {
+        b.onclick = () => {
+          $('#dep-amt').value = b.dataset.q;
           refreshSummary();
         };
       });
 
-      $('#dep-amt')?.addEventListener('input',refreshSummary);
-      $('#promo')?.addEventListener('input',refreshSummary);
+      $('#dep-amt')?.addEventListener('input', refreshSummary);
+      $('#promo')?.addEventListener('input', refreshSummary);
 
-      $('#dep-country')?.addEventListener('change',e=>{
-        country=e.target.value;
-        const c=getCountry();
-        $('#dep-code').textContent=c.code;
-        $('#mp-phone').value='';
-        $('#mp-phone').placeholder=
-          c.id==='KE'?'7XXXXXXXX':
-          c.id==='TZ'?'6XXXXXXXX':'7XXXXXXXX';
+      $('#dep-country')?.addEventListener('change', e => {
+
+        country = e.target.value;
+
+        const c = getCountry();
+
+        $('#dep-code').textContent = c.code;
+        $('#mp-phone').value = '';
+
+        $('#mp-phone').placeholder =
+          country === 'KE' ? '7XXXXXXXX' :
+          country === 'TZ' ? '6XXXXXXXX' : '7XXXXXXXX';
+
+        const warning = $('#country-warning');
+
+        if (warning) {
+          warning.style.display = supportedCountry() ? 'none' : 'block';
+        }
       });
 
-      $('#mp-phone')?.addEventListener('input',e=>{
-        e.target.value=normPhone(e.target.value).slice(0,9);
+      $('#mp-phone')?.addEventListener('input', e => {
+        e.target.value = normPhone(e.target.value).slice(0,9);
       });
 
-      $('#dep-go').onclick=async()=>{
+      const go = $('#dep-go');
 
-        const s=summary();
+      if (go) {
+        go.onclick = async () => {
 
-        if(!(s.amt>=MIN_DEPOSIT)){
-          return toast(
-            'warn',
-            'Amount too small',
-            'Minimum deposit is $'+MIN_DEPOSIT.toFixed(2)+'.'
-          );
-        }
+          if (creating) return;
 
-        if(s.amt>100000){
-          return toast(
-            'warn',
-            'Amount too large',
-            'Maximum is $100,000.00.'
-          );
-        }
+          const s = summary();
 
-        if(s.note){
-          return toast('warn','Promo not applied',s.note);
-        }
-
-        if(!validPhone()){
-          return toast(
-            'warn',
-            'Invalid phone number',
-            'Enter a valid '+getCountry().name+
-            ' mobile number with 9 digits, without the country code.'
-          );
-        }
-
-        const go=$('#dep-go');
-        go.classList.add('busy');
-        go.disabled=true;
-
-        try{
-
-          const c=getCountry();
-          const phone=getPhone();
-
-          dep=await API.createDeposit({
-
-            method,
-
-            amount:s.amt,
-
-            bonusCode:s.code,
-
-            country:c.id,
-
-            countryName:c.name,
-
-            countryCode:c.code,
-
-            localPhone:normPhone($('#mp-phone').value),
-
-            phone:phone
-
-          });
-
-          if(!dep||!dep.id){
-            throw new Error('Invalid deposit response from server.');
+          if (!(s.amt >= MIN_DEPOSIT)) {
+            return toast(
+              'warn',
+              'Amount too small',
+              'Minimum deposit is $' + MIN_DEPOSIT.toFixed(2) + '.'
+            );
           }
 
-          step=2;
-          draw();
+          if (s.amt > 100000) {
+            return toast(
+              'warn',
+              'Amount too large',
+              'Maximum is $100,000.00.'
+            );
+          }
 
-        }catch(e){
+          if (s.note) {
+            return toast('warn','Promo not applied',s.note);
+          }
 
-          toast(
-            'warn',
-            'Could not create deposit',
-            e.message
-          );
+          if (!supportedCountry()) {
+            return toast(
+              'warn',
+              'Country not supported yet',
+              'Kenya M-Pesa payments are currently enabled. Tanzania and Uganda require backend payment integration.'
+            );
+          }
 
-          go.classList.remove('busy');
-          go.disabled=false;
-        }
-      };
+          if (!validPhone()) {
+            return toast(
+              'warn',
+              'Invalid phone number',
+              'Enter a valid Safaricom number, e.g. 712345678.'
+            );
+          }
 
-    }else if(step===2&&method==='mpesa'){
+          creating = true;
+          go.classList.add('busy');
+          go.disabled = true;
 
-      $('#mp-cancel').onclick=()=>{
-        step=1;
-        dep=null;
-        phase='form';
+          try {
+
+            // Send the exact fields expected by your existing backend.
+            dep = await API.createDeposit({
+              method,
+              amount: s.amt,
+              bonusCode: s.code,
+              phone: getPhone()
+            });
+
+            if (!dep || !dep.id) {
+              throw new Error('Invalid deposit response from server.');
+            }
+
+            step = 2;
+            pollStopped = false;
+            draw();
+
+          } catch (e) {
+
+            toast(
+              'warn',
+              'Could not create deposit',
+              e.message || 'Please try again.'
+            );
+
+            creating = false;
+            go.classList.remove('busy');
+            go.disabled = false;
+          }
+        };
+      }
+
+    } else if (step === 2 && method === 'mpesa') {
+
+      $('#mp-cancel').onclick = () => {
+
+        pollStopped = true;
+        creating = false;
+        step = 1;
+        dep = null;
+        phase = 'form';
+
         draw();
       };
 
-      const stages=[
+      const stages = [
         'Payment request sent',
         'Waiting for M-Pesa PIN confirmation',
         'Crediting REAL wallet'
       ];
 
-      const setS=i=>{
-        const el=$('#stages');
-        if(!el)return;
+      const setS = i => {
 
-        el.innerHTML=stages.map((n,j)=>`
-          <div class="stg ${
-            j<i?'done':j===i?'run':''
-          }">
-            ${icon(j<i?'check':'clock',14)}
+        const el = $('#stages');
+        if (!el) return;
+
+        el.innerHTML = stages.map((n,j) => `
+          <div class="stg ${j < i ? 'done' : j === i ? 'run' : ''}">
+            ${icon(j < i ? 'check' : 'clock',14)}
             <span>${n}</span>
-            ${j===i?'<i class="spin"></i>':''}
+            ${j === i ? '<i class="spin"></i>' : ''}
           </div>
         `).join('');
       };
 
-      let checking=false;
+      let checking = false;
 
-      const poll=async()=>{
+      const poll = async () => {
 
-        if(checking)return;
-        checking=true;
+        if (checking || pollStopped || phase === 'done') return;
 
-        try{
+        checking = true;
 
-          const d=await API.getDeposit(dep.id);
+        try {
 
-          if(d.status==='confirmed'){
+          const d = await API.getDeposit(dep.id);
+
+          if (d.status === 'confirmed') {
             setS(3);
             creditAndDone(d);
             return;
           }
 
-          if(d.status==='failed'){
+          if (d.status === 'failed') {
 
-            $('#stages').innerHTML=`
-              <div class="stg" style="color:var(--red)">
-                ${icon('alert-circle',14)}
-                <span>Payment failed or cancelled.</span>
-              </div>
-            `;
+            const el = $('#stages');
 
-            return;
+            if (el) {
+              el.innerHTML = `
+                <div class="stg" style="color:var(--red)">
+                  ${icon('alert-circle',14)}
+                  <span>Payment failed or cancelled.</span>
+                </div>
+              `;
+            }
+
+            pollStopped = true;
           }
 
-        }catch(e){
-          // Temporary network error. Retry on next check.
-        }finally{
-          checking=false;
+        } catch (e) {
+          // Retry after temporary network errors.
+        } finally {
+          checking = false;
         }
       };
 
       setS(1);
 
-      // Automatic status checking
-      const pollLoop=async()=>{
-        for(let i=0;i<60;i++){
+      const pollLoop = async () => {
+
+        for (let i = 0; i < 60; i++) {
 
           await sleep(3000);
 
-          if(!$('#stages')||phase==='done')return;
+          if (pollStopped || !$('#stages') || phase === 'done') {
+            return;
+          }
 
           await poll();
 
-          if(phase==='done')return;
-
-          if(!$('#stages'))return;
-
-          const error=$('#stages')?.textContent||'';
-
-          if(error.includes('failed or cancelled'))return;
+          if (pollStopped || phase === 'done') return;
         }
 
-        if($('#stages')&&phase!=='done'){
-          $('#stages').innerHTML=`
+        if ($('#stages') && phase !== 'done' && !pollStopped) {
+
+          $('#stages').innerHTML = `
             <div class="stg" style="color:var(--red)">
               ${icon('alert-circle',14)}
               <span>
@@ -3543,36 +3561,43 @@ function Deposit(app){
 
       pollLoop();
 
-      $('#mp-check').onclick=async()=>{
+      $('#mp-check').onclick = async () => {
 
-        const b=$('#mp-check');
+        const b = $('#mp-check');
+
+        if (!b || checking) return;
 
         b.classList.add('busy');
-        b.disabled=true;
+        b.disabled = true;
 
         await poll();
 
-        if(phase!=='done'){
+        if (phase !== 'done' && !pollStopped) {
+
           toast(
             'info',
             'Payment not detected yet',
             'Wait a few seconds and check again.'
           );
+        }
 
+        if (phase !== 'done' && !pollStopped) {
           b.classList.remove('busy');
-          b.disabled=false;
+          b.disabled = false;
         }
       };
     }
   }
 
-  const creditAndDone=d=>{
+  function creditAndDone(d) {
 
-    if(phase==='done')return;
+    if (phase === 'done') return;
 
-    dep=d;
+    pollStopped = true;
+    dep = d;
 
-    Auth.bump('real',d.total);
+    // Updates the local VANTA wallet display.
+    Auth.bump('real', d.total);
 
     toast(
       'ok',
@@ -3580,13 +3605,13 @@ function Deposit(app){
       'Credited to your REAL wallet.'
     );
 
-    phase='done';
-
+    phase = 'done';
     draw();
-  };
+  }
 
   draw();
 }
+
 
 
   
