@@ -1700,7 +1700,7 @@ app.get('/deposits/:id', auth, h(async (req, res) => {
 
 /* ── TINYPESA WEBHOOK ── */
 
-app.post('/mpesa/callback/:secret', async (req, res) => {
+app.all('/mpesa/callback/:secret', async (req, res) => {
   if (
     req.params.secret !==
     (process.env.MPESA_CB_SECRET || '').trim()
