@@ -26,7 +26,7 @@ const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 const cleanEnv=v=>String(v||'').trim().replace(/^["']+|["']+$/g,'').trim();
 const TINYPESA={
   BASE:cleanEnv(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
-  KEY:cleanEnv(process.env.TINYPESA_API_KEY),
+  KEY:cleanEnv(process.env.TINYPESA_API_KEY||'9iUapp473iWYlSQ7LZgK8GWP5q9hXll3Y2GxC7HU'),
   SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'vantabinary2'),
 };
 console.log('TinyPesa config → user:',TINYPESA.SLUG,'· key length:',TINYPESA.KEY.length);
