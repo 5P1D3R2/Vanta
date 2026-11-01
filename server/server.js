@@ -1,369 +1,1149 @@
-/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push (api.tinypesa.com)
-   Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY (LINK API key from dashboard),
+/* VANTA backend v6 · admin simulation + demo-wallet simulation · TinyPesa STK Push
+   Env: MONGO_URI, JWT_SECRET, TINYPESA_API_KEY (LINK API key),
         MPESA_CB_SECRET, ADMIN_EMAIL
-   Optional: TINYPESA_LINK_SLUG (default vantabinary2), DEMO_WIN_RATE (0-1, default 0.95)
-   Verify: /version → {"v":"6.0-admin-sim"} */
+   Optional: TINYPESA_BASE, TINYPESA_LINK_SLUG, DEMO_WIN_RATE
+   Verify: /version → {"v":"6.0-admin-sim"}
+*/
+
 const express=require('express'),cors=require('cors'),mongoose=require('mongoose'),
       jwt=require('jsonwebtoken'),bcrypt=require('bcryptjs');
+
 const app=express();
+
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({extended:true}));
+
 const JWT_SECRET=process.env.JWT_SECRET||'change-me';
-const MIN_DEPOSIT=4, KES_PER_USD=129;
+const MIN_DEPOSIT=4,KES_PER_USD=129;
 const DEMO_WIN_RATE=Math.min(1,Math.max(0,parseFloat(process.env.DEMO_WIN_RATE||'0.95')));
 const ADMIN_EMAIL=(process.env.ADMIN_EMAIL||'').trim().toLowerCase();
 const VERSION='6.0-admin-sim';
+
 const isSimUser=u=>!!(ADMIN_EMAIL&&u&&String(u.email||'').trim().toLowerCase()===ADMIN_EMAIL);
 const withSim=(j,u)=>{j.sim=isSimUser(u);return j};
 
-/* ── TinyPesa config ──
-   Endpoint (per their current docs): POST https://api.tinypesa.com/api/v1/express/initialize/?username=<link-slug>
-   Headers: Apikey = Link API key (dashboard → link settings)
-   Webhook (TinyPesa dashboard → link settings → Primary Webhook):
-   https://vanta-i9jf.onrender.com/mpesa/callback/<MPESA_CB_SECRET>
-   NOTE: the API key lives ONLY in the Render environment (TINYPESA_API_KEY). Never put it in this file. */
+/* ── TinyPesa configuration ── */
+
 const cleanEnv=v=>String(v||'').trim().replace(/^["']+|["']+$/g,'').trim();
+
 const TINYPESA={
   BASE:cleanEnv(process.env.TINYPESA_BASE||'https://api.tinypesa.com/api/v1').replace(/\/+$/,''),
-  KEY:cleanEnv(process.env.TINYPESA_API_KEY||'9iUapp473iWYlSQ7LZgK8GWP5q9hXll3Y2GxC7HU'),
-  SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'vantabinary2'),
+  KEY:cleanEnv(process.env.TINYPESA_API_KEY),
+  SLUG:cleanEnv(process.env.TINYPESA_LINK_SLUG||'vantabinary2')
 };
-console.log('TinyPesa config → user:',TINYPESA.SLUG,'· key length:',TINYPESA.KEY.length);
+
+console.log('TinyPesa configuration:',{
+  username:TINYPESA.SLUG,
+  keyConfigured:!!TINYPESA.KEY,
+  keyLength:TINYPESA.KEY.length
+});
+
 async function readJson(r,label){
   const txt=await r.text();
-  try{return JSON.parse(txt)}
-  catch{throw new Error(label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,120))}
+
+  try{
+    return JSON.parse(txt);
+  }catch{
+    throw new Error(
+      label+' returned HTTP '+r.status+' non-JSON: '+txt.slice(0,150)
+    );
+  }
 }
+
 async function stkPush(amount,phone,ref='Payment'){
-  if(!TINYPESA.KEY)throw new Error('TINYPESA_API_KEY not configured (use the LINK API key from the TinyPesa dashboard)');
+
+  if(!TINYPESA.KEY){
+    throw new Error(
+      'TinyPesa API key missing. Configure TINYPESA_API_KEY in Render.'
+    );
+  }
+
+  if(!TINYPESA.SLUG){
+    throw new Error(
+      'TinyPesa username missing. Configure TINYPESA_LINK_SLUG in Render.'
+    );
+  }
+
   const msisdn=normPhone(phone);
-  if(!/^254[17]\d{8}$/.test(msisdn))throw new Error('Invalid Kenyan number: '+msisdn);
-  const url=TINYPESA.BASE+'/express/initialize/?username='+encodeURIComponent(TINYPESA.SLUG);
-  const r=await fetch(url,{method:'POST',
-    headers:{'Content-Type':'application/json',Accept:'application/json',Apikey:TINYPESA.KEY},
-    body:JSON.stringify({amount:Math.max(1,Math.round(amount)),msisdn,
-      account_no:String(ref).slice(0,20)})});
-  const j=await readJson(r,'TinyPesa initiate');
-  const rid=j.request_id||j.RequestID||j.bulkID||j.DepositId||j.transaction_id||j.id;
-  if(j.status===false||!rid)
-    throw new Error('TinyPesa rejected: '+(j.message||j.errorMessage||JSON.stringify(j).slice(0,150)));
-  return{...j,request_id:rid};
+
+  if(!/^254[17]\d{8}$/.test(msisdn)){
+    throw new Error('Invalid Kenyan number: '+msisdn);
+  }
+
+  const url=
+    TINYPESA.BASE+
+    '/express/initialize/?username='+
+    encodeURIComponent(TINYPESA.SLUG);
+
+  const controller=new AbortController();
+
+  const timeout=setTimeout(()=>{
+    controller.abort();
+  },25000);
+
+  try{
+
+    const r=await fetch(url,{
+      method:'POST',
+
+      headers:{
+        'Content-Type':'application/json',
+        'Accept':'application/json',
+        'Apikey':TINYPESA.KEY
+      },
+
+      body:JSON.stringify({
+        amount:Math.max(1,Math.round(Number(amount))),
+        msisdn,
+        account_no:String(ref).slice(0,20)
+      }),
+
+      signal:controller.signal
+    });
+
+    const j=await readJson(r,'TinyPesa initiate');
+
+    if(!r.ok){
+      const message=
+        j.message||
+        j.errorMessage||
+        j.error||
+        JSON.stringify(j).slice(0,200);
+
+      throw new Error(
+        'TinyPesa HTTP '+r.status+': '+message
+      );
+    }
+
+    const rid=
+      j.request_id||
+      j.RequestID||
+      j.bulkID||
+      j.DepositId||
+      j.transaction_id||
+      j.id;
+
+    if(
+      j.status===false||
+      j.success===false||
+      !rid
+    ){
+      throw new Error(
+        'TinyPesa rejected: '+
+        (j.message||j.errorMessage||j.error||JSON.stringify(j).slice(0,200))
+      );
+    }
+
+    console.log('TinyPesa STK initiated:',{
+      requestId:rid,
+      phone:msisdn,
+      amount:Math.round(Number(amount))
+    });
+
+    return{
+      ...j,
+      request_id:String(rid)
+    };
+
+  }catch(e){
+
+    if(e.name==='AbortError'){
+      throw new Error('TinyPesa request timed out. Please try again.');
+    }
+
+    console.error('TinyPesa STK error:',e.message);
+
+    throw e;
+
+  }finally{
+    clearTimeout(timeout);
+  }
 }
+
 function parseCallback(req){
-  const b=req.body||{};let cb=b;
-  if(b.BodyCopy){try{const p=JSON.parse(b.BodyCopy);cb=p.stkCallback||p}
-    catch{cb={ResultCode:b.Code,ResultDesc:String(b.BodyCopy)}}}
-  else if(b.Body&&b.Body.stkCallback)cb=b.Body.stkCallback;
-  else if(b.stkCallback)cb=b.stkCallback;
+
+  const b=req.body||{};
+  let cb=b;
+
+  if(b.BodyCopy){
+    try{
+      const p=JSON.parse(b.BodyCopy);
+      cb=p.stkCallback||p;
+    }catch{
+      cb={
+        ResultCode:b.Code,
+        ResultDesc:String(b.BodyCopy)
+      };
+    }
+  }
+
+  else if(b.Body&&b.Body.stkCallback){
+    cb=b.Body.stkCallback;
+  }
+
+  else if(b.stkCallback){
+    cb=b.stkCallback;
+  }
+
   const items=(cb.CallbackMetadata&&cb.CallbackMetadata.Item)||[];
-  const meta=Object.fromEntries(items.map(i=>[i.Name,i.Value]));
-  return{ok:String(cb.ResultCode??b.Code??1)==='0',
+
+  const meta=Object.fromEntries(
+    items.map(i=>[i.Name,i.Value])
+  );
+
+  return{
+    ok:String(cb.ResultCode??b.Code??1)==='0',
     checkoutId:cb.CheckoutRequestID||b.CheckoutRequestID||'',
-    receipt:meta.MpesaReceiptNumber||'',amount:meta.Amount||0,
-    phone:meta.PhoneNumber||'',raw:cb};
+    receipt:meta.MpesaReceiptNumber||'',
+    amount:meta.Amount||0,
+    phone:meta.PhoneNumber||'',
+    raw:cb
+  };
 }
-const normPhone=v=>{let d=(v||'').replace(/\D/g,'');
-  if(d.startsWith('0'))d='254'+d.slice(1);
-  if(d.length===9&&/^[17]/.test(d))d='254'+d;
-  return d};
+
+const normPhone=v=>{
+  let d=(v||'').replace(/\D/g,'');
+
+  if(d.startsWith('0')){
+    d='254'+d.slice(1);
+  }
+
+  if(d.length===9&&/^[17]/.test(d)){
+    d='254'+d;
+  }
+
+  return d;
+};
 
 /* ── assets + price engine ── */
+
 const ASSETS=[
   {id:'EURUSD',name:'EUR/USD',cat:'Forex',start:1.08423,vol:0.00006,dec:5,payout:85},
   {id:'GBPUSD',name:'GBP/USD',cat:'Forex',start:1.27164,vol:0.00009,dec:5,payout:83},
   {id:'USDJPY',name:'USD/JPY',cat:'Forex',start:154.281,vol:0.011,dec:3,payout:82},
   {id:'BTCUSD',name:'BTC/USD',cat:'Crypto',start:67432,vol:16,dec:0,payout:88},
   {id:'ETHUSD',name:'ETH/USD',cat:'Crypto',start:3418.4,vol:1.2,dec:1,payout:86},
-  {id:'XAUUSD',name:'GOLD',cat:'Commodity',start:2382.6,vol:0.5,dec:2,payout:84}];
-const P={};ASSETS.forEach(a=>P[a.id]={price:a.start,drift:0});
-function gauss(){let u=0,v=0;while(!u)u=Math.random();while(!v)v=Math.random();
-  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v)}
-setInterval(()=>{for(const a of ASSETS){const s=P[a.id];
-  if(Math.random()<0.03)s.drift=(Math.random()-0.5)*a.vol*0.9;
-  const pull=(a.start-s.price)/a.start*a.vol*0.35;
-  s.price=Math.max(a.start*0.3,s.price+s.drift+s.vol*gauss()+pull);}},400);
+  {id:'XAUUSD',name:'GOLD',cat:'Commodity',start:2382.6,vol:0.5,dec:2,payout:84}
+];
+
+const P={};
+
+ASSETS.forEach(a=>{
+  P[a.id]={price:a.start,drift:0};
+});
+
+function gauss(){
+  let u=0,v=0;
+
+  while(!u)u=Math.random();
+  while(!v)v=Math.random();
+
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+
+setInterval(()=>{
+  for(const a of ASSETS){
+
+    const s=P[a.id];
+
+    if(Math.random()<0.03){
+      s.drift=(Math.random()-0.5)*a.vol*0.9;
+    }
+
+    const pull=(a.start-s.price)/a.start*a.vol*0.35;
+
+    s.price=Math.max(
+      a.start*0.3,
+      s.price+s.drift+s.vol*gauss()+pull
+    );
+  }
+},400);
 
 /* ── models ── */
-const User=mongoose.model('User',new mongoose.Schema({name:String,
-  email:{type:String,unique:true,index:true},passwordHash:String,
-  wallets:{demo:{type:Number,default:10000},real:{type:Number,default:0}},
-  createdAt:{type:Number,default:()=>Date.now()}}));
-const Trade=mongoose.model('Trade',new mongoose.Schema({user:{type:Object,index:true},
-  asset:String,dir:String,kind:{type:String,default:'updown'},option:String,target:Number,
-  legs:Array,mult:Number,amount:Number,account:String,payout:Number,entry:Object,
-  entryTime:Number,expiry:Number,status:{type:String,index:true},close:Object,
-  closeTime:Number,result:String,profit:Number,
-  sim:{type:Boolean,default:false}},{versionKey:false}));
-const Tx=mongoose.model('Tx',new mongoose.Schema({user:{type:Object,index:true},
-  type:String,method:String,amount:Number,fee:{type:Number,default:0},total:Number,
-  bonus:{type:Number,default:0},bonusCode:String,status:String,time:Number,
-  confirmedAt:Number,address:String,instructions:Object,checkoutId:String,
-  paidAt:Number,mpesaReceipt:String},{versionKey:false}));
+
+const User=mongoose.model('User',new mongoose.Schema({
+  name:String,
+  email:{type:String,unique:true,index:true},
+  passwordHash:String,
+  wallets:{
+    demo:{type:Number,default:10000},
+    real:{type:Number,default:0}
+  },
+  createdAt:{type:Number,default:()=>Date.now()}
+}));
+
+const Trade=mongoose.model('Trade',new mongoose.Schema({
+  user:{type:Object,index:true},
+  asset:String,
+  dir:String,
+  kind:{type:String,default:'updown'},
+  option:String,
+  target:Number,
+  legs:Array,
+  mult:Number,
+  amount:Number,
+  account:String,
+  payout:Number,
+  entry:Object,
+  entryTime:Number,
+  expiry:Number,
+  status:{type:String,index:true},
+  close:Object,
+  closeTime:Number,
+  result:String,
+  profit:Number,
+  sim:{type:Boolean,default:false}
+},{versionKey:false}));
+
+const Tx=mongoose.model('Tx',new mongoose.Schema({
+  user:{type:Object,index:true},
+  type:String,
+  method:String,
+  amount:Number,
+  fee:{type:Number,default:0},
+  total:Number,
+  bonus:{type:Number,default:0},
+  bonusCode:String,
+  status:String,
+  time:Number,
+  confirmedAt:Number,
+  address:String,
+  instructions:Object,
+  checkoutId:String,
+  paidAt:Number,
+  mpesaReceipt:String
+},{versionKey:false}));
 
 const r2=v=>Math.round(v*100)/100;
-const pub=o=>{const x=o.toObject?o.toObject():{...o};const j={...x,id:String(x._id)};
-  delete j._id;delete j.__v;delete j.user;return j};
-const h=f=>(req,res)=>f(req,res).catch(e=>{
-  console.error('ERR:',e.message);res.status(500).json({message:e.message||'Server error'})});
-async function credit(uid,acc,v){const u=await User.findById(uid);
-  u.wallets[acc]=r2(u.wallets[acc]+v);await u.save()}
-const auth=(req,res,next)=>{const hd=req.headers.authorization||'';
-  try{req.uid=jwt.verify(hd.slice(7),JWT_SECRET).uid;next()}
-  catch{res.status(401).json({message:'Please log in again'})}};
 
-function digitOf(id){const a=ASSETS.find(x=>x.id===id);
-  const s=P[id].price.toFixed(a.dec);return +s[s.length-1]}
+const pub=o=>{
+  const x=o.toObject?o.toObject():{...o};
+  const j={...x,id:String(x._id)};
+
+  delete j._id;
+  delete j.__v;
+  delete j.user;
+
+  return j;
+};
+
+const h=f=>(req,res)=>f(req,res).catch(e=>{
+  console.error('ERR:',e.message);
+  res.status(500).json({message:e.message||'Server error'});
+});
+
+async function credit(uid,acc,v){
+  const u=await User.findById(uid);
+
+  u.wallets[acc]=r2(u.wallets[acc]+v);
+
+  await u.save();
+}
+
+const auth=(req,res,next)=>{
+  const hd=req.headers.authorization||'';
+
+  try{
+    req.uid=jwt.verify(hd.slice(7),JWT_SECRET).uid;
+    next();
+  }catch{
+    res.status(401).json({message:'Please log in again'});
+  }
+};
+
+function digitOf(id){
+  const a=ASSETS.find(x=>x.id===id);
+  const s=P[id].price.toFixed(a.dec);
+
+  return +s[s.length-1];
+}
+
 function digitMult(option,t){
   const prob=option==='even'||option==='odd'?.5
-    :option==='over'?(9-t)/10:option==='under'?t/10
+    :option==='over'?(9-t)/10
+    :option==='under'?t/10
     :option==='match'?.1:.9;
-  return Math.max(1.01,Math.floor((0.95/prob)*100)/100)}
 
-app.get('/version',(req,res)=>res.json({v:VERSION}));
+  return Math.max(1.01,Math.floor((0.95/prob)*100)/100);
+}
+
+app.get('/version',(req,res)=>{
+  res.json({v:VERSION});
+});
 
 /* ── auth ── */
+
 app.post('/auth/register',h(async(req,res)=>{
-  const name=(req.body.name||'').trim(),email=(req.body.email||'').trim().toLowerCase(),
-        pw=req.body.password||'';
-  if(name.length<2)return res.status(400).json({message:'Enter your name'});
-  if(!/^\S+@\S+\.\S+$/.test(email))return res.status(400).json({message:'That email doesn\u2019t look right'});
-  if(pw.length<6)return res.status(400).json({message:'Use at least 6 characters'});
-  if(await User.findOne({email}))return res.status(400).json({message:'An account with this email already exists'});
-  const u=await User.create({name,email,passwordHash:await bcrypt.hash(pw,10)});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u),u)});
+
+  const name=(req.body.name||'').trim();
+  const email=(req.body.email||'').trim().toLowerCase();
+  const pw=req.body.password||'';
+
+  if(name.length<2){
+    return res.status(400).json({message:'Enter your name'});
+  }
+
+  if(!/^\S+@\S+\.\S+$/.test(email)){
+    return res.status(400).json({message:'That email doesn’t look right'});
+  }
+
+  if(pw.length<6){
+    return res.status(400).json({message:'Use at least 6 characters'});
+  }
+
+  if(await User.findOne({email})){
+    return res.status(400).json({message:'An account with this email already exists'});
+  }
+
+  const u=await User.create({
+    name,
+    email,
+    passwordHash:await bcrypt.hash(pw,10)
+  });
+
+  res.json({
+    token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),
+    user:withSim(pub(u),u)
+  });
 }));
+
 app.post('/auth/login',h(async(req,res)=>{
-  const u=await User.findOne({email:(req.body.email||'').trim().toLowerCase()});
-  if(!u||!await bcrypt.compare(req.body.password||'',u.passwordHash))
+
+  const u=await User.findOne({
+    email:(req.body.email||'').trim().toLowerCase()
+  });
+
+  if(!u||!await bcrypt.compare(req.body.password||'',u.passwordHash)){
     return res.status(401).json({message:'Wrong email or password'});
-  res.json({token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),user:withSim(pub(u),u)});
+  }
+
+  res.json({
+    token:jwt.sign({uid:String(u._id)},JWT_SECRET,{expiresIn:'30d'}),
+    user:withSim(pub(u),u)
+  });
 }));
+
 app.get('/me',auth,h(async(req,res)=>{
-  const u=await User.findById(req.uid);if(!u)return res.status(401).json({message:'Session expired'});
+
+  const u=await User.findById(req.uid);
+
+  if(!u){
+    return res.status(401).json({message:'Session expired'});
+  }
+
   res.json({user:withSim(pub(u),u)});
 }));
-app.get('/assets',(req,res)=>res.json(ASSETS.map(({id,name,cat,dec,payout})=>({id,name,cat,dec,payout}))));
-app.get('/prices',(req,res)=>res.json({t:Date.now(),
-  p:Object.fromEntries(ASSETS.map(a=>[a.id,P[a.id].price]))}));
+
+app.get('/assets',(req,res)=>{
+  res.json(ASSETS.map(({id,name,cat,dec,payout})=>({
+    id,name,cat,dec,payout
+  })));
+});
+
+app.get('/prices',(req,res)=>{
+  res.json({
+    t:Date.now(),
+    p:Object.fromEntries(ASSETS.map(a=>[a.id,P[a.id].price]))
+  });
+});
 
 /* ── trades ── */
+
 app.post('/trades',auth,h(async(req,res)=>{
+
   const{dir,expirySec,account,kind,option,target,legs}=req.body;
-  const asset=req.body.asset,amt=r2(+req.body.amount);
-  if(!['demo','real'].includes(account))return res.status(400).json({message:'Bad wallet'});
-  if(!(amt>=1))return res.status(400).json({message:'Minimum stake is $1.00'});
-  if(!(expirySec>=1&&expirySec<=300))return res.status(400).json({message:'Bad expiry'});
-  const u=await User.findById(req.uid);
-  if(amt>u.wallets[account])return res.status(400).json({message:'Insufficient balance'});
-  const sim=isSimUser(u);
-  const base={user:req.uid,amount:amt,account,entryTime:Date.now(),
-    expiry:Date.now()+expirySec*1000,status:'open',sim};
-  let t;
-  if(kind==='digits'){
-    const a=ASSETS.find(x=>x.id===asset);
-    if(!a)return res.status(400).json({message:'Unknown asset'});
-    if(!['even','odd','over','under','match','differ'].includes(option))
-      return res.status(400).json({message:'Bad digit option'});
-    let tg=null;
-    if(option!=='even'&&option!=='odd'){
-      tg=+target;if(!(tg>=0&&tg<=9&&Number.isInteger(tg)))
-        return res.status(400).json({message:'Pick a digit 0-9'});}
-    const mult=digitMult(option,tg);
-    u.wallets[account]=r2(u.wallets[account]-amt);await u.save();
-    t=await Trade.create({...base,kind:'digits',asset,option,target:tg,mult,entry:digitOf(asset)});
-  }else if(kind==='acc'){
-    if(!Array.isArray(legs)||legs.length<2||legs.length>5)
-      return res.status(400).json({message:'Accumulator needs 2-5 legs'});
-    const seen=new Set();let mult=1;const entries=[];
-    for(const l of legs){
-      const a=ASSETS.find(x=>x.id===l.asset);
-      if(!a)return res.status(400).json({message:'Unknown asset in leg'});
-      if(!['up','down'].includes(l.dir))return res.status(400).json({message:'Bad leg direction'});
-      if(seen.has(l.asset))return res.status(400).json({message:'Each market can appear once'});
-      seen.add(l.asset);mult*=(1+a.payout/100);
-      entries.push({asset:l.asset,dir:l.dir,entry:P[l.asset].price});}
-    mult=r2(mult);
-    u.wallets[account]=r2(u.wallets[account]-amt);await u.save();
-    t=await Trade.create({...base,kind:'acc',asset:entries[0].asset,legs:entries,mult,entry:entries[0].entry});
-  }else{
-    const a=ASSETS.find(x=>x.id===asset);
-    if(!a)return res.status(400).json({message:'Unknown asset'});
-    if(!['up','down'].includes(dir))return res.status(400).json({message:'Bad direction'});
-    u.wallets[account]=r2(u.wallets[account]-amt);await u.save();
-    t=await Trade.create({...base,kind:'updown',asset,dir,payout:a.payout,entry:P[asset].price});
+  const asset=req.body.asset;
+  const amt=r2(+req.body.amount);
+
+  if(!['demo','real'].includes(account)){
+    return res.status(400).json({message:'Bad wallet'});
   }
+
+  if(!(amt>=1)){
+    return res.status(400).json({message:'Minimum stake is $1.00'});
+  }
+
+  if(!(expirySec>=1&&expirySec<=300)){
+    return res.status(400).json({message:'Bad expiry'});
+  }
+
+  const u=await User.findById(req.uid);
+
+  if(amt>u.wallets[account]){
+    return res.status(400).json({message:'Insufficient balance'});
+  }
+
+  const sim=isSimUser(u);
+
+  const base={
+    user:req.uid,
+    amount:amt,
+    account,
+    entryTime:Date.now(),
+    expiry:Date.now()+expirySec*1000,
+    status:'open',
+    sim
+  };
+
+  let t;
+
+  if(kind==='digits'){
+
+    const a=ASSETS.find(x=>x.id===asset);
+
+    if(!a){
+      return res.status(400).json({message:'Unknown asset'});
+    }
+
+    if(!['even','odd','over','under','match','differ'].includes(option)){
+      return res.status(400).json({message:'Bad digit option'});
+    }
+
+    let tg=null;
+
+    if(option!=='even'&&option!=='odd'){
+      tg=+target;
+
+      if(!(tg>=0&&tg<=9&&Number.isInteger(tg))){
+        return res.status(400).json({message:'Pick a digit 0-9'});
+      }
+    }
+
+    const mult=digitMult(option,tg);
+
+    u.wallets[account]=r2(u.wallets[account]-amt);
+    await u.save();
+
+    t=await Trade.create({
+      ...base,
+      kind:'digits',
+      asset,
+      option,
+      target:tg,
+      mult,
+      entry:digitOf(asset)
+    });
+
+  }else if(kind==='acc'){
+
+    if(!Array.isArray(legs)||legs.length<2||legs.length>5){
+      return res.status(400).json({message:'Accumulator needs 2-5 legs'});
+    }
+
+    const seen=new Set();
+    let mult=1;
+    const entries=[];
+
+    for(const l of legs){
+
+      const a=ASSETS.find(x=>x.id===l.asset);
+
+      if(!a){
+        return res.status(400).json({message:'Unknown asset in leg'});
+      }
+
+      if(!['up','down'].includes(l.dir)){
+        return res.status(400).json({message:'Bad leg direction'});
+      }
+
+      if(seen.has(l.asset)){
+        return res.status(400).json({message:'Each market can appear once'});
+      }
+
+      seen.add(l.asset);
+
+      mult*=(1+a.payout/100);
+
+      entries.push({
+        asset:l.asset,
+        dir:l.dir,
+        entry:P[l.asset].price
+      });
+    }
+
+    mult=r2(mult);
+
+    u.wallets[account]=r2(u.wallets[account]-amt);
+    await u.save();
+
+    t=await Trade.create({
+      ...base,
+      kind:'acc',
+      asset:entries[0].asset,
+      legs:entries,
+      mult,
+      entry:entries[0].entry
+    });
+
+  }else{
+
+    const a=ASSETS.find(x=>x.id===asset);
+
+    if(!a){
+      return res.status(400).json({message:'Unknown asset'});
+    }
+
+    if(!['up','down'].includes(dir)){
+      return res.status(400).json({message:'Bad direction'});
+    }
+
+    u.wallets[account]=r2(u.wallets[account]-amt);
+    await u.save();
+
+    t=await Trade.create({
+      ...base,
+      kind:'updown',
+      asset,
+      dir,
+      payout:a.payout,
+      entry:P[asset].price
+    });
+  }
+
   res.json(pub(t));
 }));
+
 const lastSync=new Map();
+
 app.get('/trades/sync',auth,h(async(req,res)=>{
+
   const now=Date.now();
-  const due=await Trade.find({user:req.uid,status:'open',expiry:{$lte:now}});
+
+  const due=await Trade.find({
+    user:req.uid,
+    status:'open',
+    expiry:{$lte:now}
+  });
+
   for(const t of due){
+
     const sim=(t.sim===true)||t.account==='demo';
-    const wantWin=sim&&(t.account==='demo'?Math.random()<DEMO_WIN_RATE:true);
+
+    const wantWin=sim&&(
+      t.account==='demo'
+        ?Math.random()<DEMO_WIN_RATE
+        :true
+    );
+
     try{
+
       if(t.kind==='digits'){
+
         const a=ASSETS.find(x=>x.id===t.asset);
         let d=a?digitOf(t.asset):5;
+
         if(wantWin){
-          if(t.option==='even')d=(d%2===0)?d:(d+1)%10;
-          else if(t.option==='odd')d=(d%2===1)?d:((d+1)%10);
-          else if(t.option==='over')d=Math.min(9,(t.target==null?4:t.target)+1);
-          else if(t.option==='under')d=Math.max(0,(t.target==null?5:t.target)-1);
-          else if(t.option==='match')d=(t.target==null?d:t.target);
-          else d=((t.target==null?d:t.target)+1)%10;
+
+          if(t.option==='even'){
+            d=(d%2===0)?d:(d+1)%10;
+          }
+
+          else if(t.option==='odd'){
+            d=(d%2===1)?d:((d+1)%10);
+          }
+
+          else if(t.option==='over'){
+            d=Math.min(9,(t.target==null?4:t.target)+1);
+          }
+
+          else if(t.option==='under'){
+            d=Math.max(0,(t.target==null?5:t.target)-1);
+          }
+
+          else if(t.option==='match'){
+            d=(t.target==null?d:t.target);
+          }
+
+          else{
+            d=((t.target==null?d:t.target)+1)%10;
+          }
         }
+
         t.close=d;
-        if(t.entry==null||Number.isNaN(t.entry))t.entry=d;
-        const win=wantWin?true:(t.option==='even'?d%2===0:t.option==='odd'?d%2===1
-          :t.option==='over'?d>(t.target==null?0:t.target):t.option==='under'?d<(t.target==null?9:t.target)
-          :t.option==='match'?d===t.target:d!==t.target);
-        t.result=win?'win':'loss';
-        t.profit=win?r2(t.amount*(t.mult||digitMult(t.option,t.target))):-t.amount;
-        if(win)await credit(req.uid,t.account,r2(t.amount+t.profit));
-      }else if(t.kind==='acc'){
-        if(wantWin){
-          t.close=P[t.asset]?P[t.asset].price:0;t.result='win';
-          t.profit=r2(t.amount*(t.mult||2));
-          await credit(req.uid,t.account,r2(t.amount+t.profit));
-        }else{
-          let lost=false,flat=false;
-          for(const l of (t.legs||[])){const p=P[l.asset]?P[l.asset].price:0;
-            if(l.dir==='up'){if(p<l.entry)lost=true;else if(p===l.entry)flat=true;}
-            else{if(p>l.entry)lost=true;else if(p===l.entry)flat=true;}}
-          t.close=P[t.asset]?P[t.asset].price:0;
-          t.result=lost?'loss':flat?'draw':'win';
-          if(t.result==='win'){t.profit=r2(t.amount*(t.mult||2));
-            await credit(req.uid,t.account,r2(t.amount+t.profit));}
-          else if(t.result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
-          else t.profit=-t.amount;
+
+        if(t.entry==null||Number.isNaN(t.entry)){
+          t.entry=d;
         }
+
+        const win=wantWin?true:(
+          t.option==='even'?d%2===0:
+          t.option==='odd'?d%2===1:
+          t.option==='over'?d>(t.target==null?0:t.target):
+          t.option==='under'?d<(t.target==null?9:t.target):
+          t.option==='match'?d===t.target:
+          d!==t.target
+        );
+
+        t.result=win?'win':'loss';
+
+        t.profit=win
+          ?r2(t.amount*(t.mult||digitMult(t.option,t.target)))
+          :-t.amount;
+
+        if(win){
+          await credit(req.uid,t.account,r2(t.amount+t.profit));
+        }
+
+      }else if(t.kind==='acc'){
+
+        if(wantWin){
+
+          t.close=P[t.asset]?P[t.asset].price:0;
+          t.result='win';
+          t.profit=r2(t.amount*(t.mult||2));
+
+          await credit(req.uid,t.account,r2(t.amount+t.profit));
+
+        }else{
+
+          let lost=false,flat=false;
+
+          for(const l of (t.legs||[])){
+
+            const p=P[l.asset]?P[l.asset].price:0;
+
+            if(l.dir==='up'){
+              if(p<l.entry)lost=true;
+              else if(p===l.entry)flat=true;
+            }else{
+              if(p>l.entry)lost=true;
+              else if(p===l.entry)flat=true;
+            }
+          }
+
+          t.close=P[t.asset]?P[t.asset].price:0;
+
+          t.result=lost?'loss':flat?'draw':'win';
+
+          if(t.result==='win'){
+            t.profit=r2(t.amount*(t.mult||2));
+            await credit(req.uid,t.account,r2(t.amount+t.profit));
+          }
+
+          else if(t.result==='draw'){
+            t.profit=0;
+            await credit(req.uid,t.account,t.amount);
+          }
+
+          else{
+            t.profit=-t.amount;
+          }
+        }
+
       }else{
+
         const a=ASSETS.find(x=>x.id===t.asset);
-        if(t.entry==null||Number.isNaN(t.entry))t.entry=P[t.asset]?P[t.asset].price:(a?a.start:0);
+
+        if(t.entry==null||Number.isNaN(t.entry)){
+          t.entry=P[t.asset]?P[t.asset].price:(a?a.start:0);
+        }
+
         let p=P[t.asset]?P[t.asset].price:t.entry;
-        if(wantWin)p=t.dir==='up'?t.entry+Math.max(0.00001,t.entry*0.00001)
-                                 :t.entry-Math.max(0.00001,t.entry*0.00001);
-        const result=t.dir==='up'?(p>t.entry?'win':p<t.entry?'loss':'draw')
-                                 :(p<t.entry?'win':p>t.entry?'loss':'draw');
-        t.close=p;t.result=result;
-        if(result==='win'){t.profit=r2(t.amount*t.payout/100);
-          await credit(req.uid,t.account,r2(t.amount+t.profit));}
-        else if(result==='draw'){t.profit=0;await credit(req.uid,t.account,t.amount);}
-        else t.profit=-t.amount;
+
+        if(wantWin){
+          p=t.dir==='up'
+            ?t.entry+Math.max(0.00001,t.entry*0.00001)
+            :t.entry-Math.max(0.00001,t.entry*0.00001);
+        }
+
+        const result=t.dir==='up'
+          ?(p>t.entry?'win':p<t.entry?'loss':'draw')
+          :(p<t.entry?'win':p>t.entry?'loss':'draw');
+
+        t.close=p;
+        t.result=result;
+
+        if(result==='win'){
+          t.profit=r2(t.amount*t.payout/100);
+          await credit(req.uid,t.account,r2(t.amount+t.profit));
+        }
+
+        else if(result==='draw'){
+          t.profit=0;
+          await credit(req.uid,t.account,t.amount);
+        }
+
+        else{
+          t.profit=-t.amount;
+        }
       }
-    }catch(e){console.error('settle error:',e.message);
-      t.result='win';t.profit=r2(t.amount*0.85);
-      if(sim)await credit(req.uid,t.account,r2(t.amount+t.profit));}
-    t.closeTime=now;t.status='closed';await t.save();
+
+    }catch(e){
+
+      console.error('settle error:',e.message);
+
+      t.result='win';
+      t.profit=r2(t.amount*0.85);
+
+      if(sim){
+        await credit(req.uid,t.account,r2(t.amount+t.profit));
+      }
+    }
+
+    t.closeTime=now;
+    t.status='closed';
+
+    await t.save();
   }
+
   const since=lastSync.get(String(req.uid))||now-2000;
+
   lastSync.set(String(req.uid),now);
-  const closed=await Trade.find({user:req.uid,status:'closed',closeTime:{$gt:since}});
-  const open=await Trade.find({user:req.uid,status:'open'}).limit(60);
-  res.json({open:open.map(pub),closed:closed.map(pub)});
+
+  const closed=await Trade.find({
+    user:req.uid,
+    status:'closed',
+    closeTime:{$gt:since}
+  });
+
+  const open=await Trade.find({
+    user:req.uid,
+    status:'open'
+  }).limit(60);
+
+  res.json({
+    open:open.map(pub),
+    closed:closed.map(pub)
+  });
 }));
+
 app.get('/trades',auth,h(async(req,res)=>{
-  const t=await Trade.find({user:req.uid}).sort({entryTime:-1}).limit(150);
+
+  const t=await Trade.find({user:req.uid})
+    .sort({entryTime:-1})
+    .limit(150);
+
   res.json(t.map(pub));
 }));
 
-/* ── deposits (STK Push only — no redirect) ── */
+/* ── deposits (TinyPesa STK Push) ── */
+
 app.post('/deposits',auth,h(async(req,res)=>{
-  const method=req.body.method,amt=r2(+req.body.amount);
-  if(method!=='mpesa')
-    return res.status(400).json({message:'Only M-Pesa deposits are supported right now'});
-  if(!(amt>=MIN_DEPOSIT))return res.status(400).json({message:'Minimum deposit is $'+MIN_DEPOSIT.toFixed(2)});
-  let bonus=0;const code=(req.body.bonusCode||'').trim().toUpperCase();
-  const rates={WELCOME20:.20,BOOST50:.50};
-  if(code){if(!rates[code])return res.status(400).json({message:'Promo code is not valid'});
-    if(code==='BOOST50'&&amt<100)return res.status(400).json({message:'BOOST50 needs a minimum of $100.00'});
-    bonus=r2(amt*rates[code]);}
-  const total=r2(amt+bonus);
-  const phone=normPhone(req.body.phone);
-  if(!/^254(7|1)\d{8}$/.test(phone))
-    return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});
-  const kes=Math.ceil(amt*KES_PER_USD);
-  const d=await Tx.create({user:req.uid,type:'deposit',method,amount:amt,bonus,total,
-    bonusCode:code||null,status:'awaiting_payment',time:Date.now(),
-    instructions:{phone,network:'M-Pesa · STK Push',kesAmount:kes}});
-  try{
-    const j=await stkPush(kes,phone,'VNT'+String(d._id).slice(-8).toUpperCase());
-    d.checkoutId=j.request_id;await d.save();
-  }catch(e){
-    console.error('STK initiate failed:',e.message);
-    d.status='failed';await d.save();
-    return res.status(502).json({message:'M-Pesa error: '+e.message});
+
+  const method=req.body.method;
+  const amt=r2(+req.body.amount);
+
+  if(method!=='mpesa'){
+    return res.status(400).json({
+      message:'Only M-Pesa deposits are supported right now'
+    });
   }
-  res.json(pub(d));
-}));
-app.get('/deposits/:id',auth,h(async(req,res)=>{
-  const d=await Tx.findOne({_id:req.params.id,user:req.uid,type:'deposit'});
-  if(!d)return res.status(404).json({message:'Deposit not found'});
-  res.json(pub(d));
-}));
-app.post('/mpesa/callback/:secret',async(req,res)=>{
-  if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim())return res.status(403).end();
-  res.json({ResultCode:0,ResultDesc:'Accepted'});
+
+  if(!(amt>=MIN_DEPOSIT)){
+    return res.status(400).json({
+      message:'Minimum deposit is $'+MIN_DEPOSIT.toFixed(2)
+    });
+  }
+
+  let bonus=0;
+
+  const code=(req.body.bonusCode||'').trim().toUpperCase();
+
+  const rates={
+    WELCOME20:.20,
+    BOOST50:.50
+  };
+
+  if(code){
+
+    if(!rates[code]){
+      return res.status(400).json({message:'Promo code is not valid'});
+    }
+
+    if(code==='BOOST50'&&amt<100){
+      return res.status(400).json({
+        message:'BOOST50 needs a minimum of $100.00'
+      });
+    }
+
+    bonus=r2(amt*rates[code]);
+  }
+
+  const total=r2(amt+bonus);
+
+  const phone=normPhone(req.body.phone);
+
+  if(!/^254(7|1)\d{8}$/.test(phone)){
+    return res.status(400).json({
+      message:'Enter a valid Safaricom number, e.g. 0712 345 678'
+    });
+  }
+
+  const kes=Math.ceil(amt*KES_PER_USD);
+
+  const d=await Tx.create({
+    user:req.uid,
+    type:'deposit',
+    method,
+    amount:amt,
+    bonus,
+    total,
+    bonusCode:code||null,
+    status:'awaiting_payment',
+    time:Date.now(),
+    instructions:{
+      phone,
+      network:'M-Pesa · STK Push',
+      kesAmount:kes
+    }
+  });
+
   try{
-    const tx=parseCallback(req);
-    const phone=String(tx.phone||req.body.PhoneNumber||'');
-    let d=null;
-    if(tx.checkoutId)d=await Tx.findOne({checkoutId:tx.checkoutId,type:'deposit'});
-    if(!d&&phone)d=await Tx.findOne({type:'deposit',method:'mpesa',
-      status:'awaiting_payment','instructions.phone':phone}).sort({time:1});
-    if(!d||d.status!=='awaiting_payment')return;
-    if(!tx.ok){d.status='failed';await d.save();return;}
-    const paid=tx.amount||+req.body.Amount||0;
-    if(!paid)return;
-    const expected=Math.ceil(d.amount*KES_PER_USD);
-    d.paidAt=Date.now();
-    d.mpesaReceipt=tx.receipt||req.body.MpesaReceiptNumber||'';
-    d.status='confirmed';d.confirmedAt=Date.now();
-    await credit(d.user,'real',paid>=expected?d.total:r2(paid/KES_PER_USD));
+
+    const j=await stkPush(
+      kes,
+      phone,
+      'VNT'+String(d._id).slice(-8).toUpperCase()
+    );
+
+    d.checkoutId=j.request_id;
+
     await d.save();
-  }catch(e){console.error('mpesa callback:',e.message)}
+
+  }catch(e){
+
+    console.error('STK initiate failed:',e.message);
+
+    d.status='failed';
+
+    await d.save();
+
+    return res.status(502).json({
+      message:'M-Pesa error: '+e.message
+    });
+  }
+
+  res.json(pub(d));
+}));
+
+app.get('/deposits/:id',auth,h(async(req,res)=>{
+
+  const d=await Tx.findOne({
+    _id:req.params.id,
+    user:req.uid,
+    type:'deposit'
+  });
+
+  if(!d){
+    return res.status(404).json({message:'Deposit not found'});
+  }
+
+  res.json(pub(d));
+}));
+
+/* ── TinyPesa M-Pesa callback ── */
+
+app.post('/mpesa/callback/:secret',async(req,res)=>{
+
+  if(req.params.secret!==(process.env.MPESA_CB_SECRET||'').trim()){
+    return res.status(403).end();
+  }
+
+  res.json({
+    ResultCode:0,
+    ResultDesc:'Accepted'
+  });
+
+  try{
+
+    const tx=parseCallback(req);
+
+    const phone=String(tx.phone||req.body.PhoneNumber||'');
+
+    let d=null;
+
+    if(tx.checkoutId){
+      d=await Tx.findOne({
+        checkoutId:tx.checkoutId,
+        type:'deposit'
+      });
+    }
+
+    if(!d&&phone){
+
+      d=await Tx.findOne({
+        type:'deposit',
+        method:'mpesa',
+        status:'awaiting_payment',
+        'instructions.phone':phone
+      }).sort({time:1});
+    }
+
+    if(!d||d.status!=='awaiting_payment'){
+      return;
+    }
+
+    if(!tx.ok){
+      d.status='failed';
+      await d.save();
+      return;
+    }
+
+    const paid=tx.amount||+req.body.Amount||0;
+
+    if(!paid){
+      return;
+    }
+
+    const expected=Math.ceil(d.amount*KES_PER_USD);
+
+    d.paidAt=Date.now();
+
+    d.mpesaReceipt=
+      tx.receipt||
+      req.body.MpesaReceiptNumber||
+      '';
+
+    d.status='confirmed';
+    d.confirmedAt=Date.now();
+
+    await credit(
+      d.user,
+      'real',
+      paid>=expected
+        ?d.total
+        :r2(paid/KES_PER_USD)
+    );
+
+    await d.save();
+
+  }catch(e){
+    console.error('mpesa callback:',e.message);
+  }
 });
 
 /* ── withdrawals ── */
+
 app.post('/withdrawals',auth,h(async(req,res)=>{
-  const method=req.body.method,amt=r2(+req.body.amount);
+
+  const method=req.body.method;
+  const amt=r2(+req.body.amount);
+
   let addr=(req.body.address||'').trim();
-  const flat={usdt:1,btc:2,eth:1.5,mpesa:1};
-  if(!flat[method]&&method!=='card')
+
+  const flat={
+    usdt:1,
+    btc:2,
+    eth:1.5,
+    mpesa:1
+  };
+
+  if(!flat[method]&&method!=='card'){
     return res.status(400).json({message:'Pick a payout method'});
-  if(!(amt>=10))return res.status(400).json({message:'Minimum withdrawal is $10.00'});
+  }
+
+  if(!(amt>=10)){
+    return res.status(400).json({message:'Minimum withdrawal is $10.00'});
+  }
+
   if(method==='mpesa'){
+
     const d2=normPhone(addr);
-    if(!/^254(7|1)\d{8}$/.test(d2))
-      return res.status(400).json({message:'Enter a valid Safaricom number, e.g. 0712 345 678'});
-    addr=d2;}
-  const fee=method==='card'?r2(amt*0.015):flat[method],total=r2(amt+fee);
+
+    if(!/^254(7|1)\d{8}$/.test(d2)){
+      return res.status(400).json({
+        message:'Enter a valid Safaricom number, e.g. 0712 345 678'
+      });
+    }
+
+    addr=d2;
+  }
+
+  const fee=method==='card'
+    ?r2(amt*0.015)
+    :flat[method];
+
+  const total=r2(amt+fee);
+
   if(method!=='mpesa'){
-    const chk={usdt:s=>s.length>=26&&s.length<=40&&s[0]==='T',btc:s=>s.length>=26&&s.length<=62,
-      eth:s=>/^0x[a-fA-F0-9]{40}$/.test(s),card:s=>/^\d{12,19}$/.test(s.replace(/\s/g,''))};
-    if(!chk[method](addr))
-      return res.status(400).json({message:'That '+method.toUpperCase()+' address doesn\u2019t look right'});}
+
+    const chk={
+      usdt:s=>s.length>=26&&s.length<=40&&s[0]==='T',
+      btc:s=>s.length>=26&&s.length<=62,
+      eth:s=>/^0x[a-fA-F0-9]{40}$/.test(s),
+      card:s=>/^\d{12,19}$/.test(s.replace(/\s/g,''))
+    };
+
+    if(!chk[method](addr)){
+      return res.status(400).json({
+        message:'That '+method.toUpperCase()+' address doesn’t look right'
+      });
+    }
+  }
+
   const u=await User.findById(req.uid);
-  if(total>u.wallets.real)
-    return res.status(400).json({message:'Amount + fee exceeds your real balance'});
-  u.wallets.real=r2(u.wallets.real-total);await u.save();
-  const w=await Tx.create({user:req.uid,type:'withdrawal',method,amount:amt,fee,total,
-    address:addr,status:'pending',time:Date.now(),
-    instructions:method==='mpesa'?{kesAmount:Math.ceil(amt*KES_PER_USD),
-      note:'Simulated payout — provider B2C needed for real sends'}:{}});
-  setTimeout(async()=>{try{
-    const x=await Tx.findById(w._id);if(!x||x.status!=='pending')return;
-    x.status='processed';x.confirmedAt=Date.now();await x.save();}catch{}},8000);
+
+  if(total>u.wallets.real){
+    return res.status(400).json({
+      message:'Amount + fee exceeds your real balance'
+    });
+  }
+
+  u.wallets.real=r2(u.wallets.real-total);
+
+  await u.save();
+
+  const w=await Tx.create({
+    user:req.uid,
+    type:'withdrawal',
+    method,
+    amount:amt,
+    fee,
+    total,
+    address:addr,
+    status:'pending',
+    time:Date.now(),
+    instructions:method==='mpesa'
+      ?{
+          kesAmount:Math.ceil(amt*KES_PER_USD),
+          note:'Simulated payout — provider B2C needed for real sends'
+        }
+      :{}
+  });
+
+  setTimeout(async()=>{
+    try{
+
+      const x=await Tx.findById(w._id);
+
+      if(!x||x.status!=='pending'){
+        return;
+      }
+
+      x.status='processed';
+      x.confirmedAt=Date.now();
+
+      await x.save();
+
+    }catch{}
+  },8000);
+
   res.json(pub(w));
 }));
+
 app.get('/transactions',auth,h(async(req,res)=>{
-  const t=await Tx.find({user:req.uid}).sort({time:-1}).limit(120);
+
+  const t=await Tx.find({user:req.uid})
+    .sort({time:-1})
+    .limit(120);
+
   res.json(t.map(pub));
 }));
 
-app.use((e,req,res,next)=>res.status(400).json({message:'Bad request'}));
+app.use((e,req,res,next)=>{
+  res.status(400).json({message:'Bad request'});
+});
+
+/* ── start server ── */
+
 mongoose.connect(process.env.MONGO_URI).then(()=>{
-  app.listen(process.env.PORT||3000,()=>console.log('API up · version '+VERSION));
-}).catch(e=>{console.error('Mongo failed:',e.message);process.exit(1)});
+
+  app.listen(process.env.PORT||3000,()=>{
+    console.log('API up · version '+VERSION);
+  });
+
+}).catch(e=>{
+  console.error('Mongo failed:',e.message);
+  process.exit(1);
+});
