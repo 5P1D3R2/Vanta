@@ -52,7 +52,7 @@ const DEMO_WIN_RATE = Math.min(
 );
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const VERSION = '6.5-tinypesa-test-page';
+const VERSION = '6.6-tinypesa-3way';
 
 const isSimUser = u =>
   !!(ADMIN_EMAIL && u &&
@@ -145,12 +145,21 @@ const normPhone = value => {
    (ApiKey header only) and fall back to the username form if it is refused. */
 const TP_VARIANTS = [
   {
+    label: 'tinypesa.com public API (key only)',
     base: 'https://tinypesa.com/api/v1',
     init: '/express/initialize',
     username: false,
     form: true
   },
   {
+    label: 'api.tinypesa.com (key only)',
+    base: TINYPESA.BASE,
+    init: '/express/initialize/',
+    username: false,
+    form: false
+  },
+  {
+    label: 'api.tinypesa.com (key + username "' + TINYPESA.SLUG + '")',
     base: TINYPESA.BASE,
     init: '/express/initialize/',
     username: true,
@@ -160,22 +169,36 @@ const TP_VARIANTS = [
 
 let tpPreferred = 0;
 
+function tinyUrl(v, kind, arg) {
+  let url = v.base + (
+    kind === 'init'
+      ? v.init
+      : '/express/get_status/' + encodeURIComponent(arg) + '/'
+  );
+
+  if (v.username) {
+    url += '?username=' + encodeURIComponent(TINYPESA.SLUG);
+  }
+
+  return url;
+}
+
+/* a refusal = 401/403 or a web page (HTML) instead of an API (JSON) reply */
+const tinyRefused = response =>
+  response.status === 401 ||
+  response.status === 403 ||
+  /text\/html/i.test(response.headers.get('content-type') || '');
+
 async function tinyRequest(kind, arg, body) {
-  const order = tpPreferred === 0 ? [0, 1] : [1, 0];
+  const order = [
+    tpPreferred,
+    ...TP_VARIANTS.map((_, i) => i).filter(i => i !== tpPreferred)
+  ];
+
   let last = null;
 
   for (const i of order) {
     const v = TP_VARIANTS[i];
-
-    let url = v.base + (
-      kind === 'init'
-        ? v.init
-        : '/express/get_status/' + encodeURIComponent(arg) + '/'
-    );
-
-    if (v.username) {
-      url += '?username=' + encodeURIComponent(TINYPESA.SLUG);
-    }
 
     const headers = {
       Accept: 'application/json',
@@ -194,19 +217,25 @@ async function tinyRequest(kind, arg, body) {
         : JSON.stringify(body);
     }
 
-    const response = await fetch(url, {
+    const response = await fetch(tinyUrl(v, kind, arg), {
       method: body ? 'POST' : 'GET',
       headers,
       body: payload
     });
 
-    if (response.status === 401 || response.status === 403) {
+    if (tinyRefused(response)) {
       console.warn(
-        'TinyPesa rejected ' +
-        (v.username ? 'username API (username "' + TINYPESA.SLUG + '")' : 'public API (key only)') +
-        ' with HTTP ' + response.status
+        'TinyPesa refused ' + v.label + ' with HTTP ' + response.status
       );
-      last = response;
+
+      /* keep the most informative refusal (a JSON one) to report */
+      if (
+        !last ||
+        !/text\/html/i.test(response.headers.get('content-type') || '')
+      ) {
+        last = response;
+      }
+
       continue;
     }
 
@@ -1903,31 +1932,26 @@ app.post('/mpesa/callback/:secret', async (req, res) => {
 async function tinyProbe() {
   const out = [];
 
-  for (let i = 0; i < TP_VARIANTS.length; i++) {
-    const v = TP_VARIANTS[i];
-    const label = v.username
-      ? 'username API (username "' + TINYPESA.SLUG + '")'
-      : 'public API (key only)';
-
-    let url = v.base + '/express/get_status/VNTCHECK/';
-
-    if (v.username) {
-      url += '?username=' + encodeURIComponent(TINYPESA.SLUG);
-    }
-
+  for (const v of TP_VARIANTS) {
     try {
-      const r = await fetch(url, {
+      const r = await fetch(tinyUrl(v, 'status', 'VNTCHECK'), {
         headers: { Accept: 'application/json', ApiKey: TINYPESA.KEY }
       });
 
+      const text = await r.text();
+      const isHtml = /text\/html/i.test(r.headers.get('content-type') || '');
+
       out.push({
-        method: label,
+        method: v.label,
         http: r.status,
-        accepted: r.status !== 401 && r.status !== 403,
-        reply: (await r.text()).slice(0, 140)
+        gaveApiReply: !isHtml,
+        accepted: !tinyRefused(r),
+        reply: isHtml
+          ? '(a web page, not an API reply)'
+          : text.slice(0, 140)
       });
     } catch (error) {
-      out.push({ method: label, accepted: false, error: error.message });
+      out.push({ method: v.label, accepted: false, error: error.message });
     }
   }
 
@@ -1956,8 +1980,8 @@ app.get('/tinypesa-test/:secret', h(async (req, res) => {
     usernameUsed: TINYPESA.SLUG,
     results,
     verdict: ok
-      ? 'TinyPesa accepts your credentials. STK push should work.'
-      : 'TinyPesa rejected the key with BOTH methods. Copy the API key again from your TinyPesa dashboard (API / Developer page), make sure the TinyPesa account is active, and set TINYPESA_USERNAME to your TinyPesa account username.'
+      ? 'At least one method got a real API answer that is not a rejection. STK push should work.'
+      : 'TinyPesa refused every method. If a line says "invalid Apikey or username", the key or the username is wrong: re-copy the API key from your TinyPesa dashboard (API / Developer page) and set TINYPESA_USERNAME to your TinyPesa account username.'
   });
 }));
 
@@ -1997,9 +2021,7 @@ app.get('/admin/tinypesa-check', auth, adminAuth, h(async (req, res) => {
 
     out.httpStatus = response.status;
     out.reply = (await response.text()).slice(0, 160);
-    out.method = variant === 0
-      ? 'public API (ApiKey only)'
-      : variant === 1 ? 'username API' : 'none accepted';
+    out.method = variant >= 0 ? TP_VARIANTS[variant].label : 'none accepted';
 
     out.verdict = variant === -1
       ? 'TinyPesa rejected the API key (both ways). Re-copy the API key from your TinyPesa dashboard into TINYPESA_API_KEY, with no spaces or quotes.'
