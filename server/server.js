@@ -50,7 +50,7 @@ const DEMO_WIN_RATE = Math.min(
 );
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const VERSION = '6.3-tinypesa-usdt-admins-minstake035';
+const VERSION = '6.4-tinypesa-key-check';
 
 const isSimUser = u =>
   !!(ADMIN_EMAIL && u &&
@@ -79,11 +79,32 @@ const withSim = (j, u) => {
 
 /* ── TINYPESA CONFIGURATION ── */
 
+const cleanEnv = v =>
+  String(v || '').trim().replace(/^["']+|["']+$/g, '').trim();
+
+/* finds the TinyPesa key even if the variable name has a typo, extra
+   space, different case or is called TINYPESA_APIKEY / TINYPESA_KEY */
+function findTinyKey() {
+  const exact = cleanEnv(process.env.TINYPESA_API_KEY);
+
+  if (exact) return exact;
+
+  for (const [name, value] of Object.entries(process.env)) {
+    if (
+      /^TINYPESA[\s_-]*.*(KEY|TOKEN)/i.test(name.trim()) &&
+      cleanEnv(value)
+    ) {
+      return cleanEnv(value);
+    }
+  }
+
+  return '';
+}
+
 const TINYPESA = {
   BASE: (process.env.TINYPESA_BASE ||
     'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
-  KEY: (process.env.TINYPESA_API_KEY || '')
-    .trim().replace(/^["']+|["']+$/g, '').trim(),
+  KEY: findTinyKey(),
   SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
     .trim().replace(/^["']+|["']+$/g, '')
     .replace(/^https?:\/\/(www\.)?tinypesa\.com\//i, '')
@@ -365,15 +386,31 @@ async function verifyAndCreditDeposit(
     return false;
   }
 
-  const live = await tinyPesaStatus(externalReference);
+  let live = await tinyPesaStatus(externalReference);
+  let foundByRequestId = false;
 
-  if (!live || live.is_complete !== true) {
+  if (!live && deposit.tinyPesaId) {
+    live = await tinyPesaStatus(deposit.tinyPesaId);
+    foundByRequestId = !!live;
+  }
+
+  const complete =
+    live &&
+    (live.is_complete === true ||
+     live.is_complete === 'true' ||
+     live.is_complete === 1);
+
+  if (!complete) {
     return false;
   }
 
+  const liveRef = String(live.external_reference || '');
+
+  /* if TinyPesa echoes a reference it must be ours; when we looked the
+     payment up by our own request id the lookup itself proves identity */
   if (
-    String(live.external_reference || '') !==
-    String(deposit.externalReference)
+    (liveRef && liveRef !== String(deposit.externalReference)) ||
+    (!liveRef && !foundByRequestId && !deposit.tinyPesaId)
   ) {
     return false;
   }
@@ -874,12 +911,23 @@ function digitMult(option, target) {
 
 /* ── VERSION ── */
 
+/* open this address in a browser to confirm the deploy and settings:
+   "mpesa": true  means TINYPESA_API_KEY is set on this service */
 app.get('/version', (req, res) => {
-  res.json({ v: VERSION });
+  res.json({
+    v: VERSION,
+    mpesa: !!TINYPESA.KEY,
+    callbackSecret: !!(process.env.MPESA_CB_SECRET || '').trim()
+  });
 });
 
 app.get('/', (req, res) => {
-  res.json({ ok: true, v: VERSION });
+  res.json({
+    ok: true,
+    v: VERSION,
+    mpesa: !!TINYPESA.KEY,
+    callbackSecret: !!(process.env.MPESA_CB_SECRET || '').trim()
+  });
 });
 
 /* ── AUTHENTICATION ── */
@@ -1657,8 +1705,10 @@ app.post('/deposits', auth, h(async (req, res) => {
   }
 
   if (!TINYPESA.KEY) {
+    console.error('Deposit blocked: TINYPESA_API_KEY is not set');
+
     return res.status(503).json({
-      message: 'TinyPesa is not configured on the server'
+      message: 'M-Pesa deposits are unavailable right now. Please try USDT or try again later.'
     });
   }
 
@@ -2055,6 +2105,16 @@ mongoose.connect(process.env.MONGO_URI)
 
     if (!TINYPESA.KEY) {
       console.warn('WARNING: TINYPESA_API_KEY missing - deposits disabled');
+
+      const seen = Object.keys(process.env)
+        .filter(k => /tiny|pesa|mpesa|api.?key/i.test(k))
+        .map(k => JSON.stringify(k));
+
+      console.warn(
+        'Related variable names this service can see: ' +
+        (seen.length ? seen.join(', ') : '(none)') +
+        ' - add TINYPESA_API_KEY under Render > Environment on THIS service, then redeploy.'
+      );
     } else {
       console.log(
         'TinyPesa: username "' + TINYPESA.SLUG + '", key length ' +
