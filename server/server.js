@@ -14,6 +14,8 @@
                    confirmed deposit; default 0 = no payout, stats only)
 
    TINYPESA SETUP (so deposits credit automatically):
+   0. Test your credentials: open https://<your-render-app>.onrender.com/tinypesa-test/<MPESA_CB_SECRET>
+      (set TINYPESA_USERNAME if your TinyPesa account username differs from the link name)
    1. Set TINYPESA_API_KEY and MPESA_CB_SECRET on Render.
    2. In your TinyPesa dashboard set the callback URL to
       https://<your-render-app>.onrender.com/mpesa/callback/<MPESA_CB_SECRET>
@@ -50,7 +52,7 @@ const DEMO_WIN_RATE = Math.min(
 );
 
 const ADMIN_EMAIL = (process.env.ADMIN_EMAIL || '').trim().toLowerCase();
-const VERSION = '6.4-tinypesa-key-check';
+const VERSION = '6.5-tinypesa-test-page';
 
 const isSimUser = u =>
   !!(ADMIN_EMAIL && u &&
@@ -105,7 +107,8 @@ const TINYPESA = {
   BASE: (process.env.TINYPESA_BASE ||
     'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
   KEY: findTinyKey(),
-  SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
+  SLUG: (process.env.TINYPESA_USERNAME ||
+    process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
     .trim().replace(/^["']+|["']+$/g, '')
     .replace(/^https?:\/\/(www\.)?tinypesa\.com\//i, '')
     .replace(/\/+$/, '').trim()
@@ -198,6 +201,11 @@ async function tinyRequest(kind, arg, body) {
     });
 
     if (response.status === 401 || response.status === 403) {
+      console.warn(
+        'TinyPesa rejected ' +
+        (v.username ? 'username API (username "' + TINYPESA.SLUG + '")' : 'public API (key only)') +
+        ' with HTTP ' + response.status
+      );
       last = response;
       continue;
     }
@@ -1889,6 +1897,69 @@ app.post('/mpesa/callback/:secret', async (req, res) => {
     );
   }
 });
+
+/* ── TINYPESA CREDENTIAL TEST (open in a browser, protected by your callback secret) ── */
+
+async function tinyProbe() {
+  const out = [];
+
+  for (let i = 0; i < TP_VARIANTS.length; i++) {
+    const v = TP_VARIANTS[i];
+    const label = v.username
+      ? 'username API (username "' + TINYPESA.SLUG + '")'
+      : 'public API (key only)';
+
+    let url = v.base + '/express/get_status/VNTCHECK/';
+
+    if (v.username) {
+      url += '?username=' + encodeURIComponent(TINYPESA.SLUG);
+    }
+
+    try {
+      const r = await fetch(url, {
+        headers: { Accept: 'application/json', ApiKey: TINYPESA.KEY }
+      });
+
+      out.push({
+        method: label,
+        http: r.status,
+        accepted: r.status !== 401 && r.status !== 403,
+        reply: (await r.text()).slice(0, 140)
+      });
+    } catch (error) {
+      out.push({ method: label, accepted: false, error: error.message });
+    }
+  }
+
+  return out;
+}
+
+app.get('/tinypesa-test/:secret', h(async (req, res) => {
+  const secret = (process.env.MPESA_CB_SECRET || '').trim();
+
+  if (!secret || req.params.secret !== secret) {
+    return res.status(403).json({ message: 'Wrong secret' });
+  }
+
+  if (!TINYPESA.KEY) {
+    return res.json({
+      keyLength: 0,
+      verdict: 'TINYPESA_API_KEY is not set on this service'
+    });
+  }
+
+  const results = await tinyProbe();
+  const ok = results.some(r => r.accepted);
+
+  res.json({
+    keyLength: TINYPESA.KEY.length,
+    usernameUsed: TINYPESA.SLUG,
+    results,
+    verdict: ok
+      ? 'TinyPesa accepts your credentials. STK push should work.'
+      : 'TinyPesa rejected the key with BOTH methods. Copy the API key again from your TinyPesa dashboard (API / Developer page), make sure the TinyPesa account is active, and set TINYPESA_USERNAME to your TinyPesa account username.'
+  });
+}));
 
 /* ── ADMIN HELPER ── */
 
