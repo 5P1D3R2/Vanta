@@ -108,7 +108,7 @@ const TINYPESA = {
     'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
   KEY: findTinyKey(),
   SLUG: (process.env.TINYPESA_USERNAME ||
-    process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
+    process.env.TINYPESA_LINK_SLUG || 'amspider')
     .trim().replace(/^["']+|["']+$/g, '')
     .replace(/^https?:\/\/(www\.)?tinypesa\.com\//i, '')
     .replace(/\/+$/, '').trim()
