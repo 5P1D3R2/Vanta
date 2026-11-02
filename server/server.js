@@ -7,7 +7,7 @@
    ADMIN_EMAIL
 
    OPTIONAL:
-   ADMIN_EMAILS (comma-separated admin emails; can use /admin/tinypesa-check)
+   ADMIN_EMAILS (comma-separated; any number of emails, e.g. a@x.com,b@y.com)
    TINYPESA_LINK_SLUG (default vantabinary2)
    DEMO_WIN_RATE (default 0.95)
    REFERRAL_BONUS (USD paid to the referrer when a friend makes a first
@@ -82,7 +82,7 @@ const withSim = (j, u) => {
 const TINYPESA = {
   BASE: (process.env.TINYPESA_BASE ||
     'https://api.tinypesa.com/api/v1').replace(/\/+$/, ''),
-  KEY: (process.env.TINYPESA_API_KEY || 'NJlywSJiOVIEM6NMgM-fmZoaHk4bk7pneHI6zzDngrcHm44snG')
+  KEY: (process.env.TINYPESA_API_KEY || '')
     .trim().replace(/^["']+|["']+$/g, '').trim(),
   SLUG: (process.env.TINYPESA_LINK_SLUG || 'vantabinary2')
     .trim().replace(/^["']+|["']+$/g, '')
@@ -117,6 +117,77 @@ const normPhone = value => {
   return digits;
 };
 
+/* TinyPesa can be reached two ways. We try the documented public API first
+   (ApiKey header only) and fall back to the username form if it is refused. */
+const TP_VARIANTS = [
+  {
+    base: 'https://tinypesa.com/api/v1',
+    init: '/express/initialize',
+    username: false,
+    form: true
+  },
+  {
+    base: TINYPESA.BASE,
+    init: '/express/initialize/',
+    username: true,
+    form: false
+  }
+];
+
+let tpPreferred = 0;
+
+async function tinyRequest(kind, arg, body) {
+  const order = tpPreferred === 0 ? [0, 1] : [1, 0];
+  let last = null;
+
+  for (const i of order) {
+    const v = TP_VARIANTS[i];
+
+    let url = v.base + (
+      kind === 'init'
+        ? v.init
+        : '/express/get_status/' + encodeURIComponent(arg) + '/'
+    );
+
+    if (v.username) {
+      url += '?username=' + encodeURIComponent(TINYPESA.SLUG);
+    }
+
+    const headers = {
+      Accept: 'application/json',
+      ApiKey: TINYPESA.KEY
+    };
+
+    let payload;
+
+    if (body) {
+      headers['Content-Type'] = v.form
+        ? 'application/x-www-form-urlencoded'
+        : 'application/json';
+
+      payload = v.form
+        ? new URLSearchParams(body).toString()
+        : JSON.stringify(body);
+    }
+
+    const response = await fetch(url, {
+      method: body ? 'POST' : 'GET',
+      headers,
+      body: payload
+    });
+
+    if (response.status === 401 || response.status === 403) {
+      last = response;
+      continue;
+    }
+
+    tpPreferred = i;
+    return { response, variant: i };
+  }
+
+  return { response: last, variant: -1 };
+}
+
 async function stkPush(amount, phone, ref = 'Payment') {
   if (!TINYPESA.KEY) {
     throw new Error('TINYPESA_API_KEY not configured');
@@ -128,23 +199,10 @@ async function stkPush(amount, phone, ref = 'Payment') {
     throw new Error('Invalid Kenyan Safaricom number');
   }
 
-  const url =
-    TINYPESA.BASE +
-    '/express/initialize/?username=' +
-    encodeURIComponent(TINYPESA.SLUG);
-
-  const response = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Accept: 'application/json',
-      Apikey: TINYPESA.KEY
-    },
-    body: JSON.stringify({
-      amount: Math.max(1, Math.round(amount)),
-      msisdn,
-      account_no: String(ref).slice(0, 20)
-    })
+  const { response } = await tinyRequest('init', null, {
+    amount: Math.max(1, Math.round(amount)),
+    msisdn,
+    account_no: String(ref).slice(0, 20)
   });
 
   const data = await readJson(response, 'TinyPesa initiate');
@@ -165,7 +223,12 @@ async function stkPush(amount, phone, ref = 'Payment') {
     data.transaction_id ||
     data.id;
 
-  if (data.status === false || !requestId) {
+  if (
+    data.status === false ||
+    data.success === false ||
+    data.success === 'false' ||
+    !requestId
+  ) {
     throw new Error(
       'TinyPesa rejected: ' +
       (data.message || data.errorMessage ||
@@ -255,19 +318,7 @@ async function tinyPesaStatus(externalReference) {
     throw new Error('TINYPESA_API_KEY is not configured');
   }
 
-  const url =
-    TINYPESA.BASE +
-    '/express/get_status/' +
-    encodeURIComponent(externalReference) +
-    '/?username=' +
-    encodeURIComponent(TINYPESA.SLUG);
-
-  const response = await fetch(url, {
-    headers: {
-      Accept: 'application/json',
-      Apikey: TINYPESA.KEY
-    }
-  });
+  const { response } = await tinyRequest('status', externalReference);
 
   const raw = await response.text();
 
@@ -1700,7 +1751,18 @@ app.get('/deposits/:id', auth, h(async (req, res) => {
 
 /* ── TINYPESA WEBHOOK ── */
 
-app.all('/mpesa/callback/:secret', async (req, res) => {
+app.get('/mpesa/callback/:secret', (req, res) => {
+  if (
+    req.params.secret !==
+    (process.env.MPESA_CB_SECRET || '').trim()
+  ) {
+    return res.status(403).end();
+  }
+
+  res.json({ ResultCode: 0, ResultDesc: 'Accepted' });
+});
+
+app.post('/mpesa/callback/:secret', async (req, res) => {
   if (
     req.params.secret !==
     (process.env.MPESA_CB_SECRET || '').trim()
@@ -1778,40 +1840,6 @@ app.all('/mpesa/callback/:secret', async (req, res) => {
   }
 });
 
-/* ── ADMIN: CHECK TINYPESA CREDENTIALS (sends no money request) ── */
-
-app.get('/admin/tinypesa-check', auth, adminAuth, h(async (req, res) => {
-  const out = {
-    slugInUse: TINYPESA.SLUG,
-    apiKeyLength: TINYPESA.KEY.length,
-    callbackSecretSet: !!(process.env.MPESA_CB_SECRET || '').trim()
-  };
-
-  if (!TINYPESA.KEY) {
-    out.verdict = 'TINYPESA_API_KEY is missing on Render';
-    return res.json(out);
-  }
-
-  try {
-    const response = await fetch(
-      TINYPESA.BASE + '/express/get_status/VNTCHECK/?username=' +
-        encodeURIComponent(TINYPESA.SLUG),
-      { headers: { Accept: 'application/json', Apikey: TINYPESA.KEY } }
-    );
-
-    out.httpStatus = response.status;
-    out.reply = (await response.text()).slice(0, 160);
-
-    out.verdict = response.status === 401 || response.status === 403
-      ? 'TinyPesa rejected the API key or username. Re-copy the API key from your TinyPesa dashboard and check TINYPESA_LINK_SLUG is your TinyPesa username.'
-      : 'Credentials accepted by TinyPesa.';
-  } catch (error) {
-    out.verdict = 'Could not reach TinyPesa: ' + error.message;
-  }
-
-  res.json(out);
-}));
-
 /* ── ADMIN HELPER ── */
 
 const adminAuth = async (req, res, next) => {
@@ -1827,6 +1855,40 @@ const adminAuth = async (req, res, next) => {
     res.status(500).json({ message: error.message });
   }
 };
+
+/* ── ADMIN: CHECK TINYPESA CREDENTIALS (sends no money request) ── */
+
+app.get('/admin/tinypesa-check', auth, adminAuth, h(async (req, res) => {
+  const out = {
+    slugInUse: TINYPESA.SLUG,
+    apiKeyLength: TINYPESA.KEY.length,
+    callbackSecretSet: !!(process.env.MPESA_CB_SECRET || '').trim()
+  };
+
+  if (!TINYPESA.KEY) {
+    out.verdict = 'TINYPESA_API_KEY is missing on Render';
+    return res.json(out);
+  }
+
+  try {
+    const { response, variant } =
+      await tinyRequest('status', 'VNTCHECK');
+
+    out.httpStatus = response.status;
+    out.reply = (await response.text()).slice(0, 160);
+    out.method = variant === 0
+      ? 'public API (ApiKey only)'
+      : variant === 1 ? 'username API' : 'none accepted';
+
+    out.verdict = variant === -1
+      ? 'TinyPesa rejected the API key (both ways). Re-copy the API key from your TinyPesa dashboard into TINYPESA_API_KEY, with no spaces or quotes.'
+      : 'Credentials accepted by TinyPesa.';
+  } catch (error) {
+    out.verdict = 'Could not reach TinyPesa: ' + error.message;
+  }
+
+  res.json(out);
+}));
 
 /* ── WITHDRAWALS ── */
 
